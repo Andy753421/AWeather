@@ -57,9 +57,9 @@ int main(int argc, char *argv[])
 	GdkGLConfig *glconfig = gdk_gl_config_new_by_mode(GDK_GL_MODE_RGB | GDK_GL_MODE_DEPTH | GDK_GL_MODE_DOUBLE);
 	if (!glconfig) g_assert_not_reached();
 	if (!gtk_widget_set_gl_capability(drawing, glconfig, NULL, TRUE, GDK_GL_RGBA_TYPE)) g_assert_not_reached();
-	g_signal_connect(drawing, "configure-event", G_CALLBACK(configure), NULL);
-	g_signal_connect(drawing, "expose-event",    G_CALLBACK(expose),    NULL);
-	g_timeout_add(1000/60, rotate, drawing);
+
+	/* Load plugins */
+	cube_init(drawing);
 
 	gtk_widget_show_all(window);
 	gtk_main();

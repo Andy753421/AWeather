@@ -143,3 +143,10 @@ gboolean rotate (gpointer user_data)
 
 	return TRUE;
 }
+
+gboolean cube_init(GtkDrawingArea *drawing)
+{
+	g_signal_connect(drawing, "configure-event", G_CALLBACK(configure), NULL);
+	g_signal_connect(drawing, "expose-event",    G_CALLBACK(expose),    NULL);
+	g_timeout_add(1000/60, rotate, drawing);
+}
