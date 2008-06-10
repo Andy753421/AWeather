@@ -1,40 +1,96 @@
 /* Prototype stuff for parsing Level-II data */
+/*
+ * TODO: ARGG, the packet sizses are all wrong..
+ *       Check sizes of decompressed bzip files
+ */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <error.h>
-#include <arpa/inet.h>
+#include <glib.h>
+#include <bzlib.h>
+#include "level2.h"
 
-struct packet {
-	short          junk1[6];
-	unsigned short size;
-	unsigned char  id, type;
-	unsigned short seq, gen_date;
-	unsigned int   gen_time;
-	unsigned short num_seg, seg;
-	unsigned int   coll_time;
-	unsigned short coll_date, range, angle, radial, rad_status, elev_angle;
-	unsigned short elev_num;
-	short          first_refl, first_dopp;
-	unsigned short refl_size, dopp_size;
-	unsigned short num_refl_gate, num_dopp_gate, sector;
-	float          gain;
-	unsigned short refl_ptr, vel_ptr, spec_ptr, dopp_res, pattern;
-	short          junk2[4];
-	unsigned short refl_ptr_rda, vel_ptr_rda, spec_ptr_rda, nyquist, atten;
-	short          thresh;
-	short          junk3[17];
-	unsigned char  data[2304];
-	float          dbz[460];
-};
+level2_packet_t **level2_split_packets(char *data, int *num_packets, int data_size)
+{
+	int packet_i = 0;
+	level2_packet_t  *packet = (level2_packet_t *)data;
+	int max_packets = 128;
+	level2_packet_t **packets = malloc(sizeof(level2_packet_t *)*max_packets);
+	while ((void *)packet < (void *)(data+data_size)) {
+		/* Increase packets size if necessasairy */
+		if (packet_i >= max_packets) {
+			max_packets *= 2;
+			packets = realloc(packets, sizeof(level2_packet_t *)*max_packets);
+		}
 
-typedef struct {
-	/* 24 bytes */
-	char version[4];
-	char unknown0[16];
-	char station[4];
-} __attribute__ ((packed)) header_t;
+		/* Fix byte order for packet */
+		packet->size = g_ntohs(packet->size);
+		packet->seq  = g_ntohs(packet->seq);
+		// TODO: Convert the rest of the bytes
+
+		/* Save packet location */
+		packets[packet_i] = packet;
+
+		/* Increment packet and packet_i */
+		// new =                      old              + CTM + 2*size         + fcs
+		//packet = (level2_packet_t *)( ((char *)packet) + 12  + 2*packet->size + 4 );
+		packet++;
+		packet_i++;
+	}
+	packets = realloc(packets, sizeof(level2_packet_t *)*packet_i);
+	*num_packets = packet_i;
+	return packets;
+}
+
+level2_packet_t *level2_decompress(char *raw_data, int *num_packets)
+{
+	/* Read header */
+	FILE *fd = fopen(raw_data, "r");
+	if (fd == NULL)
+		error(1, errno, "Error opening files `%s'", raw_data);
+	level2_header_t header;
+	if (1 != fread(&header, sizeof(level2_header_t), 1, fd))
+		error(1, errno, "Error reading header");
+
+	/* Decompress the bzips
+	 *   store the entire sequence starting at data
+	 *   cur_data is for each individual bzip and is the last chunk of data */
+	char *data = NULL;
+	int data_size = 0; // size of previously decmpressed data
+	char *bz2 = NULL;  // temp buf for bzipped data
+	unsigned int _bz2_size = 0;
+	while ((int)_bz2_size >= 0) {
+		if (1 != fread(&_bz2_size, 4, 1, fd))
+			break; //error(1, errno, "Error reading _bz2_size, pos=%x", (unsigned int)ftell(fd));
+		_bz2_size = g_ntohl(_bz2_size);
+		int bz2_size = abs(_bz2_size);
+
+		/* Read data */
+		if (NULL == (bz2 = (char *)realloc(bz2, bz2_size)))
+			error(1, errno, "cannot allocate `%d' bytes for buffer", bz2_size);
+		if (bz2_size != fread(bz2, 1, bz2_size, fd))
+			error(1, errno, "error reading from input file");
+
+		/* Decompress on individual bzip to the end of the sequence */
+		unsigned int cur_data_size = 1<<17;
+		int status = BZ_OUTBUFF_FULL;
+		while (status == BZ_OUTBUFF_FULL) {
+			cur_data_size *= 2;
+			data = realloc(data, data_size + cur_data_size);
+			status = BZ2_bzBuffToBuffDecompress(data + data_size, &cur_data_size, bz2, bz2_size, 0, 0);
+		}
+		data_size += cur_data_size; // Add current chunk to decompressed data
+
+		/* Debug */
+		//printf("data_size = %d, cur_data_size = %d\n", data_size, cur_data_size);
+	}
+	data = realloc(data, data_size); // free unused space at the end
+
+	return (level2_packet_t *)data;
+	//return level2_split_packets(data, num_packets, data_size);
+}
 
 int main(int argc, char **argv)
 {
@@ -43,48 +99,22 @@ int main(int argc, char **argv)
 		return 0;
 	}
 
-	/* Read header */
-	FILE *fd = fopen(argv[1], "r");
-	if (fd == NULL)
-		error(1, errno, "Error opening files `%s'", argv[1]);
-	header_t header;
-	if (1 != fread(&header, sizeof(header_t), 1, fd))
-		error(1, errno, "Error reading header");
+	int num_packets;
+	level2_packet_t *packets = level2_decompress(argv[1], &num_packets);
+	printf("read %d packets\n", num_packets);
+	
+	//FILE *output = fopen("output.dat", "w+");
+	//fwrite(packets[i], 1, 18470816, output);
+	//fclose(output);
 
-	/* Cut up the bzips */
-	int file_num = 0;
-	char filename[16];
-	char *buf = NULL;
-	FILE *outfile = NULL;
-	unsigned int size = 0;
-
-	while ((int)size >= 0) {
-		if (1 != fread(&size, 4, 1, fd))
-			break; //error(1, errno, "Error reading size, pos=%x", (unsigned int)ftell(fd));
-		size = ntohl(size);
-
-		/* Read data */
-		;
-		if (NULL == (buf = (char *)realloc(buf, size)))
-			error(1, errno, "cannot allocate `%d' bytes for buffer", size);
-		if (size != fread(buf, 1, size, fd))
-			error(1, errno, "error reading from input file");
-
-		/* Decmopress data */
-		//char *block = (char *)malloc(8192), *oblock = (char *)malloc(262144);
-		//error = BZ2_bzBuffToBuffDecompress(oblock, &olength, block, length, 0, 0);
-
-		/* Write data */
-		snprintf(filename, 16, "%d.bz2", file_num);
-		outfile = fopen(filename, "w+");
-		fwrite(buf, 1, size, outfile);
-		fclose(outfile);
-
-		//fprintf(stderr, "wrote `%d' bytes to file `%s'\n", size, filename);
-
-		/* iterate */
-		file_num++;
+	FILE *output = fopen("output.dat", "w+");
+	int i;
+	for (i = 0; i < 10000; i++) {
+		printf("packet: size=%x, seq=%d\n", g_ntohs(packets[i].size), g_ntohs(packets[i].seq));
+		fwrite("################", 1, 16, output);
+		fwrite(packets+i, 1, sizeof(level2_packet_t), output);
 	}
+	fclose(output);
 
 	return 0;
 }
