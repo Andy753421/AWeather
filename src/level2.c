@@ -2,6 +2,8 @@
 /*
  * TODO: ARGG, the packet sizses are all wrong..
  *       Check sizes of decompressed bzip files
+ *       Split things back up to seperate files
+ * The second bzip contains different size packets?
  */
 
 #include <stdio.h>
@@ -81,10 +83,12 @@ level2_packet_t *level2_decompress(char *raw_data, int *num_packets)
 			data = realloc(data, data_size + cur_data_size);
 			status = BZ2_bzBuffToBuffDecompress(data + data_size, &cur_data_size, bz2, bz2_size, 0, 0);
 		}
+		if (status != BZ_OK)
+			error(1, 1, "Error decompressing data");
 		data_size += cur_data_size; // Add current chunk to decompressed data
 
 		/* Debug */
-		//printf("data_size = %d, cur_data_size = %d\n", data_size, cur_data_size);
+		printf("data_size = %d, cur_data_size = %d\n", data_size, cur_data_size);
 	}
 	data = realloc(data, data_size); // free unused space at the end
 

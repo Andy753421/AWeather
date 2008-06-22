@@ -38,6 +38,8 @@ int main(int argc, char *argv[])
 	/* Set up layout */
 	GtkWidget *vbox = gtk_vbox_new(FALSE, 0);
 	gtk_container_add(GTK_CONTAINER(window), vbox);
+	GtkWidget *paned = gtk_vpaned_new();
+	gtk_box_pack_end(GTK_BOX(vbox), paned, TRUE, TRUE, 0);
 
 	/* Set up menu bar */
 	GtkWidget *menu                = gtk_menu_bar_new();
@@ -52,14 +54,22 @@ int main(int argc, char *argv[])
 
 	/* Set up darwing area */
 	GtkWidget *drawing = gtk_drawing_area_new();
-	gtk_box_pack_start(GTK_BOX(vbox), drawing, TRUE, TRUE, 0);
-	//gtk_widget_set_events(drawing, GDK_EXPOSURE_MASK); // needed?
+	gtk_paned_pack1(GTK_PANED(paned), drawing, TRUE, FALSE);
+	//gtk_box_pack_end(GTK_BOX(vbox), drawing, TRUE, TRUE, 0);
 	GdkGLConfig *glconfig = gdk_gl_config_new_by_mode(GDK_GL_MODE_RGB | GDK_GL_MODE_DEPTH | GDK_GL_MODE_DOUBLE);
 	if (!glconfig) g_assert_not_reached();
 	if (!gtk_widget_set_gl_capability(drawing, glconfig, NULL, TRUE, GDK_GL_RGBA_TYPE)) g_assert_not_reached();
 
+	/* Set up tab area */
+	GtkWidget *tab_area = gtk_notebook_new();
+	gtk_notebook_set_tab_pos(GTK_NOTEBOOK(tab_area), GTK_POS_BOTTOM);
+	gtk_paned_pack2(GTK_PANED(paned), tab_area, FALSE, FALSE);
+	GtkWidget *label = gtk_label_new("Hello");
+	GtkWidget *contents = gtk_label_new("World");
+	gtk_notebook_append_page(GTK_NOTEBOOK(tab_area), contents, label);
+
 	/* Load plugins */
-	cube_init(drawing);
+	cube_init(drawing, tab_area);
 
 	gtk_widget_show_all(window);
 	gtk_main();

@@ -5,6 +5,8 @@
 #include <GL/gl.h>
 #include <math.h>
 
+static GtkWidget *rotate_button;
+
 float boxv[][3] = {
 	{ -0.5, -0.5, -0.5 },
 	{  0.5, -0.5, -0.5 },
@@ -134,6 +136,9 @@ gboolean configure(GtkWidget *da, GdkEventConfigure *event, gpointer user_data)
 
 gboolean rotate (gpointer user_data)
 {
+	if (!gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(rotate_button)))
+		return TRUE;
+
 	GtkWidget *da = GTK_WIDGET (user_data);
 
 	ang++;
@@ -144,8 +149,14 @@ gboolean rotate (gpointer user_data)
 	return TRUE;
 }
 
-gboolean cube_init(GtkDrawingArea *drawing)
+gboolean cube_init(GtkDrawingArea *drawing, GtkNotebook *config)
 {
+	/* Add configuration tab */
+	GtkWidget *label = gtk_label_new("Cube");
+	rotate_button = gtk_toggle_button_new_with_label("Rotate");
+	gtk_notebook_append_page(GTK_NOTEBOOK(config), rotate_button, label);
+
+	/* Set up OpenGL Stuff */
 	g_signal_connect(drawing, "configure-event", G_CALLBACK(configure), NULL);
 	g_signal_connect(drawing, "expose-event",    G_CALLBACK(expose),    NULL);
 	g_timeout_add(1000/60, rotate, drawing);
