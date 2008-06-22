@@ -14,6 +14,7 @@
 #include <bzlib.h>
 #include "level2.h"
 
+/* Not used in favor of RSL */
 level2_packet_t **level2_split_packets(char *data, int *num_packets, int data_size)
 {
 	int packet_i = 0;
@@ -46,6 +47,7 @@ level2_packet_t **level2_split_packets(char *data, int *num_packets, int data_si
 	return packets;
 }
 
+/* Not used in favor of RSL */
 level2_packet_t *level2_decompress(char *raw_data, int *num_packets)
 {
 	/* Read header */
@@ -95,6 +97,8 @@ level2_packet_t *level2_decompress(char *raw_data, int *num_packets)
 	return (level2_packet_t *)data;
 	//return level2_split_packets(data, num_packets, data_size);
 }
+
+
 
 int main(int argc, char **argv)
 {

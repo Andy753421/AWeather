@@ -32,7 +32,6 @@ int main(int argc, char *argv[])
 	GtkWidget *window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	gtk_window_set_default_size(GTK_WINDOW(window), 800, 600);
 	g_signal_connect(G_OBJECT(window), "delete-event",    G_CALLBACK(delete_event), NULL);
-	g_signal_connect(G_OBJECT(window), "delete-event",    G_CALLBACK(delete_event), NULL);
 	g_signal_connect(G_OBJECT(window), "key-press-event", G_CALLBACK(key_press),    NULL);
 
 	/* Set up layout */
@@ -69,7 +68,9 @@ int main(int argc, char *argv[])
 	gtk_notebook_append_page(GTK_NOTEBOOK(tab_area), contents, label);
 
 	/* Load plugins */
-	cube_init(drawing, tab_area);
+	opengl_init(GTK_DRAWING_AREA(drawing), GTK_NOTEBOOK(tab_area));
+	cube_init  (GTK_DRAWING_AREA(drawing), GTK_NOTEBOOK(tab_area));
+	radar_init (GTK_DRAWING_AREA(drawing), GTK_NOTEBOOK(tab_area));
 
 	gtk_widget_show_all(window);
 	gtk_main();
