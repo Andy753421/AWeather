@@ -5,11 +5,11 @@
 
 static gboolean expose_start(GtkWidget *da, GdkEventExpose *event, gpointer user_data)
 {
-	GdkGLContext *glcontext = gtk_widget_get_gl_context (da);
-	GdkGLDrawable *gldrawable = gtk_widget_get_gl_drawable (da);
+	GdkGLContext *glcontext = gtk_widget_get_gl_context(da);
+	GdkGLDrawable *gldrawable = gtk_widget_get_gl_drawable(da);
 
-	if (!gdk_gl_drawable_gl_begin (gldrawable, glcontext)) {
-		g_assert_not_reached ();
+	if (!gdk_gl_drawable_gl_begin(gldrawable, glcontext)) {
+		g_assert_not_reached();
 	}
 
 	/* draw in here */
@@ -18,37 +18,37 @@ static gboolean expose_start(GtkWidget *da, GdkEventExpose *event, gpointer user
 /* Plugins run stuff here */
 static gboolean expose_end(GtkWidget *da, GdkEventExpose *event, gpointer user_data)
 {
-	GdkGLContext *glcontext = gtk_widget_get_gl_context (da);
-	GdkGLDrawable *gldrawable = gtk_widget_get_gl_drawable (da);
+	GdkGLContext *glcontext = gtk_widget_get_gl_context(da);
+	GdkGLDrawable *gldrawable = gtk_widget_get_gl_drawable(da);
 
-	if (gdk_gl_drawable_is_double_buffered (gldrawable))
-		gdk_gl_drawable_swap_buffers (gldrawable);
+	if (gdk_gl_drawable_is_double_buffered(gldrawable))
+		gdk_gl_drawable_swap_buffers(gldrawable);
 	else
-		glFlush ();
+		glFlush();
 
-	gdk_gl_drawable_gl_end (gldrawable);
+	gdk_gl_drawable_gl_end(gldrawable);
 
 	return FALSE;
 }
 static gboolean configure(GtkWidget *da, GdkEventConfigure *event, gpointer user_data)
 {
-	GdkGLContext *glcontext = gtk_widget_get_gl_context (da);
-	GdkGLDrawable *gldrawable = gtk_widget_get_gl_drawable (da);
+	GdkGLContext *glcontext = gtk_widget_get_gl_context(da);
+	GdkGLDrawable *gldrawable = gtk_widget_get_gl_drawable(da);
 
-	if (!gdk_gl_drawable_gl_begin (gldrawable, glcontext))
-		g_assert_not_reached ();
+	if (!gdk_gl_drawable_gl_begin(gldrawable, glcontext))
+		g_assert_not_reached();
 
 	glLoadIdentity();
-	glViewport (0, 0, da->allocation.width, da->allocation.height);
-	glOrtho (-10,10,-10,10,-20050,10000);
-	glEnable (GL_BLEND);
-	glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glViewport(0, 0, da->allocation.width, da->allocation.height);
+	glOrtho(-10,10,-10,10,-20050,10000);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-	glScalef (10., 10., 10.);
+	glScalef(10., 10., 10.);
 	
-	gdk_gl_drawable_gl_end (gldrawable);
+	gdk_gl_drawable_gl_end(gldrawable);
 
-	return TRUE;
+	return FALSE;
 }
 
 gboolean opengl_init(GtkDrawingArea *drawing, GtkNotebook *config)

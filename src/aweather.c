@@ -63,9 +63,9 @@ int main(int argc, char *argv[])
 	GtkWidget *tab_area = gtk_notebook_new();
 	gtk_notebook_set_tab_pos(GTK_NOTEBOOK(tab_area), GTK_POS_BOTTOM);
 	gtk_paned_pack2(GTK_PANED(paned), tab_area, FALSE, FALSE);
-	GtkWidget *label = gtk_label_new("Hello");
-	GtkWidget *contents = gtk_label_new("World");
-	gtk_notebook_append_page(GTK_NOTEBOOK(tab_area), contents, label);
+	//GtkWidget *label = gtk_label_new("Hello");
+	//GtkWidget *contents = gtk_label_new("World");
+	//gtk_notebook_append_page(GTK_NOTEBOOK(tab_area), contents, label);
 
 	/* Load plugins */
 	opengl_init(GTK_DRAWING_AREA(drawing), GTK_NOTEBOOK(tab_area));

@@ -107,8 +107,8 @@ static gboolean rotate(gpointer user_data)
 
 	ang++;
 
-	gdk_window_invalidate_rect (da->window, &da->allocation, FALSE);
-	gdk_window_process_updates (da->window, FALSE);
+	gdk_window_invalidate_rect(da->window, &da->allocation, FALSE);
+	gdk_window_process_updates(da->window, FALSE);
 
 	return TRUE;
 }
