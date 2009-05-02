@@ -14,11 +14,11 @@ static gboolean expose_start(GtkWidget *da, GdkEventExpose *event, gpointer user
 
 	/* draw in here */
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	return TRUE;
 }
 /* Plugins run stuff here */
 static gboolean expose_end(GtkWidget *da, GdkEventExpose *event, gpointer user_data)
 {
-	GdkGLContext *glcontext = gtk_widget_get_gl_context(da);
 	GdkGLDrawable *gldrawable = gtk_widget_get_gl_drawable(da);
 
 	if (gdk_gl_drawable_is_double_buffered(gldrawable))
@@ -59,4 +59,5 @@ gboolean opengl_init(GtkDrawingArea *drawing, GtkNotebook *config)
 	//g_signal_connect(drawing, "expose-event", G_CALLBACK(expose), NULL);
 	g_signal_connect      (drawing, "expose-event", G_CALLBACK(expose_start), NULL);
 	g_signal_connect_after(drawing, "expose-event", G_CALLBACK(expose_end),   NULL);
+	return TRUE;
 }

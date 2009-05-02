@@ -26,8 +26,8 @@ static float ang = 30.;
 
 static gboolean expose(GtkWidget *da, GdkEventExpose *event, gpointer user_data)
 {
-	GdkGLContext *glcontext = gtk_widget_get_gl_context (da);
-	GdkGLDrawable *gldrawable = gtk_widget_get_gl_drawable (da);
+	//GdkGLContext  *glcontext  = gtk_widget_get_gl_context (da);
+	//GdkGLDrawable *gldrawable = gtk_widget_get_gl_drawable (da);
 
 	/* draw in here */
 	glPushMatrix();
@@ -123,4 +123,5 @@ gboolean cube_init(GtkDrawingArea *drawing, GtkNotebook *config)
 	/* Set up OpenGL Stuff */
 	g_signal_connect(drawing, "expose-event", G_CALLBACK(expose), NULL);
 	g_timeout_add(1000/60, rotate, drawing);
+	return TRUE;
 }

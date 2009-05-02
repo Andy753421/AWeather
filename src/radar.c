@@ -12,7 +12,7 @@
 GtkWidget *drawing;
 static Sweep *cur_sweep; // make this not global
 static int nred, ngreen, nblue;
-static guint8 red[256], green[256], blue[256];
+static char red[256], green[256], blue[256];
 
 /* Convert a sweep to an 2d array of data points */
 static void bscan_sweep(Sweep *sweep, guint8 **data, int *width, int *height)
@@ -23,7 +23,7 @@ static void bscan_sweep(Sweep *sweep, guint8 **data, int *width, int *height)
 		max_bins = MAX(max_bins, sweep->ray[i]->h.nbins);
 
 	/* Allocate buffer using max number of bins for each ray */
-	char *buf = g_malloc0(sweep->h.nrays * max_bins * 3);
+	guint8 *buf = g_malloc0(sweep->h.nrays * max_bins * 3);
 
 	/* Fill the data */
 	int ri, bi;
@@ -32,9 +32,9 @@ static void bscan_sweep(Sweep *sweep, guint8 **data, int *width, int *height)
 		for (bi = 0; bi < ray->h.nbins; bi++) {
 			Range bin = ray->range[bi];
 			/* copy RGB into buffer */
-			buf[(ri*max_bins+bi)*3+0] =   red[(guint8)ray->h.f(bin)];
-			buf[(ri*max_bins+bi)*3+1] = green[(guint8)ray->h.f(bin)];
-			buf[(ri*max_bins+bi)*3+2] =  blue[(guint8)ray->h.f(bin)];
+			buf[(ri*max_bins+bi)*3+0] =   red[(gint8)ray->h.f(bin)];
+			buf[(ri*max_bins+bi)*3+1] = green[(gint8)ray->h.f(bin)];
+			buf[(ri*max_bins+bi)*3+2] =  blue[(gint8)ray->h.f(bin)];
 		}
 	}
 
@@ -68,7 +68,7 @@ static void load_sweep(Sweep *sweep)
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-	free(data);
+	g_free(data);
 	glEnable(GL_TEXTURE_2D);
 	gdk_window_invalidate_rect(drawing->window, &drawing->allocation, FALSE);
 }
@@ -94,8 +94,8 @@ static gboolean expose(GtkWidget *da, GdkEventExpose *event, gpointer user_data)
 {
 	Sweep *sweep = cur_sweep;
 
-	GdkGLContext *glcontext = gtk_widget_get_gl_context(da);
-	GdkGLDrawable *gldrawable = gtk_widget_get_gl_drawable(da);
+	//GdkGLContext *glcontext = gtk_widget_get_gl_context(da);
+	//GdkGLDrawable *gldrawable = gtk_widget_get_gl_drawable(da);
 
 	/* draw in here */
 	glPushMatrix();
@@ -112,7 +112,7 @@ static gboolean expose(GtkWidget *da, GdkEventExpose *event, gpointer user_data)
 
 		/* right and left looking out from radar */
 		double left  = ((ray->h.azimuth - ((double)ray->h.beam_width/2.))*M_PI)/180.0; 
-		double right = ((ray->h.azimuth + ((double)ray->h.beam_width/2.))*M_PI)/180.0; 
+		//double right = ((ray->h.azimuth + ((double)ray->h.beam_width/2.))*M_PI)/180.0; 
 
 		double lx = sin(left);
 		double ly = cos(left);
@@ -126,7 +126,7 @@ static gboolean expose(GtkWidget *da, GdkEventExpose *event, gpointer user_data)
 		glTexCoord2d(0.0, ((double)ri)/sweep->h.nrays); glVertex3f(lx*near_dist, ly*near_dist, 0.); // near left
 		glTexCoord2d(0.7, ((double)ri)/sweep->h.nrays); glVertex3f(lx*far_dist,  ly*far_dist,  0.); // far  left
 	}
-	g_printf("ri=%d, nr=%d, bw=%f\n", _ri, sweep->h.nrays, sweep->h.beam_width);
+	g_print("ri=%d, nr=%d, bw=%f\n", _ri, sweep->h.nrays, sweep->h.beam_width);
 	glEnd();
 	/* Texture debug */
 	//glBegin(GL_QUADS);
@@ -164,8 +164,7 @@ gboolean radar_init(GtkDrawingArea *_drawing, GtkNotebook *config)
 	/* Parse hard coded file.. */
 	RSL_read_these_sweeps("all", NULL);
 	//RSL_read_these_sweeps("all", NULL);
-	Radar *radar = RSL_wsr88d_to_radar("/scratch/aweather/src/KABR_20080609_0224", "KABR");
-	//radar = RSL_wsr88d_to_radar("/scratch/aweather/src/KABX_20080622_2229", "KABX");
+	Radar *radar = RSL_wsr88d_to_radar("/scratch/aweather/data/KNQA_20090501_1925", "KNQA");
 	RSL_load_refl_color_table();
 	RSL_get_color_table(RSL_RED_TABLE,   red,   &nred);
 	RSL_get_color_table(RSL_GREEN_TABLE, green, &ngreen);
@@ -190,10 +189,10 @@ gboolean radar_init(GtkDrawingArea *_drawing, GtkNotebook *config)
 			button = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(button), label);
 			g_signal_connect_swapped(button, "clicked", G_CALLBACK(load_sweep), sweep);
 			gtk_box_pack_start(GTK_BOX(vbox), button, TRUE, TRUE, 0);
-			free(label);
+			g_free(label);
 		}
 	}
 	GtkWidget *label = gtk_label_new("Radar");
 	gtk_notebook_append_page(GTK_NOTEBOOK(config), hbox, label);
-
+	return TRUE;
 }

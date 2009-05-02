@@ -3,6 +3,8 @@
 #include <gtk/gtkgl.h>
 #include <gdk/gdkkeysyms.h>
 
+#include "opengl.h"
+#include "radar.h"
 #include "cube.h"
 
 static void destroy(GtkWidget *widget, gpointer data)
@@ -20,6 +22,7 @@ static gboolean key_press(GtkWidget *widget, GdkEventKey *event, gpointer data)
 {
 	if (event->keyval == GDK_q)
 		destroy(widget, data);
+	return TRUE;
 }
 
 int main(int argc, char *argv[])
@@ -69,7 +72,7 @@ int main(int argc, char *argv[])
 
 	/* Load plugins */
 	opengl_init(GTK_DRAWING_AREA(drawing), GTK_NOTEBOOK(tab_area));
-	radar_init (GTK_DRAWING_AREA(drawing), GTK_NOTEBOOK(tab_area));
+	//radar_init (GTK_DRAWING_AREA(drawing), GTK_NOTEBOOK(tab_area));
 	cube_init  (GTK_DRAWING_AREA(drawing), GTK_NOTEBOOK(tab_area));
 
 	gtk_widget_show_all(window);
