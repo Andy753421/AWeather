@@ -1,9 +1,16 @@
+# Init and options
 AC_INIT([aweather], [0.1], [spenceal@rose-hulman.edu])
-AM_INIT_AUTOMAKE([-Wall -Werror])
-AC_PROG_CC
-AM_PROG_CC_C_O
+AM_INIT_AUTOMAKE([-Wall -Werror -Wno-portability foreign])
 AC_CONFIG_HEADERS([config.h])
-PKG_CHECK_MODULES(PACKAGE, gtk+-2.0 gtkglext-1.0)
+
+# Check for required programs
+AC_PROG_CC
+PKG_PROG_PKG_CONFIG
+
+# Check for required packages
+PKG_CHECK_MODULES(GTK, gtk+-2.0 gtkglext-1.0)
+
+# Output 
 AC_CONFIG_FILES([
 	Makefile
 	src/Makefile

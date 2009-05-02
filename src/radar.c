@@ -44,17 +44,17 @@ static void bscan_sweep(Sweep *sweep, guint8 **data, int *width, int *height)
 	*data   = buf;
 
 	/* debug */
-	//static int fi = 0;
-	//char fname[128];
-	//sprintf(fname, "image-%d.ppm", fi);
-	//FILE *fp = fopen(fname, "w+");
-	//fprintf(fp, "P6\n");
-	//fprintf(fp, "# Foo\n");
-	//fprintf(fp, "%d %d\n", *width, *height);
-	//fprintf(fp, "255\n");
-	//fwrite(buf, 3, *width * *height, fp);
-	//fclose(fp);
-	//fi++;
+	static int fi = 0;
+	char fname[128];
+	sprintf(fname, "image-%d.ppm", fi);
+	FILE *fp = fopen(fname, "w+");
+	fprintf(fp, "P6\n");
+	fprintf(fp, "# Foo\n");
+	fprintf(fp, "%d %d\n", *width, *height);
+	fprintf(fp, "255\n");
+	fwrite(buf, 3, *width * *height, fp);
+	fclose(fp);
+	fi++;
 }
 
 /* Load a sweep as the active texture */
@@ -64,10 +64,12 @@ static void load_sweep(Sweep *sweep)
 	int height, width;
 	guint8 *data;
 	bscan_sweep(sweep, &data, &width, &height);
-	glEnable(GL_TEXTURE_2D);
+	glPixelStorei(GL_PACK_ALIGNMENT, 1);
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
 	free(data);
+	glEnable(GL_TEXTURE_2D);
 	gdk_window_invalidate_rect(drawing->window, &drawing->allocation, FALSE);
 }
 
@@ -164,13 +166,13 @@ gboolean radar_init(GtkDrawingArea *_drawing, GtkNotebook *config)
 	//RSL_read_these_sweeps("all", NULL);
 	Radar *radar = RSL_wsr88d_to_radar("/scratch/aweather/src/KABR_20080609_0224", "KABR");
 	//radar = RSL_wsr88d_to_radar("/scratch/aweather/src/KABX_20080622_2229", "KABX");
-	RSL_load_vel_color_table();
+	RSL_load_refl_color_table();
 	RSL_get_color_table(RSL_RED_TABLE,   red,   &nred);
 	RSL_get_color_table(RSL_GREEN_TABLE, green, &ngreen);
 	RSL_get_color_table(RSL_BLUE_TABLE,  blue,  &nblue);
 	if (radar->h.nvolumes < 1 || radar->v[0]->h.nsweeps < 1)
 		g_print("No sweeps found\n");
-	cur_sweep = radar->v[0]->sweep[0];
+	cur_sweep = radar->v[0]->sweep[6];
 
 	/* Add configuration tab */
 	GtkWidget *hbox = gtk_hbox_new(TRUE, 0);

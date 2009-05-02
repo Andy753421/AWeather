@@ -6,4 +6,4 @@ automake -a -c
 autoconf
 
 # Run configure
-./configure
+./configure "$@"
