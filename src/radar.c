@@ -44,17 +44,17 @@ static void bscan_sweep(Sweep *sweep, guint8 **data, int *width, int *height)
 	*data   = buf;
 
 	/* debug */
-	static int fi = 0;
-	char fname[128];
-	sprintf(fname, "image-%d.ppm", fi);
-	FILE *fp = fopen(fname, "w+");
-	fprintf(fp, "P6\n");
-	fprintf(fp, "# Foo\n");
-	fprintf(fp, "%d %d\n", *width, *height);
-	fprintf(fp, "255\n");
-	fwrite(buf, 3, *width * *height, fp);
-	fclose(fp);
-	fi++;
+	//static int fi = 0;
+	//char fname[128];
+	//sprintf(fname, "image-%d.ppm", fi);
+	//FILE *fp = fopen(fname, "w+");
+	//fprintf(fp, "P6\n");
+	//fprintf(fp, "# Foo\n");
+	//fprintf(fp, "%d %d\n", *width, *height);
+	//fprintf(fp, "255\n");
+	//fwrite(buf, 3, *width * *height, fp);
+	//fclose(fp);
+	//fi++;
 }
 
 /* Load a sweep as the active texture */
@@ -126,7 +126,7 @@ static gboolean expose(GtkWidget *da, GdkEventExpose *event, gpointer user_data)
 		glTexCoord2d(0.0, ((double)ri)/sweep->h.nrays); glVertex3f(lx*near_dist, ly*near_dist, 0.); // near left
 		glTexCoord2d(0.7, ((double)ri)/sweep->h.nrays); glVertex3f(lx*far_dist,  ly*far_dist,  0.); // far  left
 	}
-	g_print("ri=%d, nr=%d, bw=%f\n", _ri, sweep->h.nrays, sweep->h.beam_width);
+	//g_print("ri=%d, nr=%d, bw=%f\n", _ri, sweep->h.nrays, sweep->h.beam_width);
 	glEnd();
 	/* Texture debug */
 	//glBegin(GL_QUADS);
@@ -164,7 +164,7 @@ gboolean radar_init(GtkDrawingArea *_drawing, GtkNotebook *config)
 	/* Parse hard coded file.. */
 	RSL_read_these_sweeps("all", NULL);
 	//RSL_read_these_sweeps("all", NULL);
-	Radar *radar = RSL_wsr88d_to_radar("/scratch/aweather/data/KNQA_20090501_1925", "KNQA");
+	Radar *radar = RSL_wsr88d_to_radar("/scratch/aweather/data/KNQA_20090501_1925.raw", "KNQA");
 	RSL_load_refl_color_table();
 	RSL_get_color_table(RSL_RED_TABLE,   red,   &nred);
 	RSL_get_color_table(RSL_GREEN_TABLE, green, &ngreen);

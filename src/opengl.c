@@ -14,7 +14,7 @@ static gboolean expose_start(GtkWidget *da, GdkEventExpose *event, gpointer user
 
 	/* draw in here */
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	return TRUE;
+	return FALSE;
 }
 /* Plugins run stuff here */
 static gboolean expose_end(GtkWidget *da, GdkEventExpose *event, gpointer user_data)

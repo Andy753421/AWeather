@@ -1,0 +1,8 @@
+PROGS=level2 dec
+level2_cflags=`{pkg-config --cflags glib-2.0}
+level2_libs=`{pkg-config --libs glib-2.0} -lbz2
+dec_libs=`{pkg-config --libs glib-2.0} -lbz2
+default: dec
+	./dec ../data/KNQA_20090501_1925 KNQA_20090501_1925.raw
+	cmp ../data/KNQA_20090501_1925 KNQA_20090501_1925.raw
+<$HOME/lib/mkcommon
