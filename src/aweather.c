@@ -5,7 +5,8 @@
 
 #include "opengl.h"
 #include "radar.h"
-#include "cube.h"
+#include "ridge.h"
+#include "example.h"
 
 static void destroy(GtkWidget *widget, gpointer data)
 {
@@ -71,9 +72,10 @@ int main(int argc, char *argv[])
 	//gtk_notebook_append_page(GTK_NOTEBOOK(tab_area), contents, label);
 
 	/* Load plugins */
-	opengl_init(GTK_DRAWING_AREA(drawing), GTK_NOTEBOOK(tab_area));
-	radar_init (GTK_DRAWING_AREA(drawing), GTK_NOTEBOOK(tab_area));
-	cube_init  (GTK_DRAWING_AREA(drawing), GTK_NOTEBOOK(tab_area));
+	opengl_init (GTK_DRAWING_AREA(drawing), GTK_NOTEBOOK(tab_area));
+	ridge_init  (GTK_DRAWING_AREA(drawing), GTK_NOTEBOOK(tab_area));
+	radar_init  (GTK_DRAWING_AREA(drawing), GTK_NOTEBOOK(tab_area));
+	example_init(GTK_DRAWING_AREA(drawing), GTK_NOTEBOOK(tab_area));
 
 	gtk_widget_show_all(window);
 	gtk_main();

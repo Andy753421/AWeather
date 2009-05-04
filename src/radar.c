@@ -10,9 +10,44 @@
 #include "radar.h"
 
 GtkWidget *drawing;
-static Sweep *cur_sweep; // make this not global
+static Sweep *cur_sweep = NULL;  // make this not global
 static int nred, ngreen, nblue;
 static char red[256], green[256], blue[256];
+static guint sweep_tex = 0;
+
+static guint8 get_alpha(guint8 db)
+{
+	if (db == BADVAL) return 0;
+	if (db == RFVAL ) return 0;
+	if (db == APFLAG) return 0;
+	if (db == NOECHO) return 0;
+	if (db == 0     ) return 0;
+	//if      (db > 60) return 0;
+	//else if (db < 10) return 0;
+	//else if (db < 25) return (db-10)*(255.0/15);
+	else              return 255;
+}
+
+//#ifdef USE_TWO_BYTE_PRECISION
+//#define F_FACTOR 100.0
+//#define F_DR_FACTOR 1000.0
+//#define F_DZ_RANGE_OFFSET 50
+//#else
+//#define F_FACTOR 2.0
+//#define F_DR_FACTOR 10.0
+//#define F_DZ_RANGE_OFFSET 32
+//#endif
+//#define F_OFFSET 4
+//static float dz_f(Range x)
+//{
+//	if (x >= F_OFFSET)
+//		return (((float)x-F_OFFSET)/F_FACTOR - F_DZ_RANGE_OFFSET);
+//	if (x == 0) return BADVAL;
+//	if (x == 1) return RFVAL;
+//	if (x == 2) return APFLAG;
+//	if (x == 3) return NOECHO;
+//	return BADVAL;
+//}
 
 /* Convert a sweep to an 2d array of data points */
 static void bscan_sweep(Sweep *sweep, guint8 **data, int *width, int *height)
@@ -23,18 +58,21 @@ static void bscan_sweep(Sweep *sweep, guint8 **data, int *width, int *height)
 		max_bins = MAX(max_bins, sweep->ray[i]->h.nbins);
 
 	/* Allocate buffer using max number of bins for each ray */
-	guint8 *buf = g_malloc0(sweep->h.nrays * max_bins * 3);
+	guint8 *buf = g_malloc0(sweep->h.nrays * max_bins * 4);
 
 	/* Fill the data */
 	int ri, bi;
 	for (ri = 0; ri < sweep->h.nrays; ri++) {
-		Ray   *ray  = sweep->ray[ri];
+		Ray *ray  = sweep->ray[ri];
 		for (bi = 0; bi < ray->h.nbins; bi++) {
-			Range bin = ray->range[bi];
-			/* copy RGB into buffer */
-			buf[(ri*max_bins+bi)*3+0] =   red[(gint8)ray->h.f(bin)];
-			buf[(ri*max_bins+bi)*3+1] = green[(gint8)ray->h.f(bin)];
-			buf[(ri*max_bins+bi)*3+2] =  blue[(gint8)ray->h.f(bin)];
+			/* copy RGBA into buffer */
+			//guint val   = dz_f(ray->range[bi]);
+			guint val   = ray->h.f(ray->range[bi]);
+			guint buf_i = (ri*max_bins+bi)*4;
+			buf[buf_i+0] =   red[val];
+			buf[buf_i+1] = green[val];
+			buf[buf_i+2] =  blue[val];
+			buf[buf_i+3] = get_alpha(val);
 		}
 	}
 
@@ -42,19 +80,6 @@ static void bscan_sweep(Sweep *sweep, guint8 **data, int *width, int *height)
 	*width  = max_bins;
 	*height = sweep->h.nrays;
 	*data   = buf;
-
-	/* debug */
-	//static int fi = 0;
-	//char fname[128];
-	//sprintf(fname, "image-%d.ppm", fi);
-	//FILE *fp = fopen(fname, "w+");
-	//fprintf(fp, "P6\n");
-	//fprintf(fp, "# Foo\n");
-	//fprintf(fp, "%d %d\n", *width, *height);
-	//fprintf(fp, "255\n");
-	//fwrite(buf, 3, *width * *height, fp);
-	//fclose(fp);
-	//fi++;
 }
 
 /* Load a sweep as the active texture */
@@ -64,45 +89,35 @@ static void load_sweep(Sweep *sweep)
 	int height, width;
 	guint8 *data;
 	bscan_sweep(sweep, &data, &width, &height);
+	glGenTextures(1, &sweep_tex);
+	glBindTexture(GL_TEXTURE_2D, sweep_tex);
 	glPixelStorei(GL_PACK_ALIGNMENT, 1);
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
 	g_free(data);
-	glEnable(GL_TEXTURE_2D);
 	gdk_window_invalidate_rect(drawing->window, &drawing->allocation, FALSE);
 }
 
 /* Load the default sweep */
 static gboolean configure(GtkWidget *da, GdkEventConfigure *event, gpointer user_data)
 {
-	GdkGLContext *glcontext = gtk_widget_get_gl_context(da);
-	GdkGLDrawable *gldrawable = gtk_widget_get_gl_drawable(da);
-
-	if (!gdk_gl_drawable_gl_begin(gldrawable, glcontext))
-		g_assert_not_reached();
-
-	/* Load the texture */
-	load_sweep(cur_sweep);
-
-	gdk_gl_drawable_gl_end(gldrawable);
-
+	Sweep *first = (Sweep*)user_data;
+	if (cur_sweep == NULL)
+		load_sweep(first);
 	return FALSE;
 }
 
 static gboolean expose(GtkWidget *da, GdkEventExpose *event, gpointer user_data)
 {
+	//g_message("radar:expose");
 	Sweep *sweep = cur_sweep;
 
-	//GdkGLContext *glcontext = gtk_widget_get_gl_context(da);
-	//GdkGLDrawable *gldrawable = gtk_widget_get_gl_drawable(da);
-
-	/* draw in here */
-	glPushMatrix();
-	glRotatef(0, 0, 0, 0);
-
 	/* Draw the rays */
+	glBindTexture(GL_TEXTURE_2D, sweep_tex);
 	glEnable(GL_TEXTURE_2D);
+
 	glBegin(GL_QUAD_STRIP);
 	int _ri; // not really used, creates strange fragments..
 	for (_ri = 0; _ri < sweep->h.nrays; _ri++) {
@@ -117,17 +132,21 @@ static gboolean expose(GtkWidget *da, GdkEventExpose *event, gpointer user_data)
 		double lx = sin(left);
 		double ly = cos(left);
 
-		/* TODO: change this to meters instead of 0..1 */
-		double max_dist  = ray->h.nbins*ray->h.gate_size + ray->h.range_bin1;
-		double near_dist = (double)(ray->h.range_bin1) / max_dist;
-		double far_dist  = (double)(ray->h.nbins*ray->h.gate_size + ray->h.range_bin1) / max_dist;
+		double near_dist = ray->h.range_bin1;
+		double far_dist  = ray->h.nbins*ray->h.gate_size + ray->h.range_bin1;
 
 		/* (find middle of bin) / scale for opengl */
-		glTexCoord2d(0.0, ((double)ri)/sweep->h.nrays); glVertex3f(lx*near_dist, ly*near_dist, 0.); // near left
-		glTexCoord2d(0.7, ((double)ri)/sweep->h.nrays); glVertex3f(lx*far_dist,  ly*far_dist,  0.); // far  left
+		// near left
+		glTexCoord2f(0.0, (double)ri/sweep->h.nrays);
+		glVertex3f(lx*near_dist, ly*near_dist, 0.0);
+
+		// far  left
+		glTexCoord2f(1.0, (double)ri/sweep->h.nrays);
+		glVertex3f(lx*far_dist,  ly*far_dist,  0.0);
 	}
 	//g_print("ri=%d, nr=%d, bw=%f\n", _ri, sweep->h.nrays, sweep->h.beam_width);
 	glEnd();
+
 	/* Texture debug */
 	//glBegin(GL_QUADS);
 	//glTexCoord2d( 0.,  0.); glVertex3f(-1.,  0., 0.); // bot left
@@ -135,20 +154,21 @@ static gboolean expose(GtkWidget *da, GdkEventExpose *event, gpointer user_data)
 	//glTexCoord2d( 1.,  1.); glVertex3f( 0.,  1., 0.); // top right
 	//glTexCoord2d( 1.,  0.); glVertex3f( 0.,  0., 0.); // bot right
 	//glEnd();
-	glDisable(GL_TEXTURE_2D);
 
 	/* Print the color table */
+	glDisable(GL_TEXTURE_2D);
+	glPushMatrix();
+	glLoadIdentity();
 	glBegin(GL_QUADS);
 	int i;
 	for (i = 0; i < nred; i++) {
-		glColor3ub(red[i], green[i], blue[i]);
+		glColor4ub(red[i], green[i], blue[i], get_alpha(i));
 		glVertex3f(-1., (float)((i  ) - nred/2)/(nred/2), 0.); // bot left
 		glVertex3f(-1., (float)((i+1) - nred/2)/(nred/2), 0.); // top left
 		glVertex3f(-.9, (float)((i+1) - nred/2)/(nred/2), 0.); // top right
 		glVertex3f(-.9, (float)((i  ) - nred/2)/(nred/2), 0.); // bot right
 	}
 	glEnd();
-	
 	glPopMatrix();
 
 	return FALSE;
@@ -157,21 +177,17 @@ static gboolean expose(GtkWidget *da, GdkEventExpose *event, gpointer user_data)
 gboolean radar_init(GtkDrawingArea *_drawing, GtkNotebook *config)
 {
 	drawing = GTK_WIDGET(_drawing);
-	/* Set up OpenGL Stuff */
-	g_signal_connect(drawing, "expose-event",    G_CALLBACK(expose),    NULL);
-	g_signal_connect(drawing, "configure-event", G_CALLBACK(configure), NULL);
 
 	/* Parse hard coded file.. */
 	RSL_read_these_sweeps("all", NULL);
 	//RSL_read_these_sweeps("all", NULL);
-	Radar *radar = RSL_wsr88d_to_radar("/scratch/aweather/data/KNQA_20090501_1925.raw", "KNQA");
+	Radar *radar = RSL_wsr88d_to_radar("/scratch/aweather/data/level2/KNQA_20090501_1925.raw", "KNQA");
 	RSL_load_refl_color_table();
 	RSL_get_color_table(RSL_RED_TABLE,   red,   &nred);
 	RSL_get_color_table(RSL_GREEN_TABLE, green, &ngreen);
 	RSL_get_color_table(RSL_BLUE_TABLE,  blue,  &nblue);
 	if (radar->h.nvolumes < 1 || radar->v[0]->h.nsweeps < 1)
 		g_print("No sweeps found\n");
-	cur_sweep = radar->v[0]->sweep[6];
 
 	/* Add configuration tab */
 	GtkWidget *hbox = gtk_hbox_new(TRUE, 0);
@@ -194,5 +210,10 @@ gboolean radar_init(GtkDrawingArea *_drawing, GtkNotebook *config)
 	}
 	GtkWidget *label = gtk_label_new("Radar");
 	gtk_notebook_append_page(GTK_NOTEBOOK(config), hbox, label);
+
+	/* Set up OpenGL Stuff */
+	g_signal_connect(drawing, "expose-event",    G_CALLBACK(expose),    NULL);
+	g_signal_connect(drawing, "configure-event", G_CALLBACK(configure), radar->v[0]->sweep[0]);
+
 	return TRUE;
 }
