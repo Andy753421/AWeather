@@ -80,7 +80,7 @@ int main(int argc, char *argv[])
 	opengl_init (GTK_DRAWING_AREA(drawing), GTK_NOTEBOOK(tab_area));
 	ridge_init  (GTK_DRAWING_AREA(drawing), GTK_NOTEBOOK(tab_area));
 	radar_init  (GTK_DRAWING_AREA(drawing), GTK_NOTEBOOK(tab_area));
-	//example_init(GTK_DRAWING_AREA(drawing), GTK_NOTEBOOK(tab_area));
+	example_init(GTK_DRAWING_AREA(drawing), GTK_NOTEBOOK(tab_area));
 
 	gtk_widget_show_all(window);
 	gtk_main();

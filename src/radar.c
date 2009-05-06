@@ -96,6 +96,7 @@ static void load_sweep(Sweep *sweep)
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
 	g_free(data);
 	gdk_window_invalidate_rect(drawing->window, &drawing->allocation, FALSE);
+	gdk_window_process_updates(drawing->window, FALSE);
 }
 
 /* Load the default sweep */
@@ -117,13 +118,11 @@ static gboolean expose(GtkWidget *da, GdkEventExpose *event, gpointer user_data)
 	glPushMatrix();
 	glBindTexture(GL_TEXTURE_2D, sweep_tex);
 	glEnable(GL_TEXTURE_2D);
-	glColor3f(1,1,1);
+	glColor4f(1,1,1,1);
 	glBegin(GL_QUAD_STRIP);
-	int _ri; // not really used, creates strange fragments..
-	for (_ri = 0; _ri < sweep->h.nrays; _ri++) {
+	for (int ri = 0; ri <= sweep->h.nrays+1; ri++) {
 		/* Do the first sweep twice to complete the last Quad */
-		int ri = _ri % sweep->h.nrays;
-		Ray *ray = sweep->ray[ri];
+		Ray *ray = sweep->ray[ri % sweep->h.nrays];
 
 		/* right and left looking out from radar */
 		double left  = ((ray->h.azimuth - ((double)ray->h.beam_width/2.))*M_PI)/180.0; 
@@ -157,10 +156,9 @@ static gboolean expose(GtkWidget *da, GdkEventExpose *event, gpointer user_data)
 	//glEnd();
 
 	/* Print the color table */
-	glPushMatrix();
 	glDisable(GL_TEXTURE_2D);
-	glMatrixMode(GL_MODELVIEW ); glLoadIdentity();
-	glMatrixMode(GL_PROJECTION); glLoadIdentity();
+	glMatrixMode(GL_MODELVIEW ); glPushMatrix(); glLoadIdentity();
+	glMatrixMode(GL_PROJECTION); glPushMatrix(); glLoadIdentity();
 	glBegin(GL_QUADS);
 	int i;
 	for (i = 0; i < nred; i++) {
@@ -171,7 +169,8 @@ static gboolean expose(GtkWidget *da, GdkEventExpose *event, gpointer user_data)
 		glVertex3f(-0.9, (float)((i  ) - nred/2)/(nred/2), 0.0); // bot right
 	}
 	glEnd();
-	glPopMatrix();
+        glMatrixMode(GL_PROJECTION); glPopMatrix(); 
+	glMatrixMode(GL_MODELVIEW ); glPopMatrix();
 
 	return FALSE;
 }

@@ -98,7 +98,7 @@ static gboolean expose(GtkWidget *da, GdkEventExpose *event, gpointer user_data)
 	g_message("ridge:expose");
 	glPushMatrix();
 	glEnable(GL_TEXTURE_2D);
-	glColor3f(1,1,1);
+	glColor4f(1,1,1,1);
 
 	for (int i = 0; i < LAYER_COUNT; i++) {
 		glBindTexture(GL_TEXTURE_2D, layers[i].tex);

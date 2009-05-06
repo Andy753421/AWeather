@@ -10,6 +10,7 @@ static float ang = 30.;
 static gboolean expose(GtkWidget *da, GdkEventExpose *event, gpointer user_data)
 {
 	glPushMatrix();
+	glDisable(GL_TEXTURE_2D);
 	glLoadIdentity();
 	glTranslatef(0.5, -0.5, -2);
 
@@ -24,10 +25,10 @@ static gboolean expose(GtkWidget *da, GdkEventExpose *event, gpointer user_data)
 	glEnable(GL_COLOR_MATERIAL);
 
 	glRotatef(ang, 1, 0, 1);
-	glColor3f(0.9, 0.9, 0.7);
-	//gdk_gl_draw_teapot(TRUE, 0.25);
+	glColor4f(0.9, 0.9, 0.7, 1.0);
+	gdk_gl_draw_teapot(TRUE, 0.25);
 	gdk_gl_draw_cube(TRUE, 0.25);
-	glColor3f(1.0, 1.0, 1.0);
+	glColor4f(1.0, 1.0, 1.0, 1.0);
 
 	glDisable(GL_LIGHT0);
 	glDisable(GL_LIGHTING);
