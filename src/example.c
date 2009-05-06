@@ -22,7 +22,6 @@ static gboolean expose(GtkWidget *da, GdkEventExpose *event, gpointer user_data)
 	glEnable(GL_LIGHT0);
 	glEnable(GL_LIGHTING);
 	glEnable(GL_COLOR_MATERIAL);
-	glEnable(GL_DEPTH_TEST);
 
 	glRotatef(ang, 1, 0, 1);
 	glColor3f(0.9, 0.9, 0.7);
@@ -33,7 +32,6 @@ static gboolean expose(GtkWidget *da, GdkEventExpose *event, gpointer user_data)
 	glDisable(GL_LIGHT0);
 	glDisable(GL_LIGHTING);
 	glDisable(GL_COLOR_MATERIAL);
-	glDisable(GL_DEPTH_TEST);
 
 	glPopMatrix();
 	return FALSE;

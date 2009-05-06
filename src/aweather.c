@@ -59,9 +59,14 @@ int main(int argc, char *argv[])
 	GtkWidget *drawing = gtk_drawing_area_new();
 	gtk_paned_pack1(GTK_PANED(paned), drawing, TRUE, FALSE);
 	//gtk_box_pack_end(GTK_BOX(vbox), drawing, TRUE, TRUE, 0);
-	GdkGLConfig *glconfig = gdk_gl_config_new_by_mode(GDK_GL_MODE_RGB | GDK_GL_MODE_DEPTH | GDK_GL_MODE_DOUBLE);
-	if (!glconfig) g_assert_not_reached();
-	if (!gtk_widget_set_gl_capability(drawing, glconfig, NULL, TRUE, GDK_GL_RGBA_TYPE)) g_assert_not_reached();
+	GdkGLConfig *glconfig = gdk_gl_config_new_by_mode(
+			GDK_GL_MODE_RGBA |
+			GDK_GL_MODE_DEPTH |
+			GDK_GL_MODE_DOUBLE);
+	if (!glconfig)
+		g_assert_not_reached();
+	if (!gtk_widget_set_gl_capability(drawing, glconfig, NULL, TRUE, GDK_GL_RGBA_TYPE))
+		g_assert_not_reached();
 
 	/* Set up tab area */
 	GtkWidget *tab_area = gtk_notebook_new();
@@ -75,7 +80,7 @@ int main(int argc, char *argv[])
 	opengl_init (GTK_DRAWING_AREA(drawing), GTK_NOTEBOOK(tab_area));
 	ridge_init  (GTK_DRAWING_AREA(drawing), GTK_NOTEBOOK(tab_area));
 	radar_init  (GTK_DRAWING_AREA(drawing), GTK_NOTEBOOK(tab_area));
-	example_init(GTK_DRAWING_AREA(drawing), GTK_NOTEBOOK(tab_area));
+	//example_init(GTK_DRAWING_AREA(drawing), GTK_NOTEBOOK(tab_area));
 
 	gtk_widget_show_all(window);
 	gtk_main();

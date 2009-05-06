@@ -19,11 +19,11 @@ static struct {
 	float z;
 	guint tex;
 } layers[] = {
-	[LAYER_TOPO]     = { "Overlays/" "Topo/"     "Short/" "%s_Topo_Short.jpg",     1.0, 0 },
-	[LAYER_COUNTY]   = { "Overlays/" "County/"   "Short/" "%s_County_Short.gif",   3.0, 0 },
-	[LAYER_RIVERS]   = { "Overlays/" "Rivers/"   "Short/" "%s_Rivers_Short.gif",   4.0, 0 },
-	[LAYER_HIGHWAYS] = { "Overlays/" "Highways/" "Short/" "%s_Highways_Short.gif", 5.0, 0 },
-	[LAYER_CITY]     = { "Overlays/" "Cities/"   "Short/" "%s_City_Short.gif",     6.0, 0 },
+	[LAYER_TOPO]     = { "Overlays/" "Topo/"     "Short/" "%s_Topo_Short.jpg",     1, 0 },
+	[LAYER_COUNTY]   = { "Overlays/" "County/"   "Short/" "%s_County_Short.gif",   3, 0 },
+	[LAYER_RIVERS]   = { "Overlays/" "Rivers/"   "Short/" "%s_Rivers_Short.gif",   4, 0 },
+	[LAYER_HIGHWAYS] = { "Overlays/" "Highways/" "Short/" "%s_Highways_Short.gif", 5, 0 },
+	[LAYER_CITY]     = { "Overlays/" "Cities/"   "Short/" "%s_City_Short.gif",     6, 0 },
 };
 
 static CURL *curl_handle;
@@ -97,12 +97,11 @@ static gboolean expose(GtkWidget *da, GdkEventExpose *event, gpointer user_data)
 {
 	g_message("ridge:expose");
 	glPushMatrix();
-	//glScaled(500*1000, 500*1000, 0);
-	//glTranslatef(0,50000,5000);
+	glEnable(GL_TEXTURE_2D);
+	glColor3f(1,1,1);
 
 	for (int i = 0; i < LAYER_COUNT; i++) {
 		glBindTexture(GL_TEXTURE_2D, layers[i].tex);
-		glEnable(GL_TEXTURE_2D);
 
 		glBegin(GL_POLYGON);
 		glTexCoord2f(0.0, 0.0); glVertex3f(500*1000*-1.0, 500*1000* 1.0, layers[i].z);
