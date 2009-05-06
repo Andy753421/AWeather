@@ -1,4 +1,5 @@
 #include <config.h>
+#include <math.h>
 #include <gtk/gtk.h>
 #include <gtk/gtkgl.h>
 #include <GL/gl.h>
@@ -42,22 +43,24 @@ static gboolean configure_start(GtkWidget *da, GdkEventConfigure *event, gpointe
 	if (!gdk_gl_drawable_gl_begin(gldrawable, glcontext))
 		g_assert_not_reached();
 
-	glViewport(0, 0, da->allocation.width, da->allocation.height);
+
+	double width  = da->allocation.width;
+	double height = da->allocation.height;
+	double dist   = 500*1000; // 500 km
+	glViewport(0, 0, width, height);
 
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	//glRotatef(0, 0, 2, 45);
-	gluPerspective(45.0f, 1, 0.1f, 10000000.0f);
-	//glFrustum(-1, 1, -1, 1, -1, 1);
+	double rad = atan(height/2*1000.0/dist); // 1px = 1000 meters
+	double deg = (rad*180)/M_PI;
+	gluPerspective(deg*2, width/height, 0.1f, 10000000.0f);
 
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
-	double scale = 500*1000; // 500 km
-	//glOrtho(-scale,scale,-scale,scale,-10000,10000);
-	glTranslatef(0.0, 0.0, -2.5*scale);
+	glTranslatef(0.0, 0.0, -dist);
 	glRotatef(-45, 1, 0, 0);
 
 	return FALSE;
