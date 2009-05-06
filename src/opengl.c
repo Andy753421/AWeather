@@ -2,9 +2,11 @@
 #include <gtk/gtk.h>
 #include <gtk/gtkgl.h>
 #include <GL/gl.h>
+#include <GL/glu.h>
 
 static gboolean expose_start(GtkWidget *da, GdkEventExpose *event, gpointer user_data)
 {
+	g_message("opengl:expose_start");
 	GdkGLContext *glcontext = gtk_widget_get_gl_context(da);
 	GdkGLDrawable *gldrawable = gtk_widget_get_gl_drawable(da);
 
@@ -19,6 +21,8 @@ static gboolean expose_start(GtkWidget *da, GdkEventExpose *event, gpointer user
 /* Plugins run stuff here */
 static gboolean expose_end(GtkWidget *da, GdkEventExpose *event, gpointer user_data)
 {
+	g_message("opengl:expose_end");
+
 	GdkGLDrawable *gldrawable = gtk_widget_get_gl_drawable(da);
 
 	if (gdk_gl_drawable_is_double_buffered(gldrawable))
@@ -38,14 +42,23 @@ static gboolean configure_start(GtkWidget *da, GdkEventConfigure *event, gpointe
 	if (!gdk_gl_drawable_gl_begin(gldrawable, glcontext))
 		g_assert_not_reached();
 
-	glLoadIdentity();
 	glViewport(0, 0, da->allocation.width, da->allocation.height);
+
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	//glEnable(GL_ALPHA_TEST);
-	//glAlphaFunc(GL_EQUAL, 0);
+
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	//glRotatef(0, 0, 2, 45);
+	gluPerspective(45.0f, 1, 0.1f, 10000000.0f);
+	//glFrustum(-1, 1, -1, 1, -1, 1);
+
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
 	double scale = 500*1000; // 500 km
-	glOrtho(-scale,scale,-scale,scale,0,10000);
+	//glOrtho(-scale,scale,-scale,scale,-10000,10000);
+	glTranslatef(0.0, 0.0, -2.5*scale);
+	glRotatef(-45, 1, 0, 0);
 
 	return FALSE;
 }

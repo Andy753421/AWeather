@@ -1,7 +1,5 @@
 #include <config.h>
 #include <gtk/gtk.h>
-#include <gtk/gtkgl.h>
-#include <gdk/gdkkeysyms.h>
 #include <GL/gl.h>
 #include <math.h>
 
@@ -111,6 +109,10 @@ static gboolean configure(GtkWidget *da, GdkEventConfigure *event, gpointer user
 
 static gboolean expose(GtkWidget *da, GdkEventExpose *event, gpointer user_data)
 {
+	glPushMatrix();
+	glMatrixMode(GL_MODELVIEW);
+	glTranslatef(0, 0, 100000);
+
 	//g_message("radar:expose");
 	Sweep *sweep = cur_sweep;
 
@@ -138,14 +140,15 @@ static gboolean expose(GtkWidget *da, GdkEventExpose *event, gpointer user_data)
 		/* (find middle of bin) / scale for opengl */
 		// near left
 		glTexCoord2f(0.0, (double)ri/sweep->h.nrays);
-		glVertex3f(lx*near_dist, ly*near_dist, 0.0);
+		glVertex3f(lx*near_dist, ly*near_dist, 2.0);
 
 		// far  left
 		glTexCoord2f(1.0, (double)ri/sweep->h.nrays);
-		glVertex3f(lx*far_dist,  ly*far_dist,  0.0);
+		glVertex3f(lx*far_dist,  ly*far_dist,  2.0);
 	}
 	//g_print("ri=%d, nr=%d, bw=%f\n", _ri, sweep->h.nrays, sweep->h.beam_width);
 	glEnd();
+	glPushMatrix();
 
 	/* Texture debug */
 	//glBegin(GL_QUADS);
@@ -163,10 +166,10 @@ static gboolean expose(GtkWidget *da, GdkEventExpose *event, gpointer user_data)
 	int i;
 	for (i = 0; i < nred; i++) {
 		glColor4ub(red[i], green[i], blue[i], get_alpha(i));
-		glVertex3f(-1., (float)((i  ) - nred/2)/(nred/2), 0.); // bot left
-		glVertex3f(-1., (float)((i+1) - nred/2)/(nred/2), 0.); // top left
-		glVertex3f(-.9, (float)((i+1) - nred/2)/(nred/2), 0.); // top right
-		glVertex3f(-.9, (float)((i  ) - nred/2)/(nred/2), 0.); // bot right
+		glVertex3f(-1., (float)((i  ) - nred/2)/(nred/2), 2.); // bot left
+		glVertex3f(-1., (float)((i+1) - nred/2)/(nred/2), 2.); // top left
+		glVertex3f(-.9, (float)((i+1) - nred/2)/(nred/2), 2.); // top right
+		glVertex3f(-.9, (float)((i  ) - nred/2)/(nred/2), 2.); // bot right
 	}
 	glEnd();
 	glPopMatrix();

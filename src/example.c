@@ -1,9 +1,7 @@
 #include <config.h>
 #include <gtk/gtk.h>
 #include <gtk/gtkgl.h>
-#include <gdk/gdkkeysyms.h>
 #include <GL/gl.h>
-#include <math.h>
 
 static GtkWidget *rotate_button;
 
@@ -13,7 +11,7 @@ static gboolean expose(GtkWidget *da, GdkEventExpose *event, gpointer user_data)
 {
 	glPushMatrix();
 	glLoadIdentity();
-	glTranslatef(0.5, -0.5, 0);
+	glTranslatef(0.5, -0.5, -2);
 
 	float light_ambient[]  = {0.1f, 0.1f, 0.0f};
 	float light_diffuse[]  = {0.9f, 0.9f, 0.9f};
@@ -28,7 +26,8 @@ static gboolean expose(GtkWidget *da, GdkEventExpose *event, gpointer user_data)
 
 	glRotatef(ang, 1, 0, 1);
 	glColor3f(0.9, 0.9, 0.7);
-	gdk_gl_draw_teapot(TRUE, 0.25);
+	//gdk_gl_draw_teapot(TRUE, 0.25);
+	gdk_gl_draw_cube(TRUE, 0.25);
 	glColor3f(1.0, 1.0, 1.0);
 
 	glDisable(GL_LIGHT0);

@@ -8,7 +8,12 @@ AC_PROG_CC
 PKG_PROG_PKG_CONFIG
 
 # Check for required packages
-PKG_CHECK_MODULES(GTK, gtk+-2.0 gtkglext-1.0)
+PKG_CHECK_MODULES(GTK,  gtk+-2.0 gtkglext-1.0)
+PKG_CHECK_MODULES(CURL, libcurl)
+
+# Define odd RSL install location
+AC_SUBST(RSL_CFLAGS, "-I/usr/local/trmm/GVBOX/include/")
+AC_SUBST(RSL_LIBS,   "-L/usr/local/trmm/GVBOX/lib/ -lrsl")
 
 # Output 
 AC_CONFIG_FILES([
