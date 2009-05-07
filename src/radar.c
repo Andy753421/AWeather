@@ -115,6 +115,7 @@ static gboolean expose(GtkWidget *da, GdkEventExpose *event, gpointer user_data)
 
 	/* Draw the rays */
 
+	glMatrixMode(GL_MODELVIEW);
 	glPushMatrix();
 	glBindTexture(GL_TEXTURE_2D, sweep_tex);
 	glEnable(GL_TEXTURE_2D);
@@ -137,11 +138,11 @@ static gboolean expose(GtkWidget *da, GdkEventExpose *event, gpointer user_data)
 		/* (find middle of bin) / scale for opengl */
 		// near left
 		glTexCoord2f(0.0, (double)ri/sweep->h.nrays);
-		glVertex3f(lx*near_dist, ly*near_dist, 1.0);
+		glVertex3f(lx*near_dist, ly*near_dist, 2.0);
 
 		// far  left
 		glTexCoord2f(1.0, (double)ri/sweep->h.nrays);
-		glVertex3f(lx*far_dist,  ly*far_dist,  1.0);
+		glVertex3f(lx*far_dist,  ly*far_dist,  2.0);
 	}
 	//g_print("ri=%d, nr=%d, bw=%f\n", _ri, sweep->h.nrays, sweep->h.beam_width);
 	glEnd();
@@ -156,21 +157,21 @@ static gboolean expose(GtkWidget *da, GdkEventExpose *event, gpointer user_data)
 	//glEnd();
 
 	/* Print the color table */
-	glDisable(GL_TEXTURE_2D);
-	glMatrixMode(GL_MODELVIEW ); glPushMatrix(); glLoadIdentity();
-	glMatrixMode(GL_PROJECTION); glPushMatrix(); glLoadIdentity();
-	glBegin(GL_QUADS);
-	int i;
-	for (i = 0; i < nred; i++) {
-		glColor4ub(red[i], green[i], blue[i], get_alpha(i));
-		glVertex3f(-1.0, (float)((i  ) - nred/2)/(nred/2), 0.0); // bot left
-		glVertex3f(-1.0, (float)((i+1) - nred/2)/(nred/2), 0.0); // top left
-		glVertex3f(-0.9, (float)((i+1) - nred/2)/(nred/2), 0.0); // top right
-		glVertex3f(-0.9, (float)((i  ) - nred/2)/(nred/2), 0.0); // bot right
-	}
-	glEnd();
-        glMatrixMode(GL_PROJECTION); glPopMatrix(); 
-	glMatrixMode(GL_MODELVIEW ); glPopMatrix();
+	//glDisable(GL_TEXTURE_2D);
+	//glMatrixMode(GL_MODELVIEW ); glPushMatrix(); glLoadIdentity();
+	//glMatrixMode(GL_PROJECTION); glPushMatrix(); glLoadIdentity();
+	//glBegin(GL_QUADS);
+	//int i;
+	//for (i = 0; i < nred; i++) {
+	//	glColor4ub(red[i], green[i], blue[i], get_alpha(i));
+	//	glVertex3f(-1.0, (float)((i  ) - nred/2)/(nred/2), 0.0); // bot left
+	//	glVertex3f(-1.0, (float)((i+1) - nred/2)/(nred/2), 0.0); // top left
+	//	glVertex3f(-0.9, (float)((i+1) - nred/2)/(nred/2), 0.0); // top right
+	//	glVertex3f(-0.9, (float)((i  ) - nred/2)/(nred/2), 0.0); // bot right
+	//}
+	//glEnd();
+        //glMatrixMode(GL_PROJECTION); glPopMatrix(); 
+	//glMatrixMode(GL_MODELVIEW ); glPopMatrix();
 
 	return FALSE;
 }

@@ -1,0 +1,3 @@
+Fix Z-Ordering
+
+- Need to draw objects from lowest to highest when using transparency

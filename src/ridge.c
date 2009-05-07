@@ -104,10 +104,10 @@ static gboolean expose(GtkWidget *da, GdkEventExpose *event, gpointer user_data)
 		glBindTexture(GL_TEXTURE_2D, layers[i].tex);
 
 		glBegin(GL_POLYGON);
-		glTexCoord2f(0.0, 0.0); glVertex3f(500*1000*-1.0, 500*1000* 1.0, layers[i].z);
+		glTexCoord2f(0.0, 0.0); glVertex3f(500*1000*-1.0, 500*1000* 0.0, layers[i].z);
 		glTexCoord2f(0.0, 1.0); glVertex3f(500*1000*-1.0, 500*1000*-1.0, layers[i].z);
 		glTexCoord2f(1.0, 1.0); glVertex3f(500*1000* 1.0, 500*1000*-1.0, layers[i].z);
-		glTexCoord2f(1.0, 0.0); glVertex3f(500*1000* 1.0, 500*1000* 1.0, layers[i].z);
+		glTexCoord2f(1.0, 0.0); glVertex3f(500*1000* 1.0, 500*1000* 0.0, layers[i].z);
 		glEnd();
 	}
 

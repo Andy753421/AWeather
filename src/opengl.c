@@ -53,7 +53,6 @@ static gboolean configure_start(GtkWidget *da, GdkEventConfigure *event, gpointe
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glClearColor(0.8f, 0.8f, 1.0f, 0.0f);
-	glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
 
 	/* Depth test */
 	glClearDepth(1.0);
@@ -65,7 +64,7 @@ static gboolean configure_start(GtkWidget *da, GdkEventConfigure *event, gpointe
 	glLoadIdentity();
 	double rad = atan(height/2*1000.0/dist); // 1px = 1000 meters
 	double deg = (rad*180)/M_PI;
-	gluPerspective(deg*2, width/height, 0.1f, 1000000000.0f);
+	gluPerspective(deg*2, width/height, dist-20, dist+20);
 
 	/* Camera position? */
 	glMatrixMode(GL_MODELVIEW);
