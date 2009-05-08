@@ -4,9 +4,9 @@
 #include <gdk/gdkkeysyms.h>
 
 #include "opengl.h"
-#include "radar.h"
-#include "ridge.h"
-#include "example.h"
+#include "plugin-radar.h"
+#include "plugin-ridge.h"
+#include "plugin-example.h"
 
 static void destroy(GtkWidget *widget, gpointer data)
 {
@@ -62,7 +62,8 @@ int main(int argc, char *argv[])
 	GdkGLConfig *glconfig = gdk_gl_config_new_by_mode(
 			GDK_GL_MODE_RGBA |
 			GDK_GL_MODE_DEPTH |
-			GDK_GL_MODE_DOUBLE);
+			GDK_GL_MODE_DOUBLE |
+			GDK_GL_MODE_ALPHA);
 	if (!glconfig)
 		g_assert_not_reached();
 	if (!gtk_widget_set_gl_capability(drawing, glconfig, NULL, TRUE, GDK_GL_RGBA_TYPE))

@@ -54,6 +54,12 @@ static gboolean configure_start(GtkWidget *da, GdkEventConfigure *event, gpointe
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glClearColor(0.8f, 0.8f, 1.0f, 0.0f);
 
+	/* Tessellation, "finding intersecting triangles" */
+	/* http://research.microsoft.com/pubs/70307/tr-2006-81.pdf */
+	/* http://www.opengl.org/wiki/Alpha_Blending */
+	glAlphaFunc(GL_GREATER,0.1);
+	glEnable(GL_ALPHA_TEST);
+
 	/* Depth test */
 	glClearDepth(1.0);
 	glDepthFunc(GL_LEQUAL);
