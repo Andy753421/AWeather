@@ -1,4 +1,4 @@
-SUBDIRS = src
+SUBDIRS = data src
 
 test: all
 	LD_LIBRARY_PATH=/usr/local/trmm/GVBOX/lib/ \
