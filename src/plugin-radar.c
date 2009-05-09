@@ -192,6 +192,7 @@ gboolean radar_init(GtkDrawingArea *_drawing, GtkNotebook *config)
 		g_print("No sweeps found\n");
 
 	/* Add configuration tab */
+	GtkWidget *scroll = gtk_scrolled_window_new(NULL, NULL);
 	GtkWidget *hbox = gtk_hbox_new(TRUE, 0);
 	GtkWidget *button = NULL;
 	int vi = 0, si = 0;
@@ -211,7 +212,9 @@ gboolean radar_init(GtkDrawingArea *_drawing, GtkNotebook *config)
 		}
 	}
 	GtkWidget *label = gtk_label_new("Radar");
-	gtk_notebook_append_page(GTK_NOTEBOOK(config), hbox, label);
+	gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(scroll), hbox);
+	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroll), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+	gtk_notebook_append_page(GTK_NOTEBOOK(config), scroll, label);
 
 	/* Set up OpenGL Stuff */
 	g_signal_connect(drawing, "expose-event",    G_CALLBACK(expose),    NULL);

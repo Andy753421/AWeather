@@ -5,7 +5,7 @@ bin_PROGRAMS = aweather
 
 aweather_SOURCES  = \
 	aweather.c       aweather.h       \
-	site.c           site.h           \
+	location.c       location.h       \
 	opengl.c         opengl.h         \
 	plugin-radar.c   plugin-radar.h   \
 	plugin-ridge.c   plugin-ridge.h   \
