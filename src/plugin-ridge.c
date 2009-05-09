@@ -5,6 +5,8 @@
 
 #include <stdio.h>
 
+#include "aweather-gui.h"
+
 enum {
 	LAYER_TOPO,
 	LAYER_COUNTY,
@@ -129,8 +131,10 @@ static gboolean configure(GtkWidget *da, GdkEventConfigure *event, gpointer user
 	return FALSE;
 }
 
-gboolean ridge_init(GtkDrawingArea *drawing, GtkNotebook *config)
+gboolean ridge_init(AWeatherGui *gui)
 {
+	GtkDrawingArea *drawing = aweather_gui_get_drawing(gui);
+
 	/* Set up OpenGL Stuff */
 	g_signal_connect(drawing, "expose-event",    G_CALLBACK(expose),    NULL);
 	g_signal_connect(drawing, "configure-event", G_CALLBACK(configure), NULL);

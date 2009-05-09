@@ -1,5 +1,6 @@
 #!/bin/sh
 
+gtkdocize
 aclocal
 autoheader
 automake -a -c

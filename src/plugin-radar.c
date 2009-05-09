@@ -1,10 +1,12 @@
 #include <config.h>
 #include <gtk/gtk.h>
+#include <gtk/gtkgl.h>
 #include <GL/gl.h>
 #include <math.h>
 
 #include "rsl.h"
 
+#include "aweather-gui.h"
 #include "plugin-radar.h"
 
 GtkWidget *drawing;
@@ -102,6 +104,7 @@ static void load_sweep(Sweep *sweep)
 /* Load the default sweep */
 static gboolean configure(GtkWidget *da, GdkEventConfigure *event, gpointer user_data)
 {
+	g_message("radar:configure");
 	Sweep *first = (Sweep*)user_data;
 	if (cur_sweep == NULL)
 		load_sweep(first);
@@ -157,28 +160,29 @@ static gboolean expose(GtkWidget *da, GdkEventExpose *event, gpointer user_data)
 	//glEnd();
 
 	/* Print the color table */
-	//glDisable(GL_TEXTURE_2D);
-	//glMatrixMode(GL_MODELVIEW ); glPushMatrix(); glLoadIdentity();
-	//glMatrixMode(GL_PROJECTION); glPushMatrix(); glLoadIdentity();
-	//glBegin(GL_QUADS);
-	//int i;
-	//for (i = 0; i < nred; i++) {
-	//	glColor4ub(red[i], green[i], blue[i], get_alpha(i));
-	//	glVertex3f(-1.0, (float)((i  ) - nred/2)/(nred/2), 0.0); // bot left
-	//	glVertex3f(-1.0, (float)((i+1) - nred/2)/(nred/2), 0.0); // top left
-	//	glVertex3f(-0.9, (float)((i+1) - nred/2)/(nred/2), 0.0); // top right
-	//	glVertex3f(-0.9, (float)((i  ) - nred/2)/(nred/2), 0.0); // bot right
-	//}
-	//glEnd();
-        //glMatrixMode(GL_PROJECTION); glPopMatrix(); 
-	//glMatrixMode(GL_MODELVIEW ); glPopMatrix();
+	glDisable(GL_TEXTURE_2D);
+	glMatrixMode(GL_MODELVIEW ); glPushMatrix(); glLoadIdentity();
+	glMatrixMode(GL_PROJECTION); glPushMatrix(); glLoadIdentity();
+	glBegin(GL_QUADS);
+	int i;
+	for (i = 0; i < nred; i++) {
+		glColor4ub(red[i], green[i], blue[i], get_alpha(i));
+		glVertex3f(-1.0, (float)((i  ) - nred/2)/(nred/2), 0.0); // bot left
+		glVertex3f(-1.0, (float)((i+1) - nred/2)/(nred/2), 0.0); // top left
+		glVertex3f(-0.9, (float)((i+1) - nred/2)/(nred/2), 0.0); // top right
+		glVertex3f(-0.9, (float)((i  ) - nred/2)/(nred/2), 0.0); // bot right
+	}
+	glEnd();
+        glMatrixMode(GL_PROJECTION); glPopMatrix(); 
+	glMatrixMode(GL_MODELVIEW ); glPopMatrix();
 
 	return FALSE;
 }
 
-gboolean radar_init(GtkDrawingArea *_drawing, GtkNotebook *config)
+gboolean radar_init(AWeatherGui *gui)
 {
-	drawing = GTK_WIDGET(_drawing);
+	drawing = GTK_WIDGET(aweather_gui_get_drawing(gui));
+	GtkNotebook    *config  = aweather_gui_get_tabs(gui);
 
 	/* Parse hard coded file.. */
 	RSL_read_these_sweeps("all", NULL);

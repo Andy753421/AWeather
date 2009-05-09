@@ -3,8 +3,9 @@ AM_CFLAGS    = -O3 -Wall -Werror --std=gnu99
 AM_LDFLAGS   = -Wl,--export-dynamic
 bin_PROGRAMS = aweather
 
-aweather_SOURCES  = \
-	aweather.c       aweather.h       \
+aweather_SOURCES  = main.c \
+	aweather-gui.c   aweather-gui.h   \
+	aweather-view.c  aweather-view.h  \
 	location.c       location.h       \
 	opengl.c         opengl.h         \
 	plugin-radar.c   plugin-radar.h   \
@@ -16,3 +17,7 @@ aweather_LDADD    = $(RSL_LIBS) $(GTK_LIBS) $(CURL_LIBS)
 test: all
 	LD_LIBRARY_PATH=/usr/local/trmm/GVBOX/lib/ \
 	./aweather
+
+debug: all
+	LD_LIBRARY_PATH=/usr/local/trmm/GVBOX/lib/ \
+	gdb ./aweather

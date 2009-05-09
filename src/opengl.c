@@ -5,6 +5,8 @@
 #include <GL/gl.h>
 #include <GL/glu.h>
 
+#include "aweather-gui.h"
+
 static gboolean expose_start(GtkWidget *da, GdkEventExpose *event, gpointer user_data)
 {
 	g_message("opengl:expose_start");
@@ -37,6 +39,7 @@ static gboolean expose_end(GtkWidget *da, GdkEventExpose *event, gpointer user_d
 }
 static gboolean configure_start(GtkWidget *da, GdkEventConfigure *event, gpointer user_data)
 {
+	g_message("opengl:configure_start");
 	GdkGLContext  *glcontext  = gtk_widget_get_gl_context(da);
 	GdkGLDrawable *gldrawable = gtk_widget_get_gl_drawable(da);
 
@@ -83,13 +86,24 @@ static gboolean configure_start(GtkWidget *da, GdkEventConfigure *event, gpointe
 }
 static gboolean configure_end(GtkWidget *da, GdkEventConfigure *event, gpointer user_data)
 {
+	g_message("opengl:configure_end");
 	GdkGLDrawable *gldrawable = gdk_gl_drawable_get_current();
 	gdk_gl_drawable_gl_end(gldrawable);
 	return FALSE;
 }
 
-gboolean opengl_init(GtkDrawingArea *drawing, GtkNotebook *config)
+gboolean opengl_init(AWeatherGui *gui)
 {
+	GtkDrawingArea *drawing = aweather_gui_get_drawing(gui);
+
+	GdkGLConfig *glconfig = gdk_gl_config_new_by_mode(
+			GDK_GL_MODE_RGBA   | GDK_GL_MODE_DEPTH |
+			GDK_GL_MODE_DOUBLE | GDK_GL_MODE_ALPHA);
+	if (!glconfig)
+		g_error("Failed to create glconfig");
+	if (!gtk_widget_set_gl_capability(GTK_WIDGET(drawing), glconfig, NULL, TRUE, GDK_GL_RGBA_TYPE))
+		g_error("GL lacks required capabilities");
+
 	/* Set up OpenGL Stuff */
 	g_signal_connect      (drawing, "configure-event", G_CALLBACK(configure_start), NULL);
 	g_signal_connect_after(drawing, "configure-event", G_CALLBACK(configure_end),   NULL);

@@ -3,15 +3,19 @@
 #include <gtk/gtkgl.h>
 #include <GL/gl.h>
 
+#include "aweather-gui.h"
+
 static GtkWidget *rotate_button;
 
 static float ang = 30.;
 
 static gboolean expose(GtkWidget *da, GdkEventExpose *event, gpointer user_data)
 {
-	glPushMatrix();
 	glDisable(GL_TEXTURE_2D);
-	glLoadIdentity();
+	glMatrixMode(GL_MODELVIEW ); glPushMatrix(); glLoadIdentity();
+	glMatrixMode(GL_PROJECTION); glPushMatrix(); glLoadIdentity();
+	//glOrtho(-1,1,-1,1,-10,10);
+
 	glTranslatef(0.5, -0.5, -2);
 
 	float light_ambient[]  = {0.1f, 0.1f, 0.0f};
@@ -34,7 +38,8 @@ static gboolean expose(GtkWidget *da, GdkEventExpose *event, gpointer user_data)
 	glDisable(GL_LIGHTING);
 	glDisable(GL_COLOR_MATERIAL);
 
-	glPopMatrix();
+        glMatrixMode(GL_PROJECTION); glPopMatrix(); 
+	glMatrixMode(GL_MODELVIEW ); glPopMatrix();
 	return FALSE;
 }
 
@@ -53,8 +58,11 @@ static gboolean rotate(gpointer user_data)
 	return TRUE;
 }
 
-gboolean example_init(GtkDrawingArea *drawing, GtkNotebook *config)
+gboolean example_init(AWeatherGui *gui)
 {
+	GtkDrawingArea *drawing = aweather_gui_get_drawing(gui);
+	GtkNotebook    *config  = aweather_gui_get_tabs(gui);
+
 	/* Add configuration tab */
 	GtkWidget *label = gtk_label_new("example");
 	rotate_button = gtk_toggle_button_new_with_label("Rotate");

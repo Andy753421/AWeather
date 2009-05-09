@@ -1,6 +1,6 @@
 #ifndef RIDGE_H
 #define RIDGE_H
 
-gboolean ridge_init(GtkDrawingArea *drawing, GtkNotebook *config);
+gboolean ridge_init(AWeatherGui *gui);
 
 #endif
