@@ -18,7 +18,7 @@ struct _AWeatherView {
 	GObject parent_instance;
 
 	/* instance members */
-	gint   time;
+	gchar *time;
 	gchar *location;
 };
 
@@ -32,8 +32,8 @@ GType aweather_view_get_type(void);
 
 /* Methods */
 AWeatherView *aweather_view_new();
-void aweather_view_set_time(AWeatherView *view, gint time);
-gint aweather_view_get_time(AWeatherView *view);
+void aweather_view_set_time(AWeatherView *view, const gchar *time);
+gchar *aweather_view_get_time(AWeatherView *view);
 
 void aweather_view_set_location(AWeatherView *view, const gchar *location);
 gchar *aweather_view_get_location(AWeatherView *view);

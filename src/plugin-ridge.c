@@ -38,7 +38,7 @@ static AWeatherGui *gui = NULL;
  * \param  filename  Path to the image file
  * \return The OpenGL identifier for the texture
  */
-void load_texture(const gchar *filename, gpointer _layer)
+void load_texture(gchar *filename, gpointer _layer)
 {
 	layer_t *layer = _layer;
 	aweather_gui_gl_begin(gui);
@@ -69,7 +69,7 @@ void load_texture(const gchar *filename, gpointer _layer)
 	aweather_gui_gl_end(gui);
 
 	/* Redraw */
-	gtk_widget_queue_draw(GTK_WIDGET(aweather_gui_get_drawing(gui)));
+	gtk_widget_queue_draw(aweather_gui_get_widget(gui, "drawing"));
 }
 
 static void set_site(AWeatherView *view, gchar *site, gpointer user_data)
@@ -94,10 +94,10 @@ static gboolean expose(GtkWidget *da, GdkEventExpose *event, gpointer user_data)
 		glBindTexture(GL_TEXTURE_2D, layers[i].tex);
 
 		glBegin(GL_POLYGON);
-		glTexCoord2f(0.0, 0.0); glVertex3f(500*1000*-1.0, 500*1000* 1.0, layers[i].z);
-		glTexCoord2f(0.0, 1.0); glVertex3f(500*1000*-1.0, 500*1000*-1.0, layers[i].z);
-		glTexCoord2f(1.0, 1.0); glVertex3f(500*1000* 1.0, 500*1000*-1.0, layers[i].z);
-		glTexCoord2f(1.0, 0.0); glVertex3f(500*1000* 1.0, 500*1000* 1.0, layers[i].z);
+		glTexCoord2f(0.0, 0.0); glVertex3f(250*1000*-1.0, 250*1000* 1.0, layers[i].z);
+		glTexCoord2f(0.0, 1.0); glVertex3f(250*1000*-1.0, 250*1000*-1.0, layers[i].z);
+		glTexCoord2f(1.0, 1.0); glVertex3f(250*1000* 1.0, 250*1000*-1.0, layers[i].z);
+		glTexCoord2f(1.0, 0.0); glVertex3f(250*1000* 1.0, 250*1000* 1.0, layers[i].z);
 		glEnd();
 	}
 
@@ -108,7 +108,7 @@ static gboolean expose(GtkWidget *da, GdkEventExpose *event, gpointer user_data)
 gboolean ridge_init(AWeatherGui *_gui)
 {
 	gui = _gui;
-	GtkDrawingArea *drawing = aweather_gui_get_drawing(gui);
+	GtkDrawingArea *drawing = GTK_DRAWING_AREA(aweather_gui_get_widget(gui, "drawing"));
 	AWeatherView   *view    = aweather_gui_get_view(gui);
 
 	/* Set up OpenGL Stuff */

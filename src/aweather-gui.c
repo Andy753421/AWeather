@@ -20,24 +20,27 @@ gboolean on_window_key_press_event(GtkWidget *widget, GdkEventKey *event, gpoint
 	return TRUE;
 }
 
-void on_site_changed(GtkComboBox *combo, AWeatherGui *gui) {
+void on_site_changed(GtkComboBox *combo, AWeatherGui *gui)
+{
 	gchar *site;
 	GtkTreeIter iter;
-	AWeatherView *view  = aweather_gui_get_view(gui);
 	GtkTreeModel *model = gtk_combo_box_get_model(combo);
 	gtk_combo_box_get_active_iter(combo, &iter);
 	gtk_tree_model_get(model, &iter, 1, &site, -1);
+	AWeatherView *view = aweather_gui_get_view(gui);
 	aweather_view_set_location(view, site);
 }
 
-void on_time_changed() {
-	//gchar *site;
-	//GtkTreeIter iter;
-	//AWeatherView *view  = aweather_gui_get_view(gui);
-	//GtkTreeModel *model = gtk_combo_box_get_model(combo);
-	//gtk_combo_box_get_active_iter(combo, &iter);
-	//gtk_tree_model_get(model, &iter, 1, &site, 0);
-	//aweather_view_set_time(view, site);
+void on_time_changed(GtkTreeView *view, GtkTreePath *path,
+		GtkTreeViewColumn *column, AWeatherGui *gui)
+{
+	gchar *time;
+	GtkTreeIter iter;
+	GtkTreeModel *model = gtk_tree_view_get_model(view);
+	gtk_tree_model_get_iter(model, &iter, path);
+	gtk_tree_model_get(model, &iter, 0, &time, -1);
+	AWeatherView *aview = aweather_gui_get_view(gui);
+	aweather_view_set_time(aview, time);
 }
 
 static gboolean map(GtkWidget *da, GdkEventConfigure *event, AWeatherGui *gui)
@@ -132,8 +135,7 @@ static void site_setup(AWeatherGui *gui)
 		}
 	}
 
-	GtkBuilder      *builder  = aweather_gui_get_builder(gui);
-	GtkWidget       *combo    = GTK_WIDGET(gtk_builder_get_object(builder, "site"));
+	GtkWidget       *combo    = aweather_gui_get_widget(gui, "site");
 	GtkCellRenderer *renderer = gtk_cell_renderer_text_new();
 	gtk_cell_layout_pack_start(GTK_CELL_LAYOUT(combo), renderer, FALSE);
 	gtk_cell_layout_set_attributes(GTK_CELL_LAYOUT(combo), renderer, "text", 0, NULL);
@@ -146,22 +148,21 @@ static void site_setup(AWeatherGui *gui)
 
 static void time_setup(AWeatherGui *gui)
 {
-	GtkBuilder        *builder  = aweather_gui_get_builder(gui);
-	GtkWidget         *time     = GTK_WIDGET(gtk_builder_get_object(builder, "time"));
-	GtkCellRenderer   *rend     = gtk_cell_renderer_text_new();
-	GtkTreeViewColumn *col      = gtk_tree_view_column_new_with_attributes(
-					"Time", rend, 0, "text", NULL);
-	gtk_tree_view_append_column(GTK_TREE_VIEW(time), col);
+	GtkTreeView  *tview  = GTK_TREE_VIEW(aweather_gui_get_widget(gui, "time"));
+	GtkTreeModel *store  = GTK_TREE_MODEL(gtk_list_store_new(1, G_TYPE_STRING));
+	gtk_tree_view_set_model(tview, store);
 
-	GtkTreeStore *store = gtk_tree_store_new(1, G_TYPE_STRING);
-	gtk_tree_view_set_model(GTK_TREE_VIEW(time), GTK_TREE_MODEL(store));
+	GtkCellRenderer   *rend = gtk_cell_renderer_text_new();
+	GtkTreeViewColumn *col  = gtk_tree_view_column_new_with_attributes(
+					"Time", rend, "text", 0, NULL);
+	gtk_tree_view_append_column(tview, col);
 
-	g_signal_connect(time, "row-activated", G_CALLBACK(on_time_changed), gui);
+	g_signal_connect(tview, "row-activated", G_CALLBACK(on_time_changed), gui);
 }
 
 gboolean opengl_setup(AWeatherGui *gui)
 {
-	GtkDrawingArea *drawing = aweather_gui_get_drawing(gui);
+	GtkDrawingArea *drawing = GTK_DRAWING_AREA(aweather_gui_get_widget(gui, "drawing"));
 
 	GdkGLConfig *glconfig = gdk_gl_config_new_by_mode(
 			GDK_GL_MODE_RGBA   | GDK_GL_MODE_DEPTH |
@@ -259,26 +260,18 @@ GtkBuilder *aweather_gui_get_builder(AWeatherGui *gui)
 	g_assert(AWEATHER_IS_GUI(gui));
 	return gui->builder;
 }
-GtkWindow *aweather_gui_get_window(AWeatherGui *gui)
+GtkWidget *aweather_gui_get_widget(AWeatherGui *gui, const gchar *name)
 {
 	g_assert(AWEATHER_IS_GUI(gui));
-	return gui->window;
-}
-GtkNotebook *aweather_gui_get_tabs(AWeatherGui *gui)
-{
-	g_assert(AWEATHER_IS_GUI(gui));
-	return gui->tabs;
-}
-GtkDrawingArea *aweather_gui_get_drawing(AWeatherGui *gui)
-{
-	g_assert(AWEATHER_IS_GUI(gui));
-	return gui->drawing;
+	GObject *widget = gtk_builder_get_object(gui->builder, name);
+	g_assert(GTK_IS_WIDGET(widget));
+	return GTK_WIDGET(widget);
 }
 void aweather_gui_gl_begin(AWeatherGui *gui)
 {
 	g_assert(AWEATHER_IS_GUI(gui));
 
-	GtkDrawingArea *drawing    = aweather_gui_get_drawing(gui);
+	GtkDrawingArea *drawing    = GTK_DRAWING_AREA(aweather_gui_get_widget(gui, "drawing"));
 	GdkGLContext   *glcontext  = gtk_widget_get_gl_context(GTK_WIDGET(drawing));
 	GdkGLDrawable  *gldrawable = gtk_widget_get_gl_drawable(GTK_WIDGET(drawing));
 

@@ -38,10 +38,7 @@ GType aweather_gui_get_type(void);
 /* Methods */
 AWeatherGui    *aweather_gui_new();
 AWeatherView   *aweather_gui_get_view(AWeatherGui *gui);
-GtkBuilder     *aweather_gui_get_builder(AWeatherGui *gui);
-GtkWindow      *aweather_gui_get_window(AWeatherGui *gui);
-GtkNotebook    *aweather_gui_get_tabs(AWeatherGui *gui);
-GtkDrawingArea *aweather_gui_get_drawing(AWeatherGui *gui);
+GtkWidget      *aweather_gui_get_widget(AWeatherGui *gui, const gchar *name);
 void            aweather_gui_gl_begin(AWeatherGui *gui);
 void            aweather_gui_gl_end(AWeatherGui *gui);
 void            aweather_gui_gl_flush(AWeatherGui *gui);

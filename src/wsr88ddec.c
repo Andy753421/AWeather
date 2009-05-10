@@ -52,7 +52,7 @@ char *bunzip2(char *input, int input_len, int *output_len)
 int main(int argc, char **argv)
 {
 	if (argc != 3) {
-		printf("usage: ./dec <input> <output>\n");
+		printf("usage: %s <input> <output>\n", argv[0]);
 		return 0;
 	}
 

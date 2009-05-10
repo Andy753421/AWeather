@@ -8,8 +8,10 @@
 
 #include "aweather-gui.h"
 #include "plugin-radar.h"
+#include "data.h"
 
 GtkWidget *drawing;
+GtkWidget *config_body;
 static Sweep *cur_sweep = NULL;  // make this not global
 static int nred, ngreen, nblue;
 static char red[256], green[256], blue[256];
@@ -18,6 +20,10 @@ static guint sweep_tex = 0;
 static AWeatherGui *gui = NULL;
 static Radar *radar = NULL;
 
+/**************************
+ * Data loading functions *
+ **************************/
+/* return a GL alpha value for a radar pixle */
 static guint8 get_alpha(guint8 db)
 {
 	if (db == BADVAL) return 0;
@@ -67,6 +73,7 @@ static void bscan_sweep(Sweep *sweep, guint8 **data, int *width, int *height)
 /* Load a sweep as the active texture */
 static void load_sweep(Sweep *sweep)
 {
+	aweather_gui_gl_begin(gui);
 	cur_sweep = sweep;
 	int height, width;
 	guint8 *data;
@@ -81,24 +88,121 @@ static void load_sweep(Sweep *sweep)
 	g_free(data);
 	gdk_window_invalidate_rect(drawing->window, &drawing->allocation, FALSE);
 	gdk_window_process_updates(drawing->window, FALSE);
-}
-
-/* Load the default sweep */
-static gboolean map(GtkWidget *da, GdkEvent *event, gpointer user_data)
-{
-	g_message("radar:map");
-	aweather_gui_gl_begin(gui);
-	Sweep *first = radar->v[0]->sweep[0];
-	if (cur_sweep == NULL)
-		load_sweep(first);
 	aweather_gui_gl_end(gui);
-
-	return FALSE;
 }
 
+/* Add selectors to the config area for the sweeps */
+static void load_radar_gui(Radar *radar)
+{
+	/* Clear existing items */
+	GtkWidget *child = gtk_bin_get_child(GTK_BIN(config_body));
+	if (child)
+		gtk_widget_destroy(child);
+
+	GtkWidget *hbox = gtk_hbox_new(TRUE, 0);
+	GtkWidget *button = NULL;
+	int vi = 0, si = 0;
+	for (vi = 0; vi < radar->h.nvolumes; vi++) {
+		Volume *vol = radar->v[vi];
+		if (vol == NULL) continue;
+		g_message("    adding volume: %d", vi);
+		GtkWidget *vbox = gtk_vbox_new(TRUE, 0);
+		for (si = vol->h.nsweeps-1; si >= 0; si--) {
+			Sweep *sweep = vol->sweep[si];
+			if (sweep == NULL) continue;
+			char *label = g_strdup_printf("Tilt: %.2f (%s)", sweep->h.elev, vol->h.type_str);
+			g_message("        adding sweep: %d - %s", si, label);
+			button = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(button), label);
+			g_object_set(button, "draw-indicator", FALSE, NULL);
+			g_signal_connect_swapped(button, "clicked", G_CALLBACK(load_sweep), sweep);
+			gtk_box_pack_start(GTK_BOX(vbox), button, FALSE, TRUE, 0);
+			g_free(label);
+		}
+		g_message("adding vbox to hbox");
+		gtk_box_set_homogeneous(GTK_BOX(vbox), FALSE);
+		gtk_box_pack_start(GTK_BOX(hbox), vbox, TRUE, TRUE, 0);
+	}
+	g_message("adding hbox to scroll");
+	gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(config_body), hbox);
+	gtk_widget_show_all(hbox);
+}
+
+/* Load a radar from a file */
+static void load_radar_rsl(GPid pid, gint status, gpointer _path)
+{
+	gchar *path = _path;
+	if (status != 0) {
+		g_warning("wsr88ddec exited with status %d", status);
+		return;
+	}
+	char *site = g_path_get_basename(g_path_get_dirname(path));
+	if (radar) RSL_free_radar(radar);
+	RSL_read_these_sweeps("all", NULL);
+	radar = RSL_wsr88d_to_radar(path, site);
+	if (radar == NULL) {
+		g_warning("fail to load radar: path=%s, site=%s", path, site);
+		return;
+	}
+
+	/* TODO: replace this with a better color table */
+	g_message("loading color table");
+	RSL_load_refl_color_table();
+	RSL_get_color_table(RSL_RED_TABLE,   red,   &nred);
+	RSL_get_color_table(RSL_GREEN_TABLE, green, &ngreen);
+	RSL_get_color_table(RSL_BLUE_TABLE,  blue,  &nblue);
+
+	/* Load the first sweep by default */
+	if (radar->h.nvolumes < 1 || radar->v[0]->h.nsweeps < 1) {
+		g_warning("No sweeps found\n");
+	} else {
+		/* load first available sweep */
+		for (int vi = 0; vi < radar->h.nvolumes; vi++) {
+			if (radar->v[vi]== NULL) continue;
+			for (int si = 0; si < radar->v[vi]->h.nsweeps; si++) {
+				if (radar->v[vi]->sweep[si]== NULL) continue;
+				load_sweep(radar->v[vi]->sweep[si]);
+				break;
+			}
+			break;
+		}
+	}
+
+	load_radar_gui(radar);
+}
+
+/* decompress a radar file, then chain to the actuall loading function */
+static void load_radar(char *path, gpointer user_data)
+{
+	char *raw  = g_strconcat(path, ".raw", NULL);
+	if (g_file_test(raw, G_FILE_TEST_EXISTS)) {
+		load_radar_rsl(0, 0, raw);
+	} else {
+		char *argv[] = {"./wsr88ddec", path, raw, NULL};
+		GPid pid;
+		GError *error = NULL;
+		g_spawn_async(
+			NULL,    // const gchar *working_directory,
+			argv,    // gchar **argv,
+			NULL,    // gchar **envp,
+			G_SPAWN_DO_NOT_REAP_CHILD, // GSpawnFlags flags,
+			NULL,    // GSpawnChildSetupFunc child_setup,
+			NULL,    // gpointer user_data,
+			&pid,    // GPid *child_pid,
+			&error); // GError **error
+		if (error)
+			g_warning("failed to decompress WSR88D data: %s", error->message);
+		g_child_watch_add(pid, load_radar_rsl, raw);
+	}
+}
+
+/*************
+ * Callbacks *
+ *************/
 static gboolean expose(GtkWidget *da, GdkEventExpose *event, gpointer user_data)
 {
 	g_message("radar:expose");
+	if (cur_sweep == NULL)
+		return FALSE;
 	Sweep *sweep = cur_sweep;
 
 	/* Draw the rays */
@@ -163,56 +267,65 @@ static gboolean expose(GtkWidget *da, GdkEventExpose *event, gpointer user_data)
 	return FALSE;
 }
 
-//static void set_site(AWeatherView *view, char *site, gpointer user_data)
-//{
-//	g_message("location changed to %s", site);
-//}
+static void set_time(AWeatherView *view, char *time, gpointer user_data)
+{
+	g_message("radar:setting time");
+	// format: http://mesonet.agron.iastate.edu/data/nexrd2/raw/KABR/KABR_20090510_0323
+	char *site = aweather_view_get_location(view);
+	char *base = "http://mesonet.agron.iastate.edu/data/";
+	char *path = g_strdup_printf("nexrd2/raw/K%s/K%s_%s", site, site, time);
+	//g_message("caching %s/%s", base, path);
+	cache_file(base, path, load_radar, NULL);
+}
 
+static void set_site(AWeatherView *view, char *site, gpointer user_data)
+{
+	g_message("Loading wsr88d list for %s", site);
+	gchar *data;
+	gsize length;
+	GError *error = NULL;
+	char *list_uri = g_strdup_printf("http://mesonet.agron.iastate.edu/data/nexrd2/raw/K%s/dir.list", site);
+	GFile *list    = g_file_new_for_uri(list_uri);
+	g_file_load_contents(list, NULL, &data, &length, NULL, &error);
+	if (error) {
+		g_warning("Error loading list for %s: %s", site, error->message);
+		return;
+	}
+	gchar **lines = g_strsplit(data, "\n", -1);
+	GtkTreeView  *tview  = GTK_TREE_VIEW(aweather_gui_get_widget(gui, "time"));
+	GtkListStore *lstore = GTK_LIST_STORE(gtk_tree_view_get_model(tview));
+	gtk_list_store_clear(lstore);
+	radar = NULL;
+	for (int i = 0; lines[i] && lines[i][0]; i++) {
+		// format: `841907 KABR_20090510_0159'
+		//g_message("\tadding %p [%s]", lines[i], lines[i]);
+		char **parts = g_strsplit(lines[i], " ", 2);
+		GtkTreeIter iter;
+		gtk_list_store_append(lstore, &iter);
+		gtk_list_store_set(lstore, &iter, 0, parts[1]+5, -1);
+		if (i == 0)
+			set_time(view, parts[1]+5, NULL);
+	}
+}
+
+/* Init */
 gboolean radar_init(AWeatherGui *_gui)
 {
 	gui = _gui;
-	drawing = GTK_WIDGET(aweather_gui_get_drawing(gui));
-	GtkNotebook    *config  = aweather_gui_get_tabs(gui);
-
-	/* Parse hard coded file.. */
-	RSL_read_these_sweeps("all", NULL);
-	//RSL_read_these_sweeps("all", NULL);
-	radar = RSL_wsr88d_to_radar("/scratch/aweather/data/level2/KNQA_20090501_1925.raw", "KNQA");
-	RSL_load_refl_color_table();
-	RSL_get_color_table(RSL_RED_TABLE,   red,   &nred);
-	RSL_get_color_table(RSL_GREEN_TABLE, green, &ngreen);
-	RSL_get_color_table(RSL_BLUE_TABLE,  blue,  &nblue);
-	if (radar->h.nvolumes < 1 || radar->v[0]->h.nsweeps < 1)
-		g_print("No sweeps found\n");
+	drawing = aweather_gui_get_widget(gui, "drawing");
+	GtkNotebook    *config  = GTK_NOTEBOOK(aweather_gui_get_widget(gui, "tabs"));
+	AWeatherView   *view    = aweather_gui_get_view(gui);
 
 	/* Add configuration tab */
-	GtkWidget *scroll = gtk_scrolled_window_new(NULL, NULL);
-	GtkWidget *hbox = gtk_hbox_new(TRUE, 0);
-	GtkWidget *button = NULL;
-	int vi = 0, si = 0;
-	for (vi = 0; vi < radar->h.nvolumes; vi++) {
-		Volume *vol = radar->v[vi];
-		if (vol == NULL) continue;
-		GtkWidget *vbox = gtk_vbox_new(TRUE, 0);
-		gtk_box_pack_start(GTK_BOX(hbox), vbox, TRUE, TRUE, 0);
-		for (si = 0; si < vol->h.nsweeps; si++) {
-			Sweep *sweep = vol->sweep[si];
-			if (sweep == NULL) continue;
-			char *label = g_strdup_printf("Tilt: %.2f (%s)", sweep->h.elev, vol->h.type_str);
-			button = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(button), label);
-			g_signal_connect_swapped(button, "clicked", G_CALLBACK(load_sweep), sweep);
-			gtk_box_pack_start(GTK_BOX(vbox), button, TRUE, TRUE, 0);
-			g_free(label);
-		}
-	}
-	GtkWidget *label = gtk_label_new("Radar");
-	gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(scroll), hbox);
-	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroll), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
-	gtk_notebook_append_page(GTK_NOTEBOOK(config), scroll, label);
+	config_body = gtk_scrolled_window_new(NULL, NULL);
+	gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(config_body), gtk_label_new("No radar loaded"));
+	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(config_body), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+	gtk_notebook_append_page(GTK_NOTEBOOK(config), config_body, gtk_label_new("Radar"));
 
 	/* Set up OpenGL Stuff */
-	g_signal_connect(drawing, "map-event",    G_CALLBACK(map),    NULL);
-	g_signal_connect(drawing, "expose-event", G_CALLBACK(expose), NULL);
+	g_signal_connect(drawing, "expose-event",     G_CALLBACK(expose),   NULL);
+	g_signal_connect(view,    "location-changed", G_CALLBACK(set_site), NULL);
+	g_signal_connect(view,    "time-changed",     G_CALLBACK(set_time), NULL);
 
 	return TRUE;
 }

@@ -1,7 +1,7 @@
 AM_CPPFLAGS  = -DDATADIR="\"$(datadir)\"" $(RSL_CFLAGS) $(GTK_CFLAGS) $(CURL_CFLAGS) 
-AM_CFLAGS    = -O3 -Wall -Werror --std=gnu99 
+AM_CFLAGS    = -O3 -Wall -Werror -Wno-unused --std=gnu99 
 AM_LDFLAGS   = -Wl,--export-dynamic
-bin_PROGRAMS = aweather
+bin_PROGRAMS = aweather wsr88ddec
 
 aweather_SOURCES  = main.c \
 	aweather-gui.c   aweather-gui.h   \
@@ -12,6 +12,9 @@ aweather_SOURCES  = main.c \
 	plugin-ridge.c   plugin-ridge.h   \
 	plugin-example.c plugin-example.h
 aweather_LDADD    = $(RSL_LIBS) $(GTK_LIBS) $(CURL_LIBS)
+
+wsr88ddec         = wsr88ddec.c
+wsr88ddec_LDADD   = -lbz2
 
 
 test: all

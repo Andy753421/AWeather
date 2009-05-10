@@ -60,8 +60,8 @@ static gboolean rotate(gpointer user_data)
 
 gboolean example_init(AWeatherGui *gui)
 {
-	GtkDrawingArea *drawing = aweather_gui_get_drawing(gui);
-	GtkNotebook    *config  = aweather_gui_get_tabs(gui);
+	GtkWidget *drawing = aweather_gui_get_widget(gui, "drawing");
+	GtkWidget *config  = aweather_gui_get_widget(gui, "tabs");
 
 	/* Add configuration tab */
 	GtkWidget *label = gtk_label_new("example");
