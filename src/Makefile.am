@@ -6,6 +6,7 @@ bin_PROGRAMS = aweather
 aweather_SOURCES  = main.c \
 	aweather-gui.c   aweather-gui.h   \
 	aweather-view.c  aweather-view.h  \
+	data.c           data.h           \
 	location.c       location.h       \
 	plugin-radar.c   plugin-radar.h   \
 	plugin-ridge.c   plugin-ridge.h   \

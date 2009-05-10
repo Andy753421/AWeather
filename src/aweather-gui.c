@@ -40,24 +40,13 @@ void on_time_changed() {
 	//aweather_view_set_time(view, site);
 }
 
-static gboolean configure_start(GtkWidget *da, GdkEventConfigure *event, AWeatherGui *gui)
+static gboolean map(GtkWidget *da, GdkEventConfigure *event, AWeatherGui *gui)
 {
+	//g_message("map:map");
 	AWeatherView *view = aweather_gui_get_view(gui);
 	aweather_view_set_location(view, "IND");
 
-	//g_message("opengl:configure_start");
-	GdkGLContext  *glcontext  = gtk_widget_get_gl_context(da);
-	GdkGLDrawable *gldrawable = gtk_widget_get_gl_drawable(da);
-
-	if (!gdk_gl_drawable_gl_begin(gldrawable, glcontext))
-		g_assert_not_reached();
-
-	double width  = da->allocation.width;
-	double height = da->allocation.height;
-	double dist   = 500*1000; // 500 km
-
 	/* Misc */
-	glViewport(0, 0, width, height);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glClearColor(0.8f, 0.8f, 1.0f, 0.0f);
@@ -73,6 +62,20 @@ static gboolean configure_start(GtkWidget *da, GdkEventConfigure *event, AWeathe
 	glDepthFunc(GL_LEQUAL);
 	glEnable(GL_DEPTH_TEST);
 
+	aweather_gui_gl_end(gui);
+	return FALSE;
+}
+
+static gboolean configure(GtkWidget *da, GdkEventConfigure *event, AWeatherGui *gui)
+{
+	aweather_gui_gl_begin(gui);
+
+	double width  = da->allocation.width;
+	double height = da->allocation.height;
+	double dist   = 500*1000; // 500 km
+
+	glViewport(0, 0, width, height);
+
 	/* Perspective */
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
@@ -86,18 +89,19 @@ static gboolean configure_start(GtkWidget *da, GdkEventConfigure *event, AWeathe
 	glTranslatef(0.0, 0.0, -dist);
 	//glRotatef(-45, 1, 0, 0);
 
-
+	aweather_gui_gl_end(gui);
 	return FALSE;
 }
-static gboolean configure_end(GtkWidget *da, GdkEventConfigure *event, gpointer user_data)
+
+static gboolean expose_begin(GtkWidget *da, GdkEventExpose *event, AWeatherGui *gui)
 {
-	//g_message("opengl:configure_end");
-	GdkGLDrawable *gldrawable = gdk_gl_drawable_get_current();
-	gdk_gl_drawable_gl_end(gldrawable);
+	aweather_gui_gl_begin(gui);
 	return FALSE;
 }
 static gboolean expose_end(GtkWidget *da, GdkEventExpose *event, AWeatherGui *gui)
 {
+	g_message("aweather:espose_end\n");
+	aweather_gui_gl_end(gui);
 	aweather_gui_gl_flush(gui);
 	return FALSE;
 }
@@ -168,9 +172,10 @@ gboolean opengl_setup(AWeatherGui *gui)
 		g_error("GL lacks required capabilities");
 
 	/* Set up OpenGL Stuff */
-	g_signal_connect      (drawing, "configure-event", G_CALLBACK(configure_start), gui);
-	g_signal_connect_after(drawing, "configure-event", G_CALLBACK(configure_end),   gui);
-	g_signal_connect_after(drawing, "expose-event",    G_CALLBACK(expose_end),      gui);
+	g_signal_connect      (drawing, "map-event",       G_CALLBACK(map),          gui);
+	g_signal_connect      (drawing, "configure-event", G_CALLBACK(configure),    gui);
+	g_signal_connect      (drawing, "expose-event",    G_CALLBACK(expose_begin), gui);
+	g_signal_connect_after(drawing, "expose-event",    G_CALLBACK(expose_end),   gui);
 	return TRUE;
 }
 
@@ -184,12 +189,6 @@ G_DEFINE_TYPE(AWeatherGui, aweather_gui, G_TYPE_OBJECT);
 static void aweather_gui_init(AWeatherGui *gui)
 {
 	//g_message("aweather_gui_init");
-	/* Default values */
-	gui->view    = NULL;
-	gui->builder = NULL;
-	gui->window  = NULL;
-	gui->tabs    = NULL;
-	gui->drawing = NULL;
 }
 
 static GObject *aweather_gui_constructor(GType gtype, guint n_properties,

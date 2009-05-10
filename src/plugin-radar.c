@@ -15,7 +15,8 @@ static int nred, ngreen, nblue;
 static char red[256], green[256], blue[256];
 static guint sweep_tex = 0;
 
-Radar *radar = NULL;
+static AWeatherGui *gui = NULL;
+static Radar *radar = NULL;
 
 static guint8 get_alpha(guint8 db)
 {
@@ -29,27 +30,6 @@ static guint8 get_alpha(guint8 db)
 	//else if (db < 25) return (db-10)*(255.0/15);
 	else              return 255;
 }
-
-//#ifdef USE_TWO_BYTE_PRECISION
-//#define F_FACTOR 100.0
-//#define F_DR_FACTOR 1000.0
-//#define F_DZ_RANGE_OFFSET 50
-//#else
-//#define F_FACTOR 2.0
-//#define F_DR_FACTOR 10.0
-//#define F_DZ_RANGE_OFFSET 32
-//#endif
-//#define F_OFFSET 4
-//static float dz_f(Range x)
-//{
-//	if (x >= F_OFFSET)
-//		return (((float)x-F_OFFSET)/F_FACTOR - F_DZ_RANGE_OFFSET);
-//	if (x == 0) return BADVAL;
-//	if (x == 1) return RFVAL;
-//	if (x == 2) return APFLAG;
-//	if (x == 3) return NOECHO;
-//	return BADVAL;
-//}
 
 /* Convert a sweep to an 2d array of data points */
 static void bscan_sweep(Sweep *sweep, guint8 **data, int *width, int *height)
@@ -104,9 +84,9 @@ static void load_sweep(Sweep *sweep)
 }
 
 /* Load the default sweep */
-static gboolean configure(GtkWidget *da, GdkEventConfigure *event, AWeatherGui *gui)
+static gboolean map(GtkWidget *da, GdkEvent *event, gpointer user_data)
 {
-	//g_message("radar:configure");
+	g_message("radar:map");
 	aweather_gui_gl_begin(gui);
 	Sweep *first = radar->v[0]->sweep[0];
 	if (cur_sweep == NULL)
@@ -116,10 +96,9 @@ static gboolean configure(GtkWidget *da, GdkEventConfigure *event, AWeatherGui *
 	return FALSE;
 }
 
-static gboolean expose(GtkWidget *da, GdkEventExpose *event, AWeatherGui *gui)
+static gboolean expose(GtkWidget *da, GdkEventExpose *event, gpointer user_data)
 {
-	//g_message("radar:expose");
-	aweather_gui_gl_begin(gui);
+	g_message("radar:expose");
 	Sweep *sweep = cur_sweep;
 
 	/* Draw the rays */
@@ -181,13 +160,17 @@ static gboolean expose(GtkWidget *da, GdkEventExpose *event, AWeatherGui *gui)
 	glEnd();
         glMatrixMode(GL_PROJECTION); glPopMatrix(); 
 	glMatrixMode(GL_MODELVIEW ); glPopMatrix();
-
-	aweather_gui_gl_end(gui);
 	return FALSE;
 }
 
-gboolean radar_init(AWeatherGui *gui)
+//static void set_site(AWeatherView *view, char *site, gpointer user_data)
+//{
+//	g_message("location changed to %s", site);
+//}
+
+gboolean radar_init(AWeatherGui *_gui)
 {
+	gui = _gui;
 	drawing = GTK_WIDGET(aweather_gui_get_drawing(gui));
 	GtkNotebook    *config  = aweather_gui_get_tabs(gui);
 
@@ -228,8 +211,8 @@ gboolean radar_init(AWeatherGui *gui)
 	gtk_notebook_append_page(GTK_NOTEBOOK(config), scroll, label);
 
 	/* Set up OpenGL Stuff */
-	g_signal_connect(drawing, "expose-event",    G_CALLBACK(expose),    gui);
-	g_signal_connect(drawing, "configure-event", G_CALLBACK(configure), gui);
+	g_signal_connect(drawing, "map-event",    G_CALLBACK(map),    NULL);
+	g_signal_connect(drawing, "expose-event", G_CALLBACK(expose), NULL);
 
 	return TRUE;
 }

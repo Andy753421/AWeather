@@ -22,7 +22,7 @@ int main(int argc, char *argv[])
 	/* Load plugins */
 	radar_init  (gui);
         ridge_init  (gui);
-	example_init(gui);
+	//example_init(gui);
 
 	gtk_widget_show_all(GTK_WIDGET(aweather_gui_get_window(gui)));
 	gtk_main();
