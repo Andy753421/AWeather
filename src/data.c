@@ -27,6 +27,15 @@ static void cache_file_cb(GObject *source_object, GAsyncResult *res, gpointer _i
 	g_free(info);
 }
 
+static goffset g_file_get_size(GFile *file)
+{
+	GError *error = NULL;
+	GFileInfo *info = g_file_query_info(file, G_FILE_ATTRIBUTE_STANDARD_SIZE, 0, NULL, &error);
+	if (error)
+		g_warning("unable to get file size: %s", error->message);
+	return g_file_info_get_size(info);
+}
+
 /**
  * Cache a image from Ridge to the local disk
  * \param  path  Path to the Ridge file, starting after /ridge/
@@ -36,25 +45,30 @@ void cache_file(char *base, char *path, AWeatherCacheDoneCallback callback, gpoi
 {
 	gchar *url   = g_strconcat(base, path, NULL);
 	gchar *local = g_build_filename(g_get_user_cache_dir(), PACKAGE, path, NULL);
-	if (g_file_test(local, G_FILE_TEST_EXISTS)) {
-		callback(local, user_data);
-	} else {
-		if (!g_file_test(g_path_get_dirname(local), G_FILE_TEST_IS_DIR))
-			g_mkdir_with_parents(g_path_get_dirname(local), 0755);
-		cache_file_end_t *info = g_malloc0(sizeof(cache_file_end_t));
-		info->callback  = callback;
-		info->src       = url;
-		info->dst       = local;
-		info->user_data = user_data;
-		GFile *src = g_file_new_for_uri(url);
-		GFile *dst = g_file_new_for_path(local);
-		g_file_copy_async(src, dst,
-			G_FILE_COPY_OVERWRITE, // GFileCopyFlags flags,
-			0,                     // int io_priority,
-			NULL,                  // GCancellable *cancellable,
-			NULL,                  // GFileProgressCallback progress_callback,
-			NULL,                  // gpointer progress_callback_data,
-			cache_file_cb,         // GAsyncReadyCallback callback,
-			info);                 // gpointer user_data
-	}
+	GFile *src = g_file_new_for_uri(url);
+	GFile *dst = g_file_new_for_path(local);
+
+	if (!g_file_test(local, G_FILE_TEST_EXISTS))
+		g_message("Caching file: local does not exist - %s", local);
+	else if (g_file_get_size(src) != g_file_get_size(dst))
+		g_message("Caching file: sizes mismatch - %lld != %lld",
+				g_file_get_size(src), g_file_get_size(dst));
+	else
+		return callback(local, user_data);
+
+	if (!g_file_test(g_path_get_dirname(local), G_FILE_TEST_IS_DIR))
+		g_mkdir_with_parents(g_path_get_dirname(local), 0755);
+	cache_file_end_t *info = g_malloc0(sizeof(cache_file_end_t));
+	info->callback  = callback;
+	info->src       = url;
+	info->dst       = local;
+	info->user_data = user_data;
+	g_file_copy_async(src, dst,
+		G_FILE_COPY_OVERWRITE, // GFileCopyFlags flags,
+		0,                     // int io_priority,
+		NULL,                  // GCancellable *cancellable,
+		NULL,                  // GFileProgressCallback progress_callback,
+		NULL,                  // gpointer progress_callback_data,
+		cache_file_cb,         // GAsyncReadyCallback callback,
+		info);                 // gpointer user_data
 }

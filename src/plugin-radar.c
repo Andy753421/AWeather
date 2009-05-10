@@ -105,24 +105,20 @@ static void load_radar_gui(Radar *radar)
 	for (vi = 0; vi < radar->h.nvolumes; vi++) {
 		Volume *vol = radar->v[vi];
 		if (vol == NULL) continue;
-		g_message("    adding volume: %d", vi);
 		GtkWidget *vbox = gtk_vbox_new(TRUE, 0);
 		for (si = vol->h.nsweeps-1; si >= 0; si--) {
 			Sweep *sweep = vol->sweep[si];
 			if (sweep == NULL) continue;
 			char *label = g_strdup_printf("Tilt: %.2f (%s)", sweep->h.elev, vol->h.type_str);
-			g_message("        adding sweep: %d - %s", si, label);
 			button = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(button), label);
 			g_object_set(button, "draw-indicator", FALSE, NULL);
 			g_signal_connect_swapped(button, "clicked", G_CALLBACK(load_sweep), sweep);
 			gtk_box_pack_start(GTK_BOX(vbox), button, FALSE, TRUE, 0);
 			g_free(label);
 		}
-		g_message("adding vbox to hbox");
 		gtk_box_set_homogeneous(GTK_BOX(vbox), FALSE);
 		gtk_box_pack_start(GTK_BOX(hbox), vbox, TRUE, TRUE, 0);
 	}
-	g_message("adding hbox to scroll");
 	gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(config_body), hbox);
 	gtk_widget_show_all(hbox);
 }
@@ -296,16 +292,18 @@ static void set_site(AWeatherView *view, char *site, gpointer user_data)
 	GtkListStore *lstore = GTK_LIST_STORE(gtk_tree_view_get_model(tview));
 	gtk_list_store_clear(lstore);
 	radar = NULL;
+	char *time = NULL;
 	for (int i = 0; lines[i] && lines[i][0]; i++) {
 		// format: `841907 KABR_20090510_0159'
 		//g_message("\tadding %p [%s]", lines[i], lines[i]);
 		char **parts = g_strsplit(lines[i], " ", 2);
+		time = parts[1]+5;
 		GtkTreeIter iter;
-		gtk_list_store_append(lstore, &iter);
-		gtk_list_store_set(lstore, &iter, 0, parts[1]+5, -1);
-		if (i == 0)
-			set_time(view, parts[1]+5, NULL);
+		gtk_list_store_insert(lstore, &iter, 0);
+		gtk_list_store_set(lstore, &iter, 0, time, -1);
 	}
+	if (time != NULL) 
+		aweather_view_set_time(view, time);
 }
 
 /* Init */

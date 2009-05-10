@@ -109,6 +109,50 @@ static gboolean expose_end(GtkWidget *da, GdkEventExpose *event, AWeatherGui *gu
 	return FALSE;
 }
 
+/* TODO: replace the code in these with `gtk_tree_model_find' utility */
+static void update_time_widget(AWeatherView *view, char *time, AWeatherGui *gui)
+{
+	g_message("updating time widget");
+	GtkTreeView  *tview = GTK_TREE_VIEW(aweather_gui_get_widget(gui, "time"));
+	GtkTreeModel *model = GTK_TREE_MODEL(gtk_tree_view_get_model(tview));
+	for (int i = 0; i < gtk_tree_model_iter_n_children(model, NULL); i++) {
+		char *text;
+		GtkTreeIter iter;
+		gtk_tree_model_iter_nth_child(model, &iter, NULL, i);
+		gtk_tree_model_get(model, &iter, 0, &text, -1);
+		if (g_str_equal(text, time)) {
+			GtkTreePath *path = gtk_tree_model_get_path(model, &iter);
+			g_signal_handlers_block_by_func(tview, G_CALLBACK(on_site_changed), gui);
+			gtk_tree_view_set_cursor(tview, path, NULL, FALSE);
+			g_signal_handlers_unblock_by_func(tview, G_CALLBACK(on_site_changed), gui);
+			return;
+		}
+	}
+}
+static void update_location_widget(AWeatherView *view, char *location, AWeatherGui *gui)
+{
+	g_message("updating location widget to %s", location);
+	GtkComboBox  *combo = GTK_COMBO_BOX(aweather_gui_get_widget(gui, "site"));
+	GtkTreeModel *model = GTK_TREE_MODEL(gtk_combo_box_get_model(combo));
+	for (int i = 0; i < gtk_tree_model_iter_n_children(model, NULL); i++) {
+		GtkTreeIter iter1;
+		gtk_tree_model_iter_nth_child(model, &iter1, NULL, i);
+		for (int i = 0; i < gtk_tree_model_iter_n_children(model, &iter1); i++) {
+			GtkTreeIter iter2;
+			gtk_tree_model_iter_nth_child(model, &iter2, &iter1, i);
+			char *text;
+			gtk_tree_model_get(model, &iter2, 1, &text, -1);
+			if (g_str_equal(text, location)) {
+				GtkTreePath *path = gtk_tree_model_get_path(model, &iter2);
+				g_signal_handlers_block_by_func(combo, G_CALLBACK(on_site_changed), gui);
+				gtk_combo_box_set_active_iter(combo, &iter2);
+				g_signal_handlers_unblock_by_func(combo, G_CALLBACK(on_site_changed), gui);
+				return;
+			}
+		}
+	}
+}
+
 /*****************
  * Setup helpers *
  *****************/
@@ -144,6 +188,8 @@ static void site_setup(AWeatherGui *gui)
 			combo_sensitive, NULL, NULL);
 
 	g_signal_connect(combo, "changed", G_CALLBACK(on_site_changed),  gui);
+	AWeatherView *aview = aweather_gui_get_view(gui);
+	g_signal_connect(aview, "location-changed", G_CALLBACK(update_location_widget), gui);
 }
 
 static void time_setup(AWeatherGui *gui)
@@ -158,6 +204,8 @@ static void time_setup(AWeatherGui *gui)
 	gtk_tree_view_append_column(tview, col);
 
 	g_signal_connect(tview, "row-activated", G_CALLBACK(on_time_changed), gui);
+	AWeatherView *aview = aweather_gui_get_view(gui);
+	g_signal_connect(aview, "time-changed", G_CALLBACK(update_time_widget), gui);
 }
 
 gboolean opengl_setup(AWeatherGui *gui)

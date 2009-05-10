@@ -1,5 +1,5 @@
 AM_CPPFLAGS  = -DDATADIR="\"$(datadir)\"" $(RSL_CFLAGS) $(GTK_CFLAGS) $(CURL_CFLAGS) 
-AM_CFLAGS    = -O3 -Wall -Werror -Wno-unused --std=gnu99 
+AM_CFLAGS    = -Wall -Werror -Wno-unused --std=gnu99 
 AM_LDFLAGS   = -Wl,--export-dynamic
 bin_PROGRAMS = aweather wsr88ddec
 
@@ -21,6 +21,10 @@ test: all
 	LD_LIBRARY_PATH=/usr/local/trmm/GVBOX/lib/ \
 	./aweather
 
-debug: all
+gdb: all
 	LD_LIBRARY_PATH=/usr/local/trmm/GVBOX/lib/ \
 	gdb ./aweather
+
+ddd: all
+	LD_LIBRARY_PATH=/usr/local/trmm/GVBOX/lib/ \
+	ddd ./aweather
