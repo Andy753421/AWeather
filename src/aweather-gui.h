@@ -42,6 +42,9 @@ GtkBuilder     *aweather_gui_get_builder(AWeatherGui *gui);
 GtkWindow      *aweather_gui_get_window(AWeatherGui *gui);
 GtkNotebook    *aweather_gui_get_tabs(AWeatherGui *gui);
 GtkDrawingArea *aweather_gui_get_drawing(AWeatherGui *gui);
+void            aweather_gui_gl_begin(AWeatherGui *gui);
+void            aweather_gui_gl_end(AWeatherGui *gui);
+void            aweather_gui_gl_flush(AWeatherGui *gui);
 
 //void aweather_gui_register_plugin(AWeatherGui *gui, AWeatherPlugin *plugin);
 

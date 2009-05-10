@@ -7,7 +7,6 @@ aweather_SOURCES  = main.c \
 	aweather-gui.c   aweather-gui.h   \
 	aweather-view.c  aweather-view.h  \
 	location.c       location.h       \
-	opengl.c         opengl.h         \
 	plugin-radar.c   plugin-radar.h   \
 	plugin-ridge.c   plugin-ridge.h   \
 	plugin-example.c plugin-example.h

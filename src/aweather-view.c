@@ -21,7 +21,7 @@ static guint signals[NUM_SIGNALS];
 /* Constructor / destructors */
 static void aweather_view_init(AWeatherView *self)
 {
-	g_message("aweather_view_init");
+	//g_message("aweather_view_init");
 	/* Default values */
 	self->time     = 0;
 	self->location = g_strdup("IND");
@@ -30,21 +30,21 @@ static void aweather_view_init(AWeatherView *self)
 static GObject *aweather_view_constructor(GType gtype, guint n_properties,
 		GObjectConstructParam *properties)
 {
-	g_message("aweather_view_constructor");
+	//g_message("aweather_view_constructor");
 	GObjectClass *parent_class = G_OBJECT_CLASS(aweather_view_parent_class);
 	return  parent_class->constructor(gtype, n_properties, properties);
 }
 
 static void aweather_view_dispose (GObject *gobject)
 {
-	g_message("aweather_view_dispose");
+	//g_message("aweather_view_dispose");
 	/* Drop references to other GObjects */
 	G_OBJECT_CLASS(aweather_view_parent_class)->dispose(gobject);
 }
 
 static void aweather_view_finalize(GObject *gobject)
 {
-	g_message("aweather_view_finalize");
+	//g_message("aweather_view_finalize");
 	AWeatherView *self = AWEATHER_VIEW(gobject);
 	g_free(self->location);
 	G_OBJECT_CLASS(aweather_view_parent_class)->finalize(gobject);
@@ -53,7 +53,7 @@ static void aweather_view_finalize(GObject *gobject)
 static void aweather_view_set_property(GObject *object, guint property_id,
 		const GValue *value, GParamSpec *pspec)
 {
-	g_message("aweather_view_set_property");
+	//g_message("aweather_view_set_property");
 	AWeatherView *self = AWEATHER_VIEW(object);
 	switch (property_id) {
 	case PROP_TIME:     aweather_view_set_time    (self, g_value_get_int   (value)); break;
@@ -65,7 +65,7 @@ static void aweather_view_set_property(GObject *object, guint property_id,
 static void aweather_view_get_property(GObject *object, guint property_id,
 		GValue *value, GParamSpec *pspec)
 {
-	g_message("aweather_view_get_property");
+	//g_message("aweather_view_get_property");
 	AWeatherView *self = AWEATHER_VIEW(object);
 	switch (property_id) {
 	case PROP_TIME:     g_value_set_int   (value, aweather_view_get_time    (self)); break;
@@ -76,7 +76,7 @@ static void aweather_view_get_property(GObject *object, guint property_id,
 
 static void aweather_view_class_init(AWeatherViewClass *klass)
 {
-	g_message("aweather_view_class_init");
+	//g_message("aweather_view_class_init");
 	GObjectClass *gobject_class = G_OBJECT_CLASS(klass);
 	gobject_class->constructor  = aweather_view_constructor;
 	gobject_class->dispose      = aweather_view_dispose;
@@ -117,33 +117,36 @@ static void aweather_view_class_init(AWeatherViewClass *klass)
 			g_cclosure_marshal_VOID__STRING,
 			G_TYPE_NONE,
 			1,
-			G_TYPE_GSTRING);
+			G_TYPE_STRING);
 
 }
 
 /* Methods */
 AWeatherView *aweather_view_new()
 {
-	g_message("aweather_view_new");
+	//g_message("aweather_view_new");
 	return g_object_new(AWEATHER_TYPE_VIEW, NULL);
 }
 
 void aweather_view_set_time(AWeatherView *view, int time)
 {
-	g_message("aweather_view_set_time");
+	g_assert(AWEATHER_IS_VIEW(view));
+	//g_message("aweather_view_set_time");
 	view->time = time;
 	g_signal_emit(view, signals[SIG_TIME_CHANGED], 0, time);
 }
 
 int aweather_view_get_time(AWeatherView *view)
 {
-	g_message("aweather_view_get_time");
+	g_assert(AWEATHER_IS_VIEW(view));
+	//g_message("aweather_view_get_time");
 	return view->time;
 }
 
 void aweather_view_set_location(AWeatherView *view, const gchar *location)
 {
-	g_message("aweather_view_set_location");
+	g_assert(AWEATHER_IS_VIEW(view));
+	//g_message("aweather_view_set_location");
 	g_free(view->location);
 	view->location = g_strdup(location);
 	g_signal_emit(view, signals[SIG_LOCATION_CHANGED], 0, view->location);
@@ -151,6 +154,7 @@ void aweather_view_set_location(AWeatherView *view, const gchar *location)
 
 gchar *aweather_view_get_location(AWeatherView *view)
 {
-	g_message("aweather_view_get_location");
+	g_assert(AWEATHER_IS_VIEW(view));
+	//g_message("aweather_view_get_location");
 	return view->location;
 }

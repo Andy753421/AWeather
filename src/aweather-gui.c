@@ -2,9 +2,178 @@
 #include <gtk/gtk.h>
 #include <gtk/gtkgl.h>
 #include <gdk/gdkkeysyms.h>
+#include <GL/gl.h>
+#include <GL/glu.h>
+#include <math.h>
 
 #include "aweather-gui.h"
 #include "aweather-view.h"
+#include "location.h"
+
+/*************
+ * callbacks *
+ *************/
+gboolean on_window_key_press_event(GtkWidget *widget, GdkEventKey *event, gpointer data)
+{
+	if (event->keyval == GDK_q)
+		gtk_main_quit();
+	return TRUE;
+}
+
+void on_site_changed(GtkComboBox *combo, AWeatherGui *gui) {
+	gchar *site;
+	GtkTreeIter iter;
+	AWeatherView *view  = aweather_gui_get_view(gui);
+	GtkTreeModel *model = gtk_combo_box_get_model(combo);
+	gtk_combo_box_get_active_iter(combo, &iter);
+	gtk_tree_model_get(model, &iter, 1, &site, -1);
+	aweather_view_set_location(view, site);
+}
+
+void on_time_changed() {
+	//gchar *site;
+	//GtkTreeIter iter;
+	//AWeatherView *view  = aweather_gui_get_view(gui);
+	//GtkTreeModel *model = gtk_combo_box_get_model(combo);
+	//gtk_combo_box_get_active_iter(combo, &iter);
+	//gtk_tree_model_get(model, &iter, 1, &site, 0);
+	//aweather_view_set_time(view, site);
+}
+
+static gboolean configure_start(GtkWidget *da, GdkEventConfigure *event, AWeatherGui *gui)
+{
+	AWeatherView *view = aweather_gui_get_view(gui);
+	aweather_view_set_location(view, "IND");
+
+	//g_message("opengl:configure_start");
+	GdkGLContext  *glcontext  = gtk_widget_get_gl_context(da);
+	GdkGLDrawable *gldrawable = gtk_widget_get_gl_drawable(da);
+
+	if (!gdk_gl_drawable_gl_begin(gldrawable, glcontext))
+		g_assert_not_reached();
+
+	double width  = da->allocation.width;
+	double height = da->allocation.height;
+	double dist   = 500*1000; // 500 km
+
+	/* Misc */
+	glViewport(0, 0, width, height);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glClearColor(0.8f, 0.8f, 1.0f, 0.0f);
+
+	/* Tessellation, "finding intersecting triangles" */
+	/* http://research.microsoft.com/pubs/70307/tr-2006-81.pdf */
+	/* http://www.opengl.org/wiki/Alpha_Blending */
+	glAlphaFunc(GL_GREATER,0.1);
+	glEnable(GL_ALPHA_TEST);
+
+	/* Depth test */
+	glClearDepth(1.0);
+	glDepthFunc(GL_LEQUAL);
+	glEnable(GL_DEPTH_TEST);
+
+	/* Perspective */
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	double rad = atan(height/2*1000.0/dist); // 1px = 1000 meters
+	double deg = (rad*180)/M_PI;
+	gluPerspective(deg*2, width/height, dist-20, dist+20);
+
+	/* Camera position? */
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+	glTranslatef(0.0, 0.0, -dist);
+	//glRotatef(-45, 1, 0, 0);
+
+
+	return FALSE;
+}
+static gboolean configure_end(GtkWidget *da, GdkEventConfigure *event, gpointer user_data)
+{
+	//g_message("opengl:configure_end");
+	GdkGLDrawable *gldrawable = gdk_gl_drawable_get_current();
+	gdk_gl_drawable_gl_end(gldrawable);
+	return FALSE;
+}
+static gboolean expose_end(GtkWidget *da, GdkEventExpose *event, AWeatherGui *gui)
+{
+	aweather_gui_gl_flush(gui);
+	return FALSE;
+}
+
+/*****************
+ * Setup helpers *
+ *****************/
+static void combo_sensitive(GtkCellLayout *cell_layout, GtkCellRenderer *cell,
+		GtkTreeModel *tree_model, GtkTreeIter *iter, gpointer data)
+{
+	gboolean sensitive = !gtk_tree_model_iter_has_child(tree_model, iter);
+	g_object_set(cell, "sensitive", sensitive, NULL);
+}
+
+static void site_setup(AWeatherGui *gui)
+{
+	GtkTreeIter state, city;
+	GtkTreeStore *store = gtk_tree_store_new(2, G_TYPE_STRING, G_TYPE_STRING);
+	for (int i = 0; cities[i].label; i++) {
+		if (cities[i].type == LOCATION_STATE) {
+			gtk_tree_store_append(store, &state, NULL);
+			gtk_tree_store_set   (store, &state, 0, cities[i].label, 
+					                     1, cities[i].code,  -1);
+		} else {
+			gtk_tree_store_append(store, &city, &state);
+			gtk_tree_store_set   (store, &city, 0, cities[i].label, 
+				                            1, cities[i].code,  -1);
+		}
+	}
+
+	GtkBuilder      *builder  = aweather_gui_get_builder(gui);
+	GtkWidget       *combo    = GTK_WIDGET(gtk_builder_get_object(builder, "site"));
+	GtkCellRenderer *renderer = gtk_cell_renderer_text_new();
+	gtk_cell_layout_pack_start(GTK_CELL_LAYOUT(combo), renderer, FALSE);
+	gtk_cell_layout_set_attributes(GTK_CELL_LAYOUT(combo), renderer, "text", 0, NULL);
+	gtk_combo_box_set_model(GTK_COMBO_BOX(combo), GTK_TREE_MODEL(store));
+	gtk_cell_layout_set_cell_data_func(GTK_CELL_LAYOUT(combo), renderer,
+			combo_sensitive, NULL, NULL);
+
+	g_signal_connect(combo, "changed", G_CALLBACK(on_site_changed),  gui);
+}
+
+static void time_setup(AWeatherGui *gui)
+{
+	GtkBuilder        *builder  = aweather_gui_get_builder(gui);
+	GtkWidget         *time     = GTK_WIDGET(gtk_builder_get_object(builder, "time"));
+	GtkCellRenderer   *rend     = gtk_cell_renderer_text_new();
+	GtkTreeViewColumn *col      = gtk_tree_view_column_new_with_attributes(
+					"Time", rend, 0, "text", NULL);
+	gtk_tree_view_append_column(GTK_TREE_VIEW(time), col);
+
+	GtkTreeStore *store = gtk_tree_store_new(1, G_TYPE_STRING);
+	gtk_tree_view_set_model(GTK_TREE_VIEW(time), GTK_TREE_MODEL(store));
+
+	g_signal_connect(time, "row-activated", G_CALLBACK(on_time_changed), gui);
+}
+
+gboolean opengl_setup(AWeatherGui *gui)
+{
+	GtkDrawingArea *drawing = aweather_gui_get_drawing(gui);
+
+	GdkGLConfig *glconfig = gdk_gl_config_new_by_mode(
+			GDK_GL_MODE_RGBA   | GDK_GL_MODE_DEPTH |
+			GDK_GL_MODE_DOUBLE | GDK_GL_MODE_ALPHA);
+	if (!glconfig)
+		g_error("Failed to create glconfig");
+	if (!gtk_widget_set_gl_capability(GTK_WIDGET(drawing), glconfig, NULL, TRUE, GDK_GL_RGBA_TYPE))
+		g_error("GL lacks required capabilities");
+
+	/* Set up OpenGL Stuff */
+	g_signal_connect      (drawing, "configure-event", G_CALLBACK(configure_start), gui);
+	g_signal_connect_after(drawing, "configure-event", G_CALLBACK(configure_end),   gui);
+	g_signal_connect_after(drawing, "expose-event",    G_CALLBACK(expose_end),      gui);
+	return TRUE;
+}
+
 
 /****************
  * GObject code *
@@ -14,7 +183,7 @@ G_DEFINE_TYPE(AWeatherGui, aweather_gui, G_TYPE_OBJECT);
 /* Constructor / destructors */
 static void aweather_gui_init(AWeatherGui *gui)
 {
-	g_message("aweather_gui_init");
+	//g_message("aweather_gui_init");
 	/* Default values */
 	gui->view    = NULL;
 	gui->builder = NULL;
@@ -26,14 +195,14 @@ static void aweather_gui_init(AWeatherGui *gui)
 static GObject *aweather_gui_constructor(GType gtype, guint n_properties,
 		GObjectConstructParam *properties)
 {
-	g_message("aweather_gui_constructor");
+	//g_message("aweather_gui_constructor");
 	GObjectClass *parent_class = G_OBJECT_CLASS(aweather_gui_parent_class);
 	return  parent_class->constructor(gtype, n_properties, properties);
 }
 
 static void aweather_gui_dispose (GObject *gobject)
 {
-	g_message("aweather_gui_dispose");
+	//g_message("aweather_gui_dispose");
 	AWeatherGui *gui = AWEATHER_GUI(gobject);
 	g_object_unref(gui->view   );
 	g_object_unref(gui->builder);
@@ -45,13 +214,13 @@ static void aweather_gui_dispose (GObject *gobject)
 
 static void aweather_gui_finalize(GObject *gobject)
 {
-	g_message("aweather_gui_finalize");
+	//g_message("aweather_gui_finalize");
 	G_OBJECT_CLASS(aweather_gui_parent_class)->finalize(gobject);
 }
 
 static void aweather_gui_class_init(AWeatherGuiClass *klass)
 {
-	g_message("aweather_gui_class_init");
+	//g_message("aweather_gui_class_init");
 	GObjectClass *gobject_class = G_OBJECT_CLASS(klass);
 	gobject_class->constructor  = aweather_gui_constructor;
 	gobject_class->dispose      = aweather_gui_dispose;
@@ -61,7 +230,7 @@ static void aweather_gui_class_init(AWeatherGuiClass *klass)
 /* Methods */
 AWeatherGui *aweather_gui_new()
 {
-	g_message("aweather_gui_new");
+	//g_message("aweather_gui_new");
 	GError *error = NULL;
 
 	AWeatherGui *gui = g_object_new(AWEATHER_TYPE_GUI, NULL);
@@ -74,41 +243,65 @@ AWeatherGui *aweather_gui_new()
 	gui->tabs    = GTK_NOTEBOOK    (gtk_builder_get_object(gui->builder, "tabs")); 
 	gui->drawing = GTK_DRAWING_AREA(gtk_builder_get_object(gui->builder, "drawing"));
 	gtk_builder_connect_signals(gui->builder, NULL);
+
+	/* Load components */
+	site_setup(gui);
+	time_setup(gui);
+	opengl_setup(gui);
 	return gui;
 }
 AWeatherView *aweather_gui_get_view(AWeatherGui *gui)
 {
+	g_assert(AWEATHER_IS_GUI(gui));
 	return gui->view;
 }
 GtkBuilder *aweather_gui_get_builder(AWeatherGui *gui)
 {
+	g_assert(AWEATHER_IS_GUI(gui));
 	return gui->builder;
 }
 GtkWindow *aweather_gui_get_window(AWeatherGui *gui)
 {
+	g_assert(AWEATHER_IS_GUI(gui));
 	return gui->window;
 }
 GtkNotebook *aweather_gui_get_tabs(AWeatherGui *gui)
 {
+	g_assert(AWEATHER_IS_GUI(gui));
 	return gui->tabs;
 }
 GtkDrawingArea *aweather_gui_get_drawing(AWeatherGui *gui)
 {
+	g_assert(AWEATHER_IS_GUI(gui));
 	return gui->drawing;
 }
-
-//void aweather_gui_register_plugin(AWeatherGui *gui, AWeatherPlugin *plugin);
-
-/************************
- * GtkBuilder callbacks *
- ************************/
-gboolean on_window_key_press_event(GtkWidget *widget, GdkEventKey *event, gpointer data)
+void aweather_gui_gl_begin(AWeatherGui *gui)
 {
-	if (event->keyval == GDK_q)
-		gtk_main_quit();
-	return TRUE;
-}
+	g_assert(AWEATHER_IS_GUI(gui));
 
-void on_site_changed() {
-	g_message("site changed");
+	GtkDrawingArea *drawing    = aweather_gui_get_drawing(gui);
+	GdkGLContext   *glcontext  = gtk_widget_get_gl_context(GTK_WIDGET(drawing));
+	GdkGLDrawable  *gldrawable = gtk_widget_get_gl_drawable(GTK_WIDGET(drawing));
+
+	if (!gdk_gl_drawable_gl_begin(gldrawable, glcontext))
+		g_assert_not_reached();
+
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
+void aweather_gui_gl_end(AWeatherGui *gui)
+{
+	g_assert(AWEATHER_IS_GUI(gui));
+	GdkGLDrawable *gldrawable = gdk_gl_drawable_get_current();
+	gdk_gl_drawable_gl_end(gldrawable);
+}
+void aweather_gui_gl_flush(AWeatherGui *gui)
+{
+	g_assert(AWEATHER_IS_GUI(gui));
+	GdkGLDrawable *gldrawable = gdk_gl_drawable_get_current();
+	if (gdk_gl_drawable_is_double_buffered(gldrawable))
+		gdk_gl_drawable_swap_buffers(gldrawable);
+	else
+		glFlush();
+	gdk_gl_drawable_gl_end(gldrawable);
+}
+//void aweather_gui_register_plugin(AWeatherGui *gui, AWeatherPlugin *plugin);

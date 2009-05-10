@@ -15,6 +15,8 @@ static int nred, ngreen, nblue;
 static char red[256], green[256], blue[256];
 static guint sweep_tex = 0;
 
+Radar *radar = NULL;
+
 static guint8 get_alpha(guint8 db)
 {
 	if (db == BADVAL) return 0;
@@ -102,18 +104,22 @@ static void load_sweep(Sweep *sweep)
 }
 
 /* Load the default sweep */
-static gboolean configure(GtkWidget *da, GdkEventConfigure *event, gpointer user_data)
+static gboolean configure(GtkWidget *da, GdkEventConfigure *event, AWeatherGui *gui)
 {
-	g_message("radar:configure");
-	Sweep *first = (Sweep*)user_data;
+	//g_message("radar:configure");
+	aweather_gui_gl_begin(gui);
+	Sweep *first = radar->v[0]->sweep[0];
 	if (cur_sweep == NULL)
 		load_sweep(first);
+	aweather_gui_gl_end(gui);
+
 	return FALSE;
 }
 
-static gboolean expose(GtkWidget *da, GdkEventExpose *event, gpointer user_data)
+static gboolean expose(GtkWidget *da, GdkEventExpose *event, AWeatherGui *gui)
 {
-	g_message("radar:expose");
+	//g_message("radar:expose");
+	aweather_gui_gl_begin(gui);
 	Sweep *sweep = cur_sweep;
 
 	/* Draw the rays */
@@ -176,6 +182,7 @@ static gboolean expose(GtkWidget *da, GdkEventExpose *event, gpointer user_data)
         glMatrixMode(GL_PROJECTION); glPopMatrix(); 
 	glMatrixMode(GL_MODELVIEW ); glPopMatrix();
 
+	aweather_gui_gl_end(gui);
 	return FALSE;
 }
 
@@ -187,7 +194,7 @@ gboolean radar_init(AWeatherGui *gui)
 	/* Parse hard coded file.. */
 	RSL_read_these_sweeps("all", NULL);
 	//RSL_read_these_sweeps("all", NULL);
-	Radar *radar = RSL_wsr88d_to_radar("/scratch/aweather/data/level2/KNQA_20090501_1925.raw", "KNQA");
+	radar = RSL_wsr88d_to_radar("/scratch/aweather/data/level2/KNQA_20090501_1925.raw", "KNQA");
 	RSL_load_refl_color_table();
 	RSL_get_color_table(RSL_RED_TABLE,   red,   &nred);
 	RSL_get_color_table(RSL_GREEN_TABLE, green, &ngreen);
@@ -221,8 +228,8 @@ gboolean radar_init(AWeatherGui *gui)
 	gtk_notebook_append_page(GTK_NOTEBOOK(config), scroll, label);
 
 	/* Set up OpenGL Stuff */
-	g_signal_connect(drawing, "expose-event",    G_CALLBACK(expose),    NULL);
-	g_signal_connect(drawing, "configure-event", G_CALLBACK(configure), radar->v[0]->sweep[0]);
+	g_signal_connect(drawing, "expose-event",    G_CALLBACK(expose),    gui);
+	g_signal_connect(drawing, "configure-event", G_CALLBACK(configure), gui);
 
 	return TRUE;
 }

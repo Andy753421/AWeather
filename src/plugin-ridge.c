@@ -30,7 +30,6 @@ static struct {
 
 static CURL *curl_handle;
 
-
 /**
  * Cache a image from Ridge to the local disk
  * \param  path  Path to the Ridge file, starting after /ridge/
@@ -95,9 +94,26 @@ guint load_texture(char *filename)
 	return id;
 }
 
-static gboolean expose(GtkWidget *da, GdkEventExpose *event, gpointer user_data)
+static void set_site(AWeatherView *view, char *site, AWeatherGui *gui)
 {
-	g_message("ridge:expose");
+	g_message("location changed to %s", site);
+	aweather_gui_gl_begin(gui);
+	for (int i = 0; i < LAYER_COUNT; i++) {
+		if (layers[i].tex != 0)
+			continue;
+		char *path  = g_strdup_printf(layers[i].fmt, site);
+		char *local = cache_image(path);
+		layers[i].tex = load_texture(local);
+		g_free(local);
+		g_free(path);
+	}
+	aweather_gui_gl_end(gui);
+}
+
+static gboolean expose(GtkWidget *da, GdkEventExpose *event, AWeatherGui *gui)
+{
+	//g_message("ridge:expose");
+	aweather_gui_gl_begin(gui);
 	glPushMatrix();
 	glEnable(GL_TEXTURE_2D);
 	glColor4f(1,1,1,1);
@@ -114,30 +130,18 @@ static gboolean expose(GtkWidget *da, GdkEventExpose *event, gpointer user_data)
 	}
 
 	glPopMatrix();
-	return FALSE;
-}
-
-static gboolean configure(GtkWidget *da, GdkEventConfigure *event, gpointer user_data)
-{
-	for (int i = 0; i < LAYER_COUNT; i++) {
-		if (layers[i].tex != 0)
-			continue;
-		char *path  = g_strdup_printf(layers[i].fmt, "IND");
-		char *local = cache_image(path);
-		layers[i].tex = load_texture(local);
-		g_free(local);
-		g_free(path);
-	}
+	aweather_gui_gl_end(gui);
 	return FALSE;
 }
 
 gboolean ridge_init(AWeatherGui *gui)
 {
 	GtkDrawingArea *drawing = aweather_gui_get_drawing(gui);
+	AWeatherView *view = aweather_gui_get_view(gui);
 
 	/* Set up OpenGL Stuff */
-	g_signal_connect(drawing, "expose-event",    G_CALLBACK(expose),    NULL);
-	g_signal_connect(drawing, "configure-event", G_CALLBACK(configure), NULL);
+	g_signal_connect(drawing, "expose-event",     G_CALLBACK(expose),    gui);
+	g_signal_connect(view,    "location-changed", G_CALLBACK(set_site),  gui);
 
 	curl_global_init(CURL_GLOBAL_ALL);
 	curl_handle = curl_easy_init();
