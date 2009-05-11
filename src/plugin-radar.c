@@ -1,3 +1,20 @@
+/*
+ * Copyright (C) 2009 Andy Spencer <spenceal@rose-hulman.edu>
+ * 
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #include <config.h>
 #include <gtk/gtk.h>
 #include <gtk/gtkgl.h>
@@ -31,9 +48,9 @@ static guint8 get_alpha(guint8 db)
 	if (db == APFLAG) return 0;
 	if (db == NOECHO) return 0;
 	if (db == 0     ) return 0;
-	//if      (db > 60) return 0;
-	//else if (db < 10) return 0;
-	//else if (db < 25) return (db-10)*(255.0/15);
+	if      (db > 60) return 0;
+	else if (db < 10) return 0;
+	else if (db < 25) return (db-10)*(255.0/15);
 	else              return 255;
 }
 
@@ -173,14 +190,16 @@ static void load_radar(char *path, gpointer user_data)
 	if (g_file_test(raw, G_FILE_TEST_EXISTS)) {
 		load_radar_rsl(0, 0, raw);
 	} else {
-		char *argv[] = {"./wsr88ddec", path, raw, NULL};
+		char *argv[] = {"wsr88ddec", path, raw, NULL};
 		GPid pid;
 		GError *error = NULL;
 		g_spawn_async(
 			NULL,    // const gchar *working_directory,
 			argv,    // gchar **argv,
 			NULL,    // gchar **envp,
-			G_SPAWN_DO_NOT_REAP_CHILD, // GSpawnFlags flags,
+			G_SPAWN_SEARCH_PATH|
+			G_SPAWN_DO_NOT_REAP_CHILD, 
+			         // GSpawnFlags flags,
 			NULL,    // GSpawnChildSetupFunc child_setup,
 			NULL,    // gpointer user_data,
 			&pid,    // GPid *child_pid,
@@ -207,6 +226,7 @@ static gboolean expose(GtkWidget *da, GdkEventExpose *event, gpointer user_data)
 	glPushMatrix();
 	glBindTexture(GL_TEXTURE_2D, sweep_tex);
 	glEnable(GL_TEXTURE_2D);
+	glDisable(GL_ALPHA_TEST);
 	glColor4f(1,1,1,1);
 	glBegin(GL_QUAD_STRIP);
 	for (int ri = 0; ri <= sweep->h.nrays+1; ri++) {
@@ -246,6 +266,7 @@ static gboolean expose(GtkWidget *da, GdkEventExpose *event, gpointer user_data)
 
 	/* Print the color table */
 	glDisable(GL_TEXTURE_2D);
+	glDisable(GL_DEPTH_TEST);
 	glMatrixMode(GL_MODELVIEW ); glPushMatrix(); glLoadIdentity();
 	glMatrixMode(GL_PROJECTION); glPushMatrix(); glLoadIdentity();
 	glBegin(GL_QUADS);
@@ -258,6 +279,8 @@ static gboolean expose(GtkWidget *da, GdkEventExpose *event, gpointer user_data)
 		glVertex3f(-0.9, (float)((i  ) - nred/2)/(nred/2), 0.0); // bot right
 	}
 	glEnd();
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_ALPHA_TEST);
         glMatrixMode(GL_PROJECTION); glPopMatrix(); 
 	glMatrixMode(GL_MODELVIEW ); glPopMatrix();
 	return FALSE;

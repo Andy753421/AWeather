@@ -1,3 +1,8 @@
-Fix Z-Ordering
+See also: wiki
 
-- Need to draw objects from lowest to highest when using transparency
+Depth sorting
+  - Need to draw objects from lowest to highest when using transparency
+
+Fix memory leaks
+
+Add better color charts

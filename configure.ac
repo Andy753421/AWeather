@@ -13,8 +13,10 @@ PKG_CHECK_MODULES(GTK,  gtk+-2.0 gtkglext-1.0 gmodule-export-2.0 gobject-2.0)
 PKG_CHECK_MODULES(CURL, libcurl)
 
 # Define odd RSL install location
-AC_SUBST(RSL_CFLAGS, "-I/usr/local/trmm/GVBOX/include/")
-AC_SUBST(RSL_LIBS,   "-L/usr/local/trmm/GVBOX/lib/ -lrsl")
+#AC_SUBST(RSL_CFLAGS, "-I/usr/local/trmm/GVBOX/include/")
+#AC_SUBST(RSL_LIBS,   "-L/usr/local/trmm/GVBOX/lib/ -lrsl")
+AC_SUBST(RSL_CFLAGS, "")
+AC_SUBST(RSL_LIBS,   "-lrsl")
 
 # Output 
 AC_CONFIG_FILES([

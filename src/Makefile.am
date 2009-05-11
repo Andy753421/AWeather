@@ -16,15 +16,13 @@ aweather_LDADD    = $(RSL_LIBS) $(GTK_LIBS) $(CURL_LIBS)
 wsr88ddec         = wsr88ddec.c
 wsr88ddec_LDADD   = -lbz2
 
+# LD_LIBRARY_PATH=/usr/local/trmm/GVBOX/lib/ 
 
 test: all
-	LD_LIBRARY_PATH=/usr/local/trmm/GVBOX/lib/ \
 	./aweather
 
 gdb: all
-	LD_LIBRARY_PATH=/usr/local/trmm/GVBOX/lib/ \
 	gdb ./aweather
 
 ddd: all
-	LD_LIBRARY_PATH=/usr/local/trmm/GVBOX/lib/ \
 	ddd ./aweather
