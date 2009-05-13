@@ -93,6 +93,7 @@ static gboolean configure(GtkWidget *da, GdkEventConfigure *event, AWeatherGui *
 	double width  = da->allocation.width;
 	double height = da->allocation.height;
 	double dist   = 500*1000; // 500 km
+	double cam    = 300*1000; // 500 km
 
 	glViewport(0, 0, width, height);
 
@@ -101,12 +102,12 @@ static gboolean configure(GtkWidget *da, GdkEventConfigure *event, AWeatherGui *
 	glLoadIdentity();
 	double rad = atan(height/2*1000.0/dist); // 1px = 1000 meters
 	double deg = (rad*180)/M_PI;
-	gluPerspective(deg*2, width/height, dist-20, dist+20);
+	gluPerspective(deg*2, width/height, cam-20, cam+20);
 
 	/* Camera position? */
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
-	glTranslatef(0.0, 0.0, -dist);
+	glTranslatef(0.0, 0.0, -cam);
 	//glRotatef(-45, 1, 0, 0);
 
 	aweather_gui_gl_end(gui);

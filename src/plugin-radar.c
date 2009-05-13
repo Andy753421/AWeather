@@ -48,9 +48,9 @@ static guint8 get_alpha(guint8 db)
 	if (db == APFLAG) return 0;
 	if (db == NOECHO) return 0;
 	if (db == 0     ) return 0;
-	if      (db > 60) return 0;
-	else if (db < 10) return 0;
-	else if (db < 25) return (db-10)*(255.0/15);
+	//if      (db > 60) return 0;
+	//else if (db < 10) return 0;
+	//else if (db < 25) return (db-10)*(255.0/15);
 	else              return 255;
 }
 
@@ -85,6 +85,21 @@ static void bscan_sweep(Sweep *sweep, guint8 **data, int *width, int *height)
 	*width  = max_bins;
 	*height = sweep->h.nrays;
 	*data   = buf;
+}
+
+static void load_color_table(char *table)
+{
+	/* TODO: replace this with a better color table */
+	g_message("loading color table");
+	if (g_str_equal(table, "Velocity"))
+		RSL_load_vel_color_table();
+	else if (g_str_equal(table, "Spectrum width"))
+		RSL_load_sw_color_table();
+	else
+		RSL_load_refl_color_table();
+	RSL_get_color_table(RSL_RED_TABLE,   red,   &nred);
+	RSL_get_color_table(RSL_GREEN_TABLE, green, &ngreen);
+	RSL_get_color_table(RSL_BLUE_TABLE,  blue,  &nblue);
 }
 
 /* Load a sweep as the active texture */
@@ -129,6 +144,7 @@ static void load_radar_gui(Radar *radar)
 			char *label = g_strdup_printf("Tilt: %.2f (%s)", sweep->h.elev, vol->h.type_str);
 			button = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(button), label);
 			g_object_set(button, "draw-indicator", FALSE, NULL);
+			g_signal_connect_swapped(button, "clicked", G_CALLBACK(load_color_table), vol->h.type_str);
 			g_signal_connect_swapped(button, "clicked", G_CALLBACK(load_sweep), sweep);
 			gtk_box_pack_start(GTK_BOX(vbox), button, FALSE, TRUE, 0);
 			g_free(label);
@@ -157,13 +173,6 @@ static void load_radar_rsl(GPid pid, gint status, gpointer _path)
 		return;
 	}
 
-	/* TODO: replace this with a better color table */
-	g_message("loading color table");
-	RSL_load_refl_color_table();
-	RSL_get_color_table(RSL_RED_TABLE,   red,   &nred);
-	RSL_get_color_table(RSL_GREEN_TABLE, green, &ngreen);
-	RSL_get_color_table(RSL_BLUE_TABLE,  blue,  &nblue);
-
 	/* Load the first sweep by default */
 	if (radar->h.nvolumes < 1 || radar->v[0]->h.nsweeps < 1) {
 		g_warning("No sweeps found\n");
@@ -173,6 +182,7 @@ static void load_radar_rsl(GPid pid, gint status, gpointer _path)
 			if (radar->v[vi]== NULL) continue;
 			for (int si = 0; si < radar->v[vi]->h.nsweeps; si++) {
 				if (radar->v[vi]->sweep[si]== NULL) continue;
+				load_color_table(radar->v[vi]->h.type_str);
 				load_sweep(radar->v[vi]->sweep[si]);
 				break;
 			}
