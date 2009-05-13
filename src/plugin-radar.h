@@ -20,4 +20,11 @@
 
 gboolean radar_init(AWeatherGui *gui);
 
+typedef struct {
+	char *name;
+	guint8 data[256][4];
+} colormap_t;
+
+extern colormap_t colormaps[];
+
 #endif

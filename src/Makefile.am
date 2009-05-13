@@ -9,6 +9,7 @@ aweather_SOURCES  = main.c \
 	data.c           data.h           \
 	location.c       location.h       \
 	plugin-radar.c   plugin-radar.h   \
+	plugin-radar-colormap.c           \
 	plugin-ridge.c   plugin-ridge.h   \
 	plugin-example.c plugin-example.h
 aweather_LDADD    = $(RSL_LIBS) $(GTK_LIBS) $(CURL_LIBS)

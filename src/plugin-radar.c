@@ -30,8 +30,9 @@
 GtkWidget *drawing;
 GtkWidget *config_body;
 static Sweep *cur_sweep = NULL;  // make this not global
-static int nred, ngreen, nblue;
-static char red[256], green[256], blue[256];
+//static int nred, ngreen, nblue;
+//static char red[256], green[256], blue[256];
+static colormap_t *colormap;
 static guint sweep_tex = 0;
 
 static AWeatherGui *gui = NULL;
@@ -40,20 +41,6 @@ static Radar *radar = NULL;
 /**************************
  * Data loading functions *
  **************************/
-/* return a GL alpha value for a radar pixle */
-static guint8 get_alpha(guint8 db)
-{
-	if (db == BADVAL) return 0;
-	if (db == RFVAL ) return 0;
-	if (db == APFLAG) return 0;
-	if (db == NOECHO) return 0;
-	if (db == 0     ) return 0;
-	//if      (db > 60) return 0;
-	//else if (db < 10) return 0;
-	//else if (db < 25) return (db-10)*(255.0/15);
-	else              return 255;
-}
-
 /* Convert a sweep to an 2d array of data points */
 static void bscan_sweep(Sweep *sweep, guint8 **data, int *width, int *height)
 {
@@ -74,10 +61,10 @@ static void bscan_sweep(Sweep *sweep, guint8 **data, int *width, int *height)
 			//guint val   = dz_f(ray->range[bi]);
 			guint val   = ray->h.f(ray->range[bi]);
 			guint buf_i = (ri*max_bins+bi)*4;
-			buf[buf_i+0] =   red[val];
-			buf[buf_i+1] = green[val];
-			buf[buf_i+2] =  blue[val];
-			buf[buf_i+3] = get_alpha(val);
+			buf[buf_i+0] = colormap->data[val][0];
+			buf[buf_i+1] = colormap->data[val][1];
+			buf[buf_i+2] = colormap->data[val][2];
+			buf[buf_i+3] = colormap->data[val][3];
 		}
 	}
 
@@ -89,17 +76,9 @@ static void bscan_sweep(Sweep *sweep, guint8 **data, int *width, int *height)
 
 static void load_color_table(char *table)
 {
-	/* TODO: replace this with a better color table */
-	g_message("loading color table");
-	if (g_str_equal(table, "Velocity"))
-		RSL_load_vel_color_table();
-	else if (g_str_equal(table, "Spectrum width"))
-		RSL_load_sw_color_table();
-	else
-		RSL_load_refl_color_table();
-	RSL_get_color_table(RSL_RED_TABLE,   red,   &nred);
-	RSL_get_color_table(RSL_GREEN_TABLE, green, &ngreen);
-	RSL_get_color_table(RSL_BLUE_TABLE,  blue,  &nblue);
+	for (int i = 0; colormaps[i].name; i++)
+		if (g_str_equal(colormaps[i].name, table))
+			colormap = &colormaps[i];
 }
 
 /* Load a sweep as the active texture */
@@ -281,12 +260,15 @@ static gboolean expose(GtkWidget *da, GdkEventExpose *event, gpointer user_data)
 	glMatrixMode(GL_PROJECTION); glPushMatrix(); glLoadIdentity();
 	glBegin(GL_QUADS);
 	int i;
-	for (i = 0; i < nred; i++) {
-		glColor4ub(red[i], green[i], blue[i], get_alpha(i));
-		glVertex3f(-1.0, (float)((i  ) - nred/2)/(nred/2), 0.0); // bot left
-		glVertex3f(-1.0, (float)((i+1) - nred/2)/(nred/2), 0.0); // top left
-		glVertex3f(-0.9, (float)((i+1) - nred/2)/(nred/2), 0.0); // top right
-		glVertex3f(-0.9, (float)((i  ) - nred/2)/(nred/2), 0.0); // bot right
+	for (i = 0; i < 256; i++) {
+		glColor4ub(colormap->data[i][0],
+		           colormap->data[i][1],
+		           colormap->data[i][2],
+		           colormap->data[i][3]);
+		glVertex3f(-1.0, (float)((i  ) - 256/2)/(256/2), 0.0); // bot left
+		glVertex3f(-1.0, (float)((i+1) - 256/2)/(256/2), 0.0); // top left
+		glVertex3f(-0.9, (float)((i+1) - 256/2)/(256/2), 0.0); // top right
+		glVertex3f(-0.9, (float)((i  ) - 256/2)/(256/2), 0.0); // bot right
 	}
 	glEnd();
 	glEnable(GL_DEPTH_TEST);
