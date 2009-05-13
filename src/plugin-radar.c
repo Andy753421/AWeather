@@ -59,12 +59,16 @@ static void bscan_sweep(Sweep *sweep, guint8 **data, int *width, int *height)
 		for (bi = 0; bi < ray->h.nbins; bi++) {
 			/* copy RGBA into buffer */
 			//guint val   = dz_f(ray->range[bi]);
-			guint val   = ray->h.f(ray->range[bi]);
-			guint buf_i = (ri*max_bins+bi)*4;
+			guint8 val   = (guint8)ray->h.f(ray->range[bi]);
+			guint  buf_i = (ri*max_bins+bi)*4;
 			buf[buf_i+0] = colormap->data[val][0];
 			buf[buf_i+1] = colormap->data[val][1];
 			buf[buf_i+2] = colormap->data[val][2];
 			buf[buf_i+3] = colormap->data[val][3];
+			if (val == BADVAL     || val == RFVAL      || val == APFLAG ||
+			    val == NOTFOUND_H || val == NOTFOUND_V || val == NOECHO) {
+				buf[buf_i+3] = 0x00; // transparent
+			}
 		}
 	}
 
@@ -97,8 +101,7 @@ static void load_sweep(Sweep *sweep)
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
 	g_free(data);
-	gdk_window_invalidate_rect(drawing->window, &drawing->allocation, FALSE);
-	gdk_window_process_updates(drawing->window, FALSE);
+	gtk_widget_queue_draw(aweather_gui_get_widget(gui, "drawing"));
 	aweather_gui_gl_end(gui);
 }
 
@@ -286,6 +289,8 @@ static void set_time(AWeatherView *view, char *time, gpointer user_data)
 	char *base = "http://mesonet.agron.iastate.edu/data/";
 	char *path = g_strdup_printf("nexrd2/raw/K%s/K%s_%s", site, site, time);
 	//g_message("caching %s/%s", base, path);
+	cur_sweep = NULL; // Clear radar
+	gtk_widget_queue_draw(aweather_gui_get_widget(gui, "drawing"));
 	cache_file(base, path, load_radar, NULL);
 }
 
@@ -297,6 +302,8 @@ static void set_site(AWeatherView *view, char *site, gpointer user_data)
 	GError *error = NULL;
 	char *list_uri = g_strdup_printf("http://mesonet.agron.iastate.edu/data/nexrd2/raw/K%s/dir.list", site);
 	GFile *list    = g_file_new_for_uri(list_uri);
+	cur_sweep = NULL; // Clear radar
+	gtk_widget_queue_draw(aweather_gui_get_widget(gui, "drawing"));
 	g_file_load_contents(list, NULL, &data, &length, NULL, &error);
 	if (error) {
 		g_warning("Error loading list for %s: %s", site, error->message);
