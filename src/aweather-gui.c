@@ -140,9 +140,11 @@ static void update_time_widget(AWeatherView *view, char *time, AWeatherGui *gui)
 		gtk_tree_model_get(model, &iter, 0, &text, -1);
 		if (g_str_equal(text, time)) {
 			GtkTreePath *path = gtk_tree_model_get_path(model, &iter);
-			g_signal_handlers_block_by_func(tview, G_CALLBACK(on_site_changed), gui);
+			g_signal_handlers_block_by_func(tview,
+					G_CALLBACK(on_site_changed), gui);
 			gtk_tree_view_set_cursor(tview, path, NULL, FALSE);
-			g_signal_handlers_unblock_by_func(tview, G_CALLBACK(on_site_changed), gui);
+			g_signal_handlers_unblock_by_func(tview,
+					G_CALLBACK(on_site_changed), gui);
 			return;
 		}
 	}
@@ -162,9 +164,11 @@ static void update_location_widget(AWeatherView *view, char *location, AWeatherG
 			gtk_tree_model_get(model, &iter2, 1, &text, -1);
 			if (g_str_equal(text, location)) {
 				GtkTreePath *path = gtk_tree_model_get_path(model, &iter2);
-				g_signal_handlers_block_by_func(combo, G_CALLBACK(on_site_changed), gui);
+				g_signal_handlers_block_by_func(combo,
+						G_CALLBACK(on_site_changed), gui);
 				gtk_combo_box_set_active_iter(combo, &iter2);
-				g_signal_handlers_unblock_by_func(combo, G_CALLBACK(on_site_changed), gui);
+				g_signal_handlers_unblock_by_func(combo,
+						G_CALLBACK(on_site_changed), gui);
 				g_free(text);
 				return;
 			}
@@ -237,7 +241,8 @@ gboolean opengl_setup(AWeatherGui *gui)
 			GDK_GL_MODE_DOUBLE | GDK_GL_MODE_ALPHA);
 	if (!glconfig)
 		g_error("Failed to create glconfig");
-	if (!gtk_widget_set_gl_capability(GTK_WIDGET(drawing), glconfig, NULL, TRUE, GDK_GL_RGBA_TYPE))
+	if (!gtk_widget_set_gl_capability(GTK_WIDGET(drawing),
+				glconfig, NULL, TRUE, GDK_GL_RGBA_TYPE))
 		g_error("GL lacks required capabilities");
 
 	/* Set up OpenGL Stuff */

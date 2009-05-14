@@ -47,7 +47,8 @@ static void cache_file_cb(GObject *source_object, GAsyncResult *res, gpointer _i
 static goffset g_file_get_size(GFile *file)
 {
 	GError *error = NULL;
-	GFileInfo *info = g_file_query_info(file, G_FILE_ATTRIBUTE_STANDARD_SIZE, 0, NULL, &error);
+	GFileInfo *info = g_file_query_info(file,
+			G_FILE_ATTRIBUTE_STANDARD_SIZE, 0, NULL, &error);
 	if (error)
 		g_warning("unable to get file size: %s", error->message);
 	return g_file_info_get_size(info);

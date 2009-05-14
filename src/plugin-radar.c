@@ -99,7 +99,8 @@ static void load_sweep(Sweep *sweep)
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0,
+			GL_RGBA, GL_UNSIGNED_BYTE, data);
 	g_free(data);
 	gtk_widget_queue_draw(aweather_gui_get_widget(gui, "drawing"));
 	aweather_gui_gl_end(gui);
@@ -123,11 +124,15 @@ static void load_radar_gui(Radar *radar)
 		for (si = vol->h.nsweeps-1; si >= 0; si--) {
 			Sweep *sweep = vol->sweep[si];
 			if (sweep == NULL) continue;
-			char *label = g_strdup_printf("Tilt: %.2f (%s)", sweep->h.elev, vol->h.type_str);
-			button = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(button), label);
+			char *label = g_strdup_printf("Tilt: %.2f (%s)",
+					sweep->h.elev, vol->h.type_str);
+			button = gtk_radio_button_new_with_label_from_widget(
+					GTK_RADIO_BUTTON(button), label);
 			g_object_set(button, "draw-indicator", FALSE, NULL);
-			g_signal_connect_swapped(button, "clicked", G_CALLBACK(load_color_table), vol->h.type_str);
-			g_signal_connect_swapped(button, "clicked", G_CALLBACK(load_sweep), sweep);
+			g_signal_connect_swapped(button, "clicked",
+					G_CALLBACK(load_color_table), vol->h.type_str);
+			g_signal_connect_swapped(button, "clicked",
+					G_CALLBACK(load_sweep), sweep);
 			gtk_box_pack_start(GTK_BOX(vbox), button, FALSE, TRUE, 0);
 			g_free(label);
 		}
@@ -200,7 +205,8 @@ static void load_radar(char *path, gpointer user_data)
 			&pid,    // GPid *child_pid,
 			&error); // GError **error
 		if (error)
-			g_warning("failed to decompress WSR88D data: %s", error->message);
+			g_warning("failed to decompress WSR88D data: %s",
+					error->message);
 		g_child_watch_add(pid, load_radar_rsl, raw);
 	}
 }
@@ -304,7 +310,9 @@ static void set_site(AWeatherView *view, char *site, gpointer user_data)
 	gchar *data;
 	gsize length;
 	GError *error = NULL;
-	char *list_uri = g_strdup_printf("http://mesonet.agron.iastate.edu/data/nexrd2/raw/K%s/dir.list", site);
+	char *list_uri = g_strdup_printf(
+			"http://mesonet.agron.iastate.edu/data/nexrd2/raw/K%s/dir.list",
+			site);
 	GFile *list    = g_file_new_for_uri(list_uri);
 	g_free(list_uri);
 	cur_sweep = NULL; // Clear radar
@@ -340,14 +348,17 @@ gboolean radar_init(AWeatherGui *_gui)
 {
 	gui = _gui;
 	drawing = aweather_gui_get_widget(gui, "drawing");
-	GtkNotebook    *config  = GTK_NOTEBOOK(aweather_gui_get_widget(gui, "tabs"));
-	AWeatherView   *view    = aweather_gui_get_view(gui);
+	GtkWidget    *config  = aweather_gui_get_widget(gui, "tabs");
+	AWeatherView *view    = aweather_gui_get_view(gui);
 
 	/* Add configuration tab */
 	config_body = gtk_scrolled_window_new(NULL, NULL);
-	gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(config_body), gtk_label_new("No radar loaded"));
-	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(config_body), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
-	gtk_notebook_prepend_page(GTK_NOTEBOOK(config), config_body, gtk_label_new("Radar"));
+	gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(config_body),
+			gtk_label_new("No radar loaded"));
+	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(config_body),
+			GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+	gtk_notebook_prepend_page(GTK_NOTEBOOK(config),
+			config_body, gtk_label_new("Radar"));
 
 	/* Set up OpenGL Stuff */
 	g_signal_connect(drawing, "expose-event",     G_CALLBACK(expose),   NULL);

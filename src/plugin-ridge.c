@@ -43,11 +43,11 @@ typedef struct {
 } layer_t;
 
 static layer_t layers[] = {
-	[LAYER_TOPO]     = { "Topo",     "Overlays/" "Topo/"     "Short/" "%s_Topo_Short.jpg",     TRUE,  1, 0 },
-	[LAYER_COUNTY]   = { "Counties", "Overlays/" "County/"   "Short/" "%s_County_Short.gif",   TRUE,  3, 0 },
-	[LAYER_RIVERS]   = { "Rivers",   "Overlays/" "Rivers/"   "Short/" "%s_Rivers_Short.gif",   FALSE, 4, 0 },
-	[LAYER_HIGHWAYS] = { "Highways", "Overlays/" "Highways/" "Short/" "%s_Highways_Short.gif", TRUE,  5, 0 },
-	[LAYER_CITY]     = { "Cities",   "Overlays/" "Cities/"   "Short/" "%s_City_Short.gif",     TRUE,  6, 0 },
+	[LAYER_TOPO]     = {"Topo",     "Overlays/Topo/Short/%s_Topo_Short.jpg",         TRUE,  1, 0},
+	[LAYER_COUNTY]   = {"Counties", "Overlays/County/Short/%s_County_Short.gif",     TRUE,  3, 0},
+	[LAYER_RIVERS]   = {"Rivers",   "Overlays/Rivers/Short/%s_Rivers_Short.gif",     FALSE, 4, 0},
+	[LAYER_HIGHWAYS] = {"Highways", "Overlays/Highways/Short/%s_Highways_Short.gif", TRUE,  5, 0},
+	[LAYER_CITY]     = {"Cities",   "Overlays/Cities/Short/%s_City_Short.gif",       TRUE,  6, 0},
 };
 
 static AWeatherGui *gui = NULL;
