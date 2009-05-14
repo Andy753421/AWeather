@@ -35,17 +35,19 @@ enum {
 };
 
 typedef struct {
+	gchar *name;
 	gchar *fmt;
+	gboolean enabled;
 	float z;
 	guint tex;
 } layer_t;
 
 static layer_t layers[] = {
-	[LAYER_TOPO]     = { "Overlays/" "Topo/"     "Short/" "%s_Topo_Short.jpg",     1, 0 },
-	[LAYER_COUNTY]   = { "Overlays/" "County/"   "Short/" "%s_County_Short.gif",   3, 0 },
-	[LAYER_RIVERS]   = { "Overlays/" "Rivers/"   "Short/" "%s_Rivers_Short.gif",   4, 0 },
-	[LAYER_HIGHWAYS] = { "Overlays/" "Highways/" "Short/" "%s_Highways_Short.gif", 5, 0 },
-	[LAYER_CITY]     = { "Overlays/" "Cities/"   "Short/" "%s_City_Short.gif",     6, 0 },
+	[LAYER_TOPO]     = { "Topo",     "Overlays/" "Topo/"     "Short/" "%s_Topo_Short.jpg",     TRUE,  1, 0 },
+	[LAYER_COUNTY]   = { "Counties", "Overlays/" "County/"   "Short/" "%s_County_Short.gif",   TRUE,  3, 0 },
+	[LAYER_RIVERS]   = { "Rivers",   "Overlays/" "Rivers/"   "Short/" "%s_Rivers_Short.gif",   FALSE, 4, 0 },
+	[LAYER_HIGHWAYS] = { "Highways", "Overlays/" "Highways/" "Short/" "%s_Highways_Short.gif", TRUE,  5, 0 },
+	[LAYER_CITY]     = { "Cities",   "Overlays/" "Cities/"   "Short/" "%s_City_Short.gif",     TRUE,  6, 0 },
 };
 
 static AWeatherGui *gui = NULL;
@@ -79,9 +81,11 @@ void load_texture(gchar *filename, gpointer _layer)
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
+	char *base = g_path_get_basename(filename);
 	g_message("loaded image:  w=%-3d  h=%-3d  fmt=%x  px=(%02x,%02x,%02x,%02x)  img=%s",
 		width, height, format, pixels[0], pixels[1], pixels[2], pixels[3],
-		g_path_get_basename(filename));
+		base);
+	g_free(base);
 
 	aweather_gui_gl_end(gui);
 
@@ -108,8 +112,9 @@ static gboolean expose(GtkWidget *da, GdkEventExpose *event, gpointer user_data)
 	glColor4f(1,1,1,1);
 
 	for (int i = 0; i < LAYER_COUNT; i++) {
+		if (!layers[i].enabled)
+			continue;
 		glBindTexture(GL_TEXTURE_2D, layers[i].tex);
-
 		glBegin(GL_POLYGON);
 		glTexCoord2f(0.0, 0.0); glVertex3f(250*1000*-1.0, 250*1000* 1.0, layers[i].z);
 		glTexCoord2f(0.0, 1.0); glVertex3f(250*1000*-1.0, 250*1000*-1.0, layers[i].z);
@@ -122,11 +127,32 @@ static gboolean expose(GtkWidget *da, GdkEventExpose *event, gpointer user_data)
 	return FALSE;
 }
 
+void toggle_layer(GtkToggleButton *check, gpointer _layer)
+{
+	layer_t *layer = _layer;
+	layer->enabled = gtk_toggle_button_get_active(check);
+	gtk_widget_queue_draw(aweather_gui_get_widget(gui, "drawing"));
+}
+
 gboolean ridge_init(AWeatherGui *_gui)
 {
 	gui = _gui;
-	GtkDrawingArea *drawing = GTK_DRAWING_AREA(aweather_gui_get_widget(gui, "drawing"));
-	AWeatherView   *view    = aweather_gui_get_view(gui);
+	AWeatherView *view    = aweather_gui_get_view(gui);
+	GtkWidget    *drawing = aweather_gui_get_widget(gui, "drawing");
+	GtkWidget    *config  = aweather_gui_get_widget(gui, "tabs");
+
+	/* Add configuration tab */
+	GtkWidget *tab  = gtk_label_new("Ridge");
+	GtkWidget *body = gtk_alignment_new(0.5, 0, 0, 0);
+	GtkWidget *hbox = gtk_hbox_new(FALSE, 10);
+	for (int i = 0; i < LAYER_COUNT; i++) {
+		GtkWidget *check = gtk_check_button_new_with_label(layers[i].name);
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(check), layers[i].enabled);
+		gtk_box_pack_start(GTK_BOX(hbox), check, FALSE, TRUE, 0);
+		g_signal_connect(check, "toggled", G_CALLBACK(toggle_layer), &layers[i]);
+	}
+	gtk_container_add(GTK_CONTAINER(body), hbox);
+	gtk_notebook_append_page(GTK_NOTEBOOK(config), body, tab);
 
 	/* Set up OpenGL Stuff */
 	g_signal_connect(drawing, "expose-event",     G_CALLBACK(expose),    NULL);

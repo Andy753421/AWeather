@@ -69,7 +69,7 @@ static gboolean map(GtkWidget *da, GdkEventConfigure *event, AWeatherGui *gui)
 	/* Misc */
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	glClearColor(0.8f, 0.8f, 1.0f, 0.0f);
+	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
 	/* Tessellation, "finding intersecting triangles" */
 	/* http://research.microsoft.com/pubs/70307/tr-2006-81.pdf */
@@ -165,8 +165,10 @@ static void update_location_widget(AWeatherView *view, char *location, AWeatherG
 				g_signal_handlers_block_by_func(combo, G_CALLBACK(on_site_changed), gui);
 				gtk_combo_box_set_active_iter(combo, &iter2);
 				g_signal_handlers_unblock_by_func(combo, G_CALLBACK(on_site_changed), gui);
+				g_free(text);
 				return;
 			}
+			g_free(text);
 		}
 	}
 }

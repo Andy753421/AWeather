@@ -34,9 +34,9 @@ static Sweep *cur_sweep = NULL;  // make this not global
 //static char red[256], green[256], blue[256];
 static colormap_t *colormap;
 static guint sweep_tex = 0;
+static Radar *radar = NULL;
 
 static AWeatherGui *gui = NULL;
-static Radar *radar = NULL;
 
 /**************************
  * Data loading functions *
@@ -119,7 +119,7 @@ static void load_radar_gui(Radar *radar)
 	for (vi = 0; vi < radar->h.nvolumes; vi++) {
 		Volume *vol = radar->v[vi];
 		if (vol == NULL) continue;
-		GtkWidget *vbox = gtk_vbox_new(TRUE, 0);
+		GtkWidget *vbox = gtk_vbox_new(FALSE, 0);
 		for (si = vol->h.nsweeps-1; si >= 0; si--) {
 			Sweep *sweep = vol->sweep[si];
 			if (sweep == NULL) continue;
@@ -131,7 +131,6 @@ static void load_radar_gui(Radar *radar)
 			gtk_box_pack_start(GTK_BOX(vbox), button, FALSE, TRUE, 0);
 			g_free(label);
 		}
-		gtk_box_set_homogeneous(GTK_BOX(vbox), FALSE);
 		gtk_box_pack_start(GTK_BOX(hbox), vbox, TRUE, TRUE, 0);
 	}
 	gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(config_body), hbox);
@@ -147,8 +146,12 @@ static void load_radar_rsl(GPid pid, gint status, gpointer _path)
 		return;
 	}
 	char *site = g_path_get_basename(g_path_get_dirname(path));
-	if (radar) RSL_free_radar(radar);
 	RSL_read_these_sweeps("all", NULL);
+	if (radar) {
+		g_message("Freeing radar");
+		RSL_free_radar(radar);
+	}
+	g_message("Allocating radar");
 	radar = RSL_wsr88d_to_radar(path, site);
 	if (radar == NULL) {
 		g_warning("fail to load radar: path=%s, site=%s", path, site);
@@ -292,6 +295,7 @@ static void set_time(AWeatherView *view, char *time, gpointer user_data)
 	cur_sweep = NULL; // Clear radar
 	gtk_widget_queue_draw(aweather_gui_get_widget(gui, "drawing"));
 	cache_file(base, path, load_radar, NULL);
+	g_free(path);
 }
 
 static void set_site(AWeatherView *view, char *site, gpointer user_data)
@@ -302,6 +306,7 @@ static void set_site(AWeatherView *view, char *site, gpointer user_data)
 	GError *error = NULL;
 	char *list_uri = g_strdup_printf("http://mesonet.agron.iastate.edu/data/nexrd2/raw/K%s/dir.list", site);
 	GFile *list    = g_file_new_for_uri(list_uri);
+	g_free(list_uri);
 	cur_sweep = NULL; // Clear radar
 	gtk_widget_queue_draw(aweather_gui_get_widget(gui, "drawing"));
 	g_file_load_contents(list, NULL, &data, &length, NULL, &error);
@@ -326,6 +331,8 @@ static void set_site(AWeatherView *view, char *site, gpointer user_data)
 	}
 	if (time != NULL) 
 		aweather_view_set_time(view, time);
+	g_free(data);
+	g_strfreev(lines);
 }
 
 /* Init */
@@ -340,7 +347,7 @@ gboolean radar_init(AWeatherGui *_gui)
 	config_body = gtk_scrolled_window_new(NULL, NULL);
 	gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(config_body), gtk_label_new("No radar loaded"));
 	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(config_body), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
-	gtk_notebook_append_page(GTK_NOTEBOOK(config), config_body, gtk_label_new("Radar"));
+	gtk_notebook_prepend_page(GTK_NOTEBOOK(config), config_body, gtk_label_new("Radar"));
 
 	/* Set up OpenGL Stuff */
 	g_signal_connect(drawing, "expose-event",     G_CALLBACK(expose),   NULL);

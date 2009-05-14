@@ -70,11 +70,17 @@ void cache_file(char *base, char *path, AWeatherCacheDoneCallback callback, gpoi
 	else if (g_file_get_size(src) != g_file_get_size(dst))
 		g_message("Caching file: sizes mismatch - %lld != %lld",
 				g_file_get_size(src), g_file_get_size(dst));
-	else
-		return callback(local, user_data);
+	else {
+		callback(local, user_data);
+		g_free(local);
+		g_free(url);
+		return;
+	}
 
-	if (!g_file_test(g_path_get_dirname(local), G_FILE_TEST_IS_DIR))
-		g_mkdir_with_parents(g_path_get_dirname(local), 0755);
+	char *dir = g_path_get_dirname(local);
+	if (!g_file_test(dir, G_FILE_TEST_IS_DIR))
+		g_mkdir_with_parents(dir, 0755);
+	g_free(dir);
 	cache_file_end_t *info = g_malloc0(sizeof(cache_file_end_t));
 	info->callback  = callback;
 	info->src       = url;
