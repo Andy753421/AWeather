@@ -23,8 +23,10 @@
 
 typedef struct {
 	AWeatherCacheDoneCallback callback;
-	gchar *src;
-	gchar *dst;
+	gchar *url;
+	gchar *local;
+	GFile *src;
+	GFile *dst;
 	gchar *user_data;
 } cache_file_end_t;
 
@@ -35,12 +37,15 @@ static void cache_file_cb(GObject *source_object, GAsyncResult *res, gpointer _i
 	g_file_copy_finish(G_FILE(source_object), res, &error);
 	if (error) {
 		g_message("error copying file ([%s]->[%s]): %s",
-			info->src, info->dst, error->message);
+			info->url, info->local, error->message);
+		g_error_free(error);
 	} else {
-		info->callback(info->dst, info->user_data);
+		info->callback(info->local, info->user_data);
 	}
-	g_free(info->src);
-	g_free(info->dst);
+	g_object_unref(info->src);
+	g_object_unref(info->dst);
+	g_free(info->url);
+	g_free(info->local);
 	g_free(info);
 }
 
@@ -49,9 +54,14 @@ static goffset g_file_get_size(GFile *file)
 	GError *error = NULL;
 	GFileInfo *info = g_file_query_info(file,
 			G_FILE_ATTRIBUTE_STANDARD_SIZE, 0, NULL, &error);
-	if (error)
+	if (error){
 		g_warning("unable to get file size: %s", error->message);
-	return g_file_info_get_size(info);
+		g_error_free(error);
+	}
+	goffset size = g_file_info_get_size(info);
+	g_file_info_remove_attribute(info, G_FILE_ATTRIBUTE_STANDARD_SIZE);
+	g_object_unref(info);
+	return size;
 }
 
 /**
@@ -63,8 +73,8 @@ void cache_file(char *base, char *path, AWeatherCacheDoneCallback callback, gpoi
 {
 	gchar *url   = g_strconcat(base, path, NULL);
 	gchar *local = g_build_filename(g_get_user_cache_dir(), PACKAGE, path, NULL);
-	GFile *src = g_file_new_for_uri(url);
-	GFile *dst = g_file_new_for_path(local);
+	GFile *src   = g_file_new_for_uri(url);
+	GFile *dst   = g_file_new_for_path(local);
 
 	if (!g_file_test(local, G_FILE_TEST_EXISTS))
 		g_message("Caching file: local does not exist - %s", local);
@@ -73,6 +83,8 @@ void cache_file(char *base, char *path, AWeatherCacheDoneCallback callback, gpoi
 				g_file_get_size(src), g_file_get_size(dst));
 	else {
 		callback(local, user_data);
+		g_object_unref(src);
+		g_object_unref(dst);
 		g_free(local);
 		g_free(url);
 		return;
@@ -84,8 +96,10 @@ void cache_file(char *base, char *path, AWeatherCacheDoneCallback callback, gpoi
 	g_free(dir);
 	cache_file_end_t *info = g_malloc0(sizeof(cache_file_end_t));
 	info->callback  = callback;
-	info->src       = url;
-	info->dst       = local;
+	info->url       = url;
+	info->local     = local;
+	info->src       = src;
+	info->dst       = dst;
 	info->user_data = user_data;
 	g_file_copy_async(src, dst,
 		G_FILE_COPY_OVERWRITE, // GFileCopyFlags flags,

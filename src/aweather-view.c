@@ -148,6 +148,7 @@ void aweather_view_set_time(AWeatherView *view, const char *time)
 {
 	g_assert(AWEATHER_IS_VIEW(view));
 	//g_message("aweather_view:set_time: setting time to %s", time);
+	g_free(view->time);
 	view->time = g_strdup(time);
 	g_signal_emit(view, signals[SIG_TIME_CHANGED], 0, time);
 }

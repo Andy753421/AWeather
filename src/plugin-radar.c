@@ -93,6 +93,7 @@ static void load_sweep(Sweep *sweep)
 	int height, width;
 	guint8 *data;
 	bscan_sweep(sweep, &data, &width, &height);
+	glDeleteTextures(1, &sweep_tex);
 	glGenTextures(1, &sweep_tex);
 	glBindTexture(GL_TEXTURE_2D, sweep_tex);
 	glPixelStorei(GL_PACK_ALIGNMENT, 1);
@@ -121,7 +122,7 @@ static void load_radar_gui(Radar *radar)
 		Volume *vol = radar->v[vi];
 		if (vol == NULL) continue;
 		GtkWidget *vbox = gtk_vbox_new(FALSE, 0);
-		for (si = vol->h.nsweeps-1; si >= 0; si--) {
+		for (si = 0; si < vol->h.nsweeps; si++) {
 			Sweep *sweep = vol->sweep[si];
 			if (sweep == NULL) continue;
 			char *label = g_strdup_printf("Tilt: %.2f (%s)",
@@ -150,7 +151,9 @@ static void load_radar_rsl(GPid pid, gint status, gpointer _path)
 		g_warning("wsr88ddec exited with status %d", status);
 		return;
 	}
-	char *site = g_path_get_basename(g_path_get_dirname(path));
+	char *dir  = g_path_get_dirname(path);
+	char *site = g_path_get_basename(dir);
+	g_free(dir);
 	RSL_read_these_sweeps("all", NULL);
 	if (radar) {
 		g_message("Freeing radar");
@@ -160,8 +163,12 @@ static void load_radar_rsl(GPid pid, gint status, gpointer _path)
 	radar = RSL_wsr88d_to_radar(path, site);
 	if (radar == NULL) {
 		g_warning("fail to load radar: path=%s, site=%s", path, site);
+		g_free(path);
+		g_free(site);
 		return;
 	}
+	g_free(path);
+	g_free(site);
 
 	/* Load the first sweep by default */
 	if (radar->h.nvolumes < 1 || radar->v[0]->h.nsweeps < 1) {
@@ -204,9 +211,11 @@ static void load_radar(char *path, gpointer user_data)
 			NULL,    // gpointer user_data,
 			&pid,    // GPid *child_pid,
 			&error); // GError **error
-		if (error)
+		if (error) {
 			g_warning("failed to decompress WSR88D data: %s",
 					error->message);
+			g_error_free(error);
+		}
 		g_child_watch_add(pid, load_radar_rsl, raw);
 	}
 }
@@ -307,19 +316,23 @@ static void set_time(AWeatherView *view, char *time, gpointer user_data)
 static void set_site(AWeatherView *view, char *site, gpointer user_data)
 {
 	g_message("Loading wsr88d list for %s", site);
-	gchar *data;
-	gsize length;
-	GError *error = NULL;
+	cur_sweep = NULL; // Clear radar
+
 	char *list_uri = g_strdup_printf(
 			"http://mesonet.agron.iastate.edu/data/nexrd2/raw/K%s/dir.list",
 			site);
 	GFile *list    = g_file_new_for_uri(list_uri);
 	g_free(list_uri);
-	cur_sweep = NULL; // Clear radar
+
+	gchar *data;
+	gsize length;
+	GError *error = NULL;
 	gtk_widget_queue_draw(aweather_gui_get_widget(gui, "drawing"));
 	g_file_load_contents(list, NULL, &data, &length, NULL, &error);
+	g_object_unref(list);
 	if (error) {
 		g_warning("Error loading list for %s: %s", site, error->message);
+		g_error_free(error);
 		return;
 	}
 	gchar **lines = g_strsplit(data, "\n", -1);
@@ -327,18 +340,20 @@ static void set_site(AWeatherView *view, char *site, gpointer user_data)
 	GtkListStore *lstore = GTK_LIST_STORE(gtk_tree_view_get_model(tview));
 	gtk_list_store_clear(lstore);
 	radar = NULL;
-	char *time = NULL;
+	GtkTreeIter iter;
 	for (int i = 0; lines[i] && lines[i][0]; i++) {
 		// format: `841907 KABR_20090510_0159'
 		//g_message("\tadding %p [%s]", lines[i], lines[i]);
 		char **parts = g_strsplit(lines[i], " ", 2);
-		time = parts[1]+5;
-		GtkTreeIter iter;
+		char *time = parts[1]+5;
 		gtk_list_store_insert(lstore, &iter, 0);
 		gtk_list_store_set(lstore, &iter, 0, time, -1);
+		g_strfreev(parts);
 	}
-	if (time != NULL) 
-		aweather_view_set_time(view, time);
+	char *time = NULL;
+	gtk_tree_model_get(GTK_TREE_MODEL(lstore), &iter, 0, &time, -1);
+	aweather_view_set_time(view, time);
+	g_free(time);
 	g_free(data);
 	g_strfreev(lines);
 }

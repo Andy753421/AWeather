@@ -72,6 +72,7 @@ void load_texture(gchar *filename, gpointer _layer)
 	int        format = gdk_pixbuf_get_has_alpha(pixbuf) ? GL_RGBA : GL_RGB;
 
 	/* Create Texture */
+	glDeleteTextures(1, &layer->tex);
 	glGenTextures(1, &layer->tex);
 	glBindTexture(GL_TEXTURE_2D, layer->tex); // 2d texture (x and y size)
 
@@ -88,6 +89,8 @@ void load_texture(gchar *filename, gpointer _layer)
 	g_free(base);
 
 	aweather_gui_gl_end(gui);
+
+	g_object_unref(pixbuf);
 
 	/* Redraw */
 	gtk_widget_queue_draw(aweather_gui_get_widget(gui, "drawing"));

@@ -27,3 +27,13 @@ gdb: all
 
 ddd: all
 	ddd ./aweather
+
+memcheck:
+	G_SLICE=always-malloc                   \
+	G_DEBUG=gc-friendly,resident-modules    \
+	valgrind --leak-check=full              \
+	         --leak-resolution=high         \
+	         --num-callers=50               \
+	         --suppressions=gtk.suppression \
+	         ./aweather                     \
+	2> memcheck.log
