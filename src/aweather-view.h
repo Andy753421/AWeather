@@ -55,4 +55,8 @@ gchar *aweather_view_get_time(AWeatherView *view);
 void aweather_view_set_location(AWeatherView *view, const gchar *location);
 gchar *aweather_view_get_location(AWeatherView *view);
 
+void aweather_view_refresh(AWeatherView *view);
+void aweather_view_zoomin(AWeatherView *view);
+void aweather_view_zoomout(AWeatherView *view);
+
 #endif

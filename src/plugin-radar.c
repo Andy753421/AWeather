@@ -191,12 +191,13 @@ static void load_radar_rsl(GPid pid, gint status, gpointer _path)
 }
 
 /* decompress a radar file, then chain to the actuall loading function */
-static void load_radar(char *path, gpointer user_data)
+static void load_radar(char *path, gboolean updated, gpointer user_data)
 {
 	char *raw  = g_strconcat(path, ".raw", NULL);
-	if (g_file_test(raw, G_FILE_TEST_EXISTS)) {
+	if (!updated) {
 		load_radar_rsl(0, 0, raw);
 	} else {
+		g_message("File updated, decompressing..");
 		char *argv[] = {"wsr88ddec", path, raw, NULL};
 		GPid pid;
 		GError *error = NULL;
@@ -220,10 +221,50 @@ static void load_radar(char *path, gpointer user_data)
 	}
 }
 
+static void update_times(char *site, char **last_time)
+{
+	char *list_uri = g_strdup_printf(
+			"http://mesonet.agron.iastate.edu/data/nexrd2/raw/K%s/dir.list",
+			site);
+	GFile *list    = g_file_new_for_uri(list_uri);
+	g_free(list_uri);
+
+	gchar *data;
+	gsize length;
+	GError *error = NULL;
+	g_file_load_contents(list, NULL, &data, &length, NULL, &error);
+	g_object_unref(list);
+	if (error) {
+		g_warning("Error loading list for %s: %s", site, error->message);
+		g_error_free(error);
+		return;
+	}
+	gchar **lines = g_strsplit(data, "\n", -1);
+	GtkTreeView  *tview  = GTK_TREE_VIEW(aweather_gui_get_widget(gui, "time"));
+	GtkListStore *lstore = GTK_LIST_STORE(gtk_tree_view_get_model(tview));
+	gtk_list_store_clear(lstore);
+	GtkTreeIter iter;
+	for (int i = 0; lines[i] && lines[i][0]; i++) {
+		// format: `841907 KABR_20090510_0159'
+		//g_message("\tadding %p [%s]", lines[i], lines[i]);
+		char **parts = g_strsplit(lines[i], " ", 2);
+		char *time = parts[1]+5;
+		gtk_list_store_insert(lstore, &iter, 0);
+		gtk_list_store_set(lstore, &iter, 0, time, -1);
+		g_strfreev(parts);
+	}
+
+	if (last_time)
+		gtk_tree_model_get(GTK_TREE_MODEL(lstore), &iter, 0, last_time, -1);
+
+	g_free(data);
+	g_strfreev(lines);
+}
+
 /*************
  * Callbacks *
  *************/
-static gboolean expose(GtkWidget *da, GdkEventExpose *event, gpointer user_data)
+static gboolean on_expose(GtkWidget *da, GdkEventExpose *event, gpointer user_data)
 {
 	g_message("radar:expose");
 	if (cur_sweep == NULL)
@@ -239,16 +280,20 @@ static gboolean expose(GtkWidget *da, GdkEventExpose *event, gpointer user_data)
 	glDisable(GL_ALPHA_TEST);
 	glColor4f(1,1,1,1);
 	glBegin(GL_QUAD_STRIP);
-	for (int ri = 0; ri <= sweep->h.nrays+1; ri++) {
-		/* Do the first sweep twice to complete the last Quad */
-		Ray *ray = sweep->ray[ri % sweep->h.nrays];
+	for (int ri = 0; ri <= sweep->h.nrays; ri++) {
+		Ray  *ray = NULL;
+		double angle = 0;
+		if (ri < sweep->h.nrays) {
+			ray = sweep->ray[ri];
+			angle = ((ray->h.azimuth - ((double)ray->h.beam_width/2.))*M_PI)/180.0; 
+		} else {
+			/* Do the right side of the last sweep */
+			ray = sweep->ray[ri-1];
+			angle = ((ray->h.azimuth + ((double)ray->h.beam_width/2.))*M_PI)/180.0; 
+		}
 
-		/* right and left looking out from radar */
-		double left  = ((ray->h.azimuth - ((double)ray->h.beam_width/2.))*M_PI)/180.0; 
-		//double right = ((ray->h.azimuth + ((double)ray->h.beam_width/2.))*M_PI)/180.0; 
-
-		double lx = sin(left);
-		double ly = cos(left);
+		double lx = sin(angle);
+		double ly = cos(angle);
 
 		double near_dist = ray->h.range_bin1;
 		double far_dist  = ray->h.nbins*ray->h.gate_size + ray->h.range_bin1;
@@ -299,63 +344,39 @@ static gboolean expose(GtkWidget *da, GdkEventExpose *event, gpointer user_data)
 	return FALSE;
 }
 
-static void set_time(AWeatherView *view, char *time, gpointer user_data)
+static void on_time_changed(AWeatherView *view, char *time, gpointer user_data)
 {
 	g_message("radar:setting time");
 	// format: http://mesonet.agron.iastate.edu/data/nexrd2/raw/KABR/KABR_20090510_0323
 	char *site = aweather_view_get_location(view);
 	char *base = "http://mesonet.agron.iastate.edu/data/";
 	char *path = g_strdup_printf("nexrd2/raw/K%s/K%s_%s", site, site, time);
-	//g_message("caching %s/%s", base, path);
+
+	radar = NULL;
 	cur_sweep = NULL; // Clear radar
 	gtk_widget_queue_draw(aweather_gui_get_widget(gui, "drawing"));
-	cache_file(base, path, load_radar, NULL);
+
+	cache_file(base, path, AWEATHER_AUTOMATIC, load_radar, NULL);
 	g_free(path);
 }
 
-static void set_site(AWeatherView *view, char *site, gpointer user_data)
+static void on_location_changed(AWeatherView *view, char *site, gpointer user_data)
 {
 	g_message("Loading wsr88d list for %s", site);
-	cur_sweep = NULL; // Clear radar
-
-	char *list_uri = g_strdup_printf(
-			"http://mesonet.agron.iastate.edu/data/nexrd2/raw/K%s/dir.list",
-			site);
-	GFile *list    = g_file_new_for_uri(list_uri);
-	g_free(list_uri);
-
-	gchar *data;
-	gsize length;
-	GError *error = NULL;
-	gtk_widget_queue_draw(aweather_gui_get_widget(gui, "drawing"));
-	g_file_load_contents(list, NULL, &data, &length, NULL, &error);
-	g_object_unref(list);
-	if (error) {
-		g_warning("Error loading list for %s: %s", site, error->message);
-		g_error_free(error);
-		return;
-	}
-	gchar **lines = g_strsplit(data, "\n", -1);
-	GtkTreeView  *tview  = GTK_TREE_VIEW(aweather_gui_get_widget(gui, "time"));
-	GtkListStore *lstore = GTK_LIST_STORE(gtk_tree_view_get_model(tview));
-	gtk_list_store_clear(lstore);
-	radar = NULL;
-	GtkTreeIter iter;
-	for (int i = 0; lines[i] && lines[i][0]; i++) {
-		// format: `841907 KABR_20090510_0159'
-		//g_message("\tadding %p [%s]", lines[i], lines[i]);
-		char **parts = g_strsplit(lines[i], " ", 2);
-		char *time = parts[1]+5;
-		gtk_list_store_insert(lstore, &iter, 0);
-		gtk_list_store_set(lstore, &iter, 0, time, -1);
-		g_strfreev(parts);
-	}
 	char *time = NULL;
-	gtk_tree_model_get(GTK_TREE_MODEL(lstore), &iter, 0, &time, -1);
+	update_times(site, &time);
+	aweather_view_set_time(view, time);
+
+	g_free(time);
+}
+
+static void on_refresh(AWeatherView *view, gpointer user_data)
+{
+	char *site = aweather_view_get_location(view);
+	char *time = NULL;
+	update_times(site, &time);
 	aweather_view_set_time(view, time);
 	g_free(time);
-	g_free(data);
-	g_strfreev(lines);
 }
 
 /* Init */
@@ -376,9 +397,10 @@ gboolean radar_init(AWeatherGui *_gui)
 			config_body, gtk_label_new("Radar"));
 
 	/* Set up OpenGL Stuff */
-	g_signal_connect(drawing, "expose-event",     G_CALLBACK(expose),   NULL);
-	g_signal_connect(view,    "location-changed", G_CALLBACK(set_site), NULL);
-	g_signal_connect(view,    "time-changed",     G_CALLBACK(set_time), NULL);
+	g_signal_connect(drawing, "expose-event",     G_CALLBACK(on_expose),           NULL);
+	g_signal_connect(view,    "location-changed", G_CALLBACK(on_location_changed), NULL);
+	g_signal_connect(view,    "time-changed",     G_CALLBACK(on_time_changed),     NULL);
+	g_signal_connect(view,    "refresh",          G_CALLBACK(on_refresh),          NULL);
 
 	return TRUE;
 }

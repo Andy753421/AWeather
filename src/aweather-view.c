@@ -30,6 +30,7 @@ enum {
 enum {
 	SIG_TIME_CHANGED,
 	SIG_LOCATION_CHANGED,
+	SIG_REFRESH,
 	NUM_SIGNALS,
 };
 
@@ -134,6 +135,16 @@ static void aweather_view_class_init(AWeatherViewClass *klass)
 			G_TYPE_NONE,
 			1,
 			G_TYPE_STRING);
+	signals[SIG_REFRESH] = g_signal_new(
+			"refresh",
+			G_TYPE_FROM_CLASS(gobject_class),
+			G_SIGNAL_RUN_LAST,
+			0,
+			NULL,
+			NULL,
+			g_cclosure_marshal_VOID__VOID,
+			G_TYPE_NONE,
+			0);
 
 }
 
@@ -174,4 +185,20 @@ gchar *aweather_view_get_location(AWeatherView *view)
 	g_assert(AWEATHER_IS_VIEW(view));
 	//g_message("aweather_view_get_location");
 	return view->location;
+}
+
+void aweather_view_refresh(AWeatherView *view)
+{
+	g_message("aweather_view_refresh: ..");
+	g_signal_emit(view, signals[SIG_REFRESH], 0);
+}
+
+void aweather_view_zoomin(AWeatherView *view)
+{
+	g_message("aweather_view_zoomin: ..");
+}
+
+void aweather_view_zoomout(AWeatherView *view)
+{
+	g_message("aweather_view_zoomout: ..");
 }

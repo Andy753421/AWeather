@@ -46,7 +46,7 @@ static layer_t layers[] = {
 	[LAYER_TOPO]     = {"Topo",     "Overlays/Topo/Short/%s_Topo_Short.jpg",         TRUE,  1, 0},
 	[LAYER_COUNTY]   = {"Counties", "Overlays/County/Short/%s_County_Short.gif",     TRUE,  3, 0},
 	[LAYER_RIVERS]   = {"Rivers",   "Overlays/Rivers/Short/%s_Rivers_Short.gif",     FALSE, 4, 0},
-	[LAYER_HIGHWAYS] = {"Highways", "Overlays/Highways/Short/%s_Highways_Short.gif", TRUE,  5, 0},
+	[LAYER_HIGHWAYS] = {"Highways", "Overlays/Highways/Short/%s_Highways_Short.gif", FALSE, 5, 0},
 	[LAYER_CITY]     = {"Cities",   "Overlays/Cities/Short/%s_City_Short.gif",       TRUE,  6, 0},
 };
 
@@ -57,7 +57,7 @@ static AWeatherGui *gui = NULL;
  * \param  filename  Path to the image file
  * \return The OpenGL identifier for the texture
  */
-void load_texture(gchar *filename, gpointer _layer)
+void load_texture(gchar *filename, gboolean updated, gpointer _layer)
 {
 	layer_t *layer = _layer;
 	aweather_gui_gl_begin(gui);
@@ -102,7 +102,7 @@ static void set_site(AWeatherView *view, gchar *site, gpointer user_data)
 	for (int i = 0; i < LAYER_COUNT; i++) {
 		gchar *base = "http://radar.weather.gov/ridge/";
 		gchar *path  = g_strdup_printf(layers[i].fmt, site);
-		cache_file(base, path, load_texture, &layers[i]);
+		cache_file(base, path, AWEATHER_NEVER, load_texture, &layers[i]);
 		g_free(path);
 	}
 }
@@ -119,10 +119,10 @@ static gboolean expose(GtkWidget *da, GdkEventExpose *event, gpointer user_data)
 			continue;
 		glBindTexture(GL_TEXTURE_2D, layers[i].tex);
 		glBegin(GL_POLYGON);
-		glTexCoord2f(0.0, 0.0); glVertex3f(250*1000*-1.0, 250*1000* 1.0, layers[i].z);
-		glTexCoord2f(0.0, 1.0); glVertex3f(250*1000*-1.0, 250*1000*-1.0, layers[i].z);
-		glTexCoord2f(1.0, 1.0); glVertex3f(250*1000* 1.0, 250*1000*-1.0, layers[i].z);
-		glTexCoord2f(1.0, 0.0); glVertex3f(250*1000* 1.0, 250*1000* 1.0, layers[i].z);
+		glTexCoord2f(0.0, 0.0); glVertex3f(240*1000*-1.0, 282*1000* 1.0, layers[i].z);
+		glTexCoord2f(0.0, 1.0); glVertex3f(240*1000*-1.0, 282*1000*-1.0, layers[i].z);
+		glTexCoord2f(1.0, 1.0); glVertex3f(240*1000* 1.0, 282*1000*-1.0, layers[i].z);
+		glTexCoord2f(1.0, 0.0); glVertex3f(240*1000* 1.0, 282*1000* 1.0, layers[i].z);
 		glEnd();
 	}
 

@@ -23,31 +23,10 @@
 
 typedef struct {
 	AWeatherCacheDoneCallback callback;
-	gchar *url;
-	gchar *local;
 	GFile *src;
 	GFile *dst;
 	gchar *user_data;
 } cache_file_end_t;
-
-static void cache_file_cb(GObject *source_object, GAsyncResult *res, gpointer _info)
-{
-	cache_file_end_t *info = _info;
-	GError *error = NULL;
-	g_file_copy_finish(G_FILE(source_object), res, &error);
-	if (error) {
-		g_message("error copying file ([%s]->[%s]): %s",
-			info->url, info->local, error->message);
-		g_error_free(error);
-	} else {
-		info->callback(info->local, info->user_data);
-	}
-	g_object_unref(info->src);
-	g_object_unref(info->dst);
-	g_free(info->url);
-	g_free(info->local);
-	g_free(info);
-}
 
 static goffset g_file_get_size(GFile *file)
 {
@@ -64,40 +43,41 @@ static goffset g_file_get_size(GFile *file)
 	return size;
 }
 
-/**
- * Cache a image from Ridge to the local disk
- * \param  path  Path to the Ridge file, starting after /ridge/
- * \return The local path to the cached image
- */
-void cache_file(char *base, char *path, AWeatherCacheDoneCallback callback, gpointer user_data)
+static void cache_file_cb(GObject *source_object, GAsyncResult *res, gpointer _info)
 {
-	gchar *url   = g_strconcat(base, path, NULL);
-	gchar *local = g_build_filename(g_get_user_cache_dir(), PACKAGE, path, NULL);
-	GFile *src   = g_file_new_for_uri(url);
-	GFile *dst   = g_file_new_for_path(local);
-
-	if (!g_file_test(local, G_FILE_TEST_EXISTS))
-		g_message("Caching file: local does not exist - %s", local);
-	else if (g_file_get_size(src) != g_file_get_size(dst))
-		g_message("Caching file: sizes mismatch - %lld != %lld",
-				g_file_get_size(src), g_file_get_size(dst));
-	else {
-		callback(local, user_data);
-		g_object_unref(src);
-		g_object_unref(dst);
-		g_free(local);
-		g_free(url);
-		return;
+	cache_file_end_t *info = _info;
+	char   *url   = g_file_get_path(info->src);
+	char   *local = g_file_get_path(info->dst);
+	GError *error = NULL;
+	g_file_copy_finish(G_FILE(source_object), res, &error);
+	if (error) {
+		g_message("error copying file ([%s]->[%s]): %s",
+			url, local, error->message);
+		g_error_free(error);
+	} else {
+		info->callback(local, TRUE, info->user_data);
 	}
+	g_object_unref(info->src);
+	g_object_unref(info->dst);
+	g_free(info);
+	g_free(url);
+	g_free(local);
+}
 
-	char *dir = g_path_get_dirname(local);
-	if (!g_file_test(dir, G_FILE_TEST_IS_DIR))
-		g_mkdir_with_parents(dir, 0755);
-	g_free(dir);
+static void do_cache(GFile *src, GFile *dst, char *reason,
+		AWeatherCacheDoneCallback callback, gpointer user_data)
+{
+	char *name = g_file_get_basename(dst);
+	g_message("Caching file %s: %s", name, reason);
+	g_free(name);
+
+	GFile *parent = g_file_get_parent(dst);
+	if (!g_file_query_exists(parent, NULL))
+		g_file_make_directory_with_parents(parent, NULL, NULL);
+	g_object_unref(parent);
+
 	cache_file_end_t *info = g_malloc0(sizeof(cache_file_end_t));
 	info->callback  = callback;
-	info->url       = url;
-	info->local     = local;
 	info->src       = src;
 	info->dst       = dst;
 	info->user_data = user_data;
@@ -109,4 +89,36 @@ void cache_file(char *base, char *path, AWeatherCacheDoneCallback callback, gpoi
 		NULL,                  // gpointer progress_callback_data,
 		cache_file_cb,         // GAsyncReadyCallback callback,
 		info);                 // gpointer user_data
+	return;
+}
+
+/**
+ * Cache a image from Ridge to the local disk
+ * \param  path  Path to the Ridge file, starting after /ridge/
+ * \return The local path to the cached image
+ */
+void cache_file(char *base, char *path, AWeatherPolicyType update,
+		AWeatherCacheDoneCallback callback, gpointer user_data)
+{
+	gchar *url   = g_strconcat(base, path, NULL);
+	gchar *local = g_build_filename(g_get_user_cache_dir(), PACKAGE, path, NULL);
+	GFile *src   = g_file_new_for_uri(url);
+	GFile *dst   = g_file_new_for_path(local);
+
+	if (update == AWEATHER_ALWAYS)
+		return do_cache(src, dst, "cache forced", callback, user_data);
+
+	if (!g_file_test(local, G_FILE_TEST_EXISTS))
+		return do_cache(src, dst, "local does not exist", callback, user_data);
+
+	if (update == AWEATHER_AUTOMATIC && g_file_get_size(src) != g_file_get_size(dst))
+		return do_cache(src, dst, "size mismatch", callback, user_data);
+
+	/* No nead to cache, run the callback now and clean up */
+	callback(local, FALSE, user_data);
+	g_object_unref(src);
+	g_object_unref(dst);
+	g_free(local);
+	g_free(url);
+	return;
 }

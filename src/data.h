@@ -18,8 +18,16 @@
 #ifndef __DATA_H__
 #define __DATA_H__
 
-typedef void (*AWeatherCacheDoneCallback)(gchar *file, gpointer user_data);
+typedef enum {
+	AWEATHER_ALWAYS,
+	AWEATHER_AUTOMATIC,
+	AWEATHER_NEVER,
+} AWeatherPolicyType;
 
-void cache_file(char *base, char *path, AWeatherCacheDoneCallback callback, gpointer user_data);
+typedef void (*AWeatherCacheDoneCallback)(gchar *file, gboolean updated,
+		gpointer user_data);
+
+void cache_file(char *base, char *path, AWeatherPolicyType update,
+		AWeatherCacheDoneCallback callback, gpointer user_data);
 
 #endif

@@ -37,6 +37,24 @@ gboolean on_window_key_press_event(GtkWidget *widget, GdkEventKey *event, gpoint
 	return TRUE;
 }
 
+void on_refresh(GtkToolButton *button, AWeatherGui *gui)
+{
+	AWeatherView *view = aweather_gui_get_view(gui);
+	aweather_view_refresh(view);
+}
+
+void on_zoomin(GtkToolButton *button, AWeatherGui *gui)
+{
+	AWeatherView *view = aweather_gui_get_view(gui);
+	aweather_view_zoomin(view);
+}
+
+void on_zoomout(GtkToolButton *button, AWeatherGui *gui)
+{
+	AWeatherView *view = aweather_gui_get_view(gui);
+	aweather_view_zoomout(view);
+}
+
 void on_site_changed(GtkComboBox *combo, AWeatherGui *gui)
 {
 	gchar *site;
@@ -62,7 +80,7 @@ void on_time_changed(GtkTreeView *view, GtkTreePath *path,
 	g_free(time);
 }
 
-static gboolean map(GtkWidget *da, GdkEventConfigure *event, AWeatherGui *gui)
+static gboolean on_map(GtkWidget *da, GdkEventConfigure *event, AWeatherGui *gui)
 {
 	//g_message("map:map");
 	AWeatherView *view = aweather_gui_get_view(gui);
@@ -88,7 +106,7 @@ static gboolean map(GtkWidget *da, GdkEventConfigure *event, AWeatherGui *gui)
 	return FALSE;
 }
 
-static gboolean configure(GtkWidget *da, GdkEventConfigure *event, AWeatherGui *gui)
+static gboolean on_configure(GtkWidget *da, GdkEventConfigure *event, AWeatherGui *gui)
 {
 	aweather_gui_gl_begin(gui);
 
@@ -116,12 +134,12 @@ static gboolean configure(GtkWidget *da, GdkEventConfigure *event, AWeatherGui *
 	return FALSE;
 }
 
-static gboolean expose_begin(GtkWidget *da, GdkEventExpose *event, AWeatherGui *gui)
+static gboolean on_expose_begin(GtkWidget *da, GdkEventExpose *event, AWeatherGui *gui)
 {
 	aweather_gui_gl_begin(gui);
 	return FALSE;
 }
-static gboolean expose_end(GtkWidget *da, GdkEventExpose *event, AWeatherGui *gui)
+static gboolean on_expose_end(GtkWidget *da, GdkEventExpose *event, AWeatherGui *gui)
 {
 	g_message("aweather:espose_end\n");
 	aweather_gui_gl_end(gui);
@@ -238,7 +256,7 @@ static void time_setup(AWeatherGui *gui)
 	g_signal_connect(aview, "time-changed", G_CALLBACK(update_time_widget), gui);
 }
 
-gboolean opengl_setup(AWeatherGui *gui)
+static void opengl_setup(AWeatherGui *gui)
 {
 	GtkDrawingArea *drawing = GTK_DRAWING_AREA(aweather_gui_get_widget(gui, "drawing"));
 
@@ -252,11 +270,20 @@ gboolean opengl_setup(AWeatherGui *gui)
 		g_error("GL lacks required capabilities");
 
 	/* Set up OpenGL Stuff */
-	g_signal_connect      (drawing, "map-event",       G_CALLBACK(map),          gui);
-	g_signal_connect      (drawing, "configure-event", G_CALLBACK(configure),    gui);
-	g_signal_connect      (drawing, "expose-event",    G_CALLBACK(expose_begin), gui);
-	g_signal_connect_after(drawing, "expose-event",    G_CALLBACK(expose_end),   gui);
-	return TRUE;
+	g_signal_connect      (drawing, "map-event",       G_CALLBACK(on_map),          gui);
+	g_signal_connect      (drawing, "configure-event", G_CALLBACK(on_configure),    gui);
+	g_signal_connect      (drawing, "expose-event",    G_CALLBACK(on_expose_begin), gui);
+	g_signal_connect_after(drawing, "expose-event",    G_CALLBACK(on_expose_end),   gui);
+}
+
+static void toolbar_setup(AWeatherGui *gui)
+{
+	GtkWidget *refresh = aweather_gui_get_widget(gui, "refresh_button");
+	GtkWidget *zoomin  = aweather_gui_get_widget(gui, "zoomin_button");
+	GtkWidget *zoomout = aweather_gui_get_widget(gui, "zoomout_button");
+	g_signal_connect(refresh, "clicked", G_CALLBACK(on_refresh), gui);
+	g_signal_connect(zoomin,  "clicked", G_CALLBACK(on_zoomin ), gui);
+	g_signal_connect(zoomout, "clicked", G_CALLBACK(on_zoomout), gui);
 }
 
 
@@ -324,6 +351,7 @@ AWeatherGui *aweather_gui_new()
 	gtk_builder_connect_signals(gui->builder, NULL);
 
 	/* Load components */
+	toolbar_setup(gui);
 	site_setup(gui);
 	time_setup(gui);
 	opengl_setup(gui);
