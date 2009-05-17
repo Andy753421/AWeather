@@ -1,12 +1,9 @@
 AM_CPPFLAGS=$(GTK_CFLAGS)
-GTKDOC_LIBS=$(GTK_LIBS) $(RSL_LIBS) $(CURL_LIBS) \
-	../../src/aweather-gui.o \
-	../../src/aweather-view.o \
-	../../src/location.o \
-	../../src/opengl.o \
-	../../src/plugin-example.o \
-	../../src/plugin-radar.o \
-	../../src/plugin-ridge.o
+GTKDOC_LIBS=$(GTK_LIBS) $(RSL_LIBS) \
+	../../src/aweather-aweather-*.o
+	../../src/aweather-plugin-*.o
+	../../src/aweather-location.o
+	../../src/aweather-data.o
 DOC_MODULE=aweather
 DOC_SOURCE_DIR=../../src/
 DOC_MAIN_SGML_FILE=$(DOC_MODULE)-docs.sgml
