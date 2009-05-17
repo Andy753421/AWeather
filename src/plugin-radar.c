@@ -115,32 +115,52 @@ static void load_radar_gui(Radar *radar)
 	if (child)
 		gtk_widget_destroy(child);
 
-	GtkWidget *hbox = gtk_hbox_new(TRUE, 0);
-	GtkWidget *button = NULL;
-	int vi = 0, si = 0;
-	for (vi = 0; vi < radar->h.nvolumes; vi++) {
+	/* Get table size */
+
+	guint rows = 1, cols = 1, cur_cols;
+	gchar row_label_str[64], col_label_str[64], button_str[64];
+	GtkWidget *row_label, *col_label, *button = NULL;
+	GtkWidget *table = gtk_table_new(rows, cols, FALSE);
+	for (guint vi = 0; vi < radar->h.nvolumes; vi++) {
 		Volume *vol = radar->v[vi];
 		if (vol == NULL) continue;
-		GtkWidget *vbox = gtk_vbox_new(FALSE, 0);
-		for (si = 0; si < vol->h.nsweeps; si++) {
+		rows++; cols = 1;
+
+		/* Row label */
+		g_snprintf(row_label_str, 64, "<b>%s:</b>", vol->h.type_str);
+		row_label = gtk_label_new(row_label_str);
+		gtk_label_set_use_markup(GTK_LABEL(row_label), TRUE);
+		gtk_misc_set_alignment(GTK_MISC(row_label), 1, 0.5);
+		gtk_table_attach(GTK_TABLE(table), row_label, 0,1, rows-1,rows, GTK_FILL,GTK_FILL, 5,0);
+
+		for (guint si = 0; si < vol->h.nsweeps; si++) {
 			Sweep *sweep = vol->sweep[si];
-			if (sweep == NULL) continue;
-			char *label = g_strdup_printf("Tilt: %.2f (%s)",
-					sweep->h.elev, vol->h.type_str);
-			button = gtk_radio_button_new_with_label_from_widget(
-					GTK_RADIO_BUTTON(button), label);
+			if (sweep == NULL || sweep->h.elev == 0) continue;
+			cols++;
+
+			/* Column label */
+			g_object_get(table, "n-columns", &cur_cols, NULL);
+			if (cols >  cur_cols) {
+				g_snprintf(col_label_str, 64, "<b>%.2f°</b>", sweep->h.elev);
+				col_label = gtk_label_new(col_label_str);
+				gtk_label_set_use_markup(GTK_LABEL(col_label), TRUE);
+				gtk_widget_set_size_request(col_label, 40, -1);
+				gtk_table_attach(GTK_TABLE(table), col_label, cols-1,cols, 0,1, GTK_FILL,GTK_FILL, 0,0);
+			}
+
+			/* Button */
+			//g_snprintf(button_str, 64, "%c: %.2f", vol->h.type_str[0], sweep->h.elev);
+			//button = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(button), button_str);
+			button = gtk_radio_button_new_from_widget(GTK_RADIO_BUTTON(button));
+			gtk_widget_set_size_request(button, -1, 22);
 			g_object_set(button, "draw-indicator", FALSE, NULL);
-			g_signal_connect_swapped(button, "clicked",
-					G_CALLBACK(load_color_table), vol->h.type_str);
-			g_signal_connect_swapped(button, "clicked",
-					G_CALLBACK(load_sweep), sweep);
-			gtk_box_pack_start(GTK_BOX(vbox), button, FALSE, TRUE, 0);
-			g_free(label);
+			g_signal_connect_swapped(button, "clicked", G_CALLBACK(load_color_table), vol->h.type_str);
+			g_signal_connect_swapped(button, "clicked", G_CALLBACK(load_sweep), sweep);
+			gtk_table_attach(GTK_TABLE(table), button, cols-1,cols, rows-1,rows, GTK_FILL,GTK_FILL, 0,0);
 		}
-		gtk_box_pack_start(GTK_BOX(hbox), vbox, TRUE, TRUE, 0);
 	}
-	gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(config_body), hbox);
-	gtk_widget_show_all(hbox);
+	gtk_container_add(GTK_CONTAINER(config_body), table);
+	gtk_widget_show_all(table);
 }
 
 /* Load a radar from a file */
@@ -388,13 +408,10 @@ gboolean radar_init(AWeatherGui *_gui)
 	AWeatherView *view    = aweather_gui_get_view(gui);
 
 	/* Add configuration tab */
-	config_body = gtk_scrolled_window_new(NULL, NULL);
-	gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(config_body),
-			gtk_label_new("No radar loaded"));
-	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(config_body),
-			GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
-	gtk_notebook_prepend_page(GTK_NOTEBOOK(config),
-			config_body, gtk_label_new("Radar"));
+	config_body = gtk_alignment_new(0, 0, 1, 1);
+	gtk_container_set_border_width(GTK_CONTAINER(config_body), 5);
+	gtk_container_add(GTK_CONTAINER(config_body), gtk_label_new("No radar loaded"));
+	gtk_notebook_prepend_page(GTK_NOTEBOOK(config), config_body, gtk_label_new("Radar"));
 
 	/* Set up OpenGL Stuff */
 	g_signal_connect(drawing, "expose-event",     G_CALLBACK(on_expose),           NULL);

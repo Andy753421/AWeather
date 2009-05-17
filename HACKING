@@ -5,7 +5,6 @@ Road plan
   * Asynchronous IO and data loading
   * Pre-load textures and polys in OpenGL
   * GObject integration (plugin object/interface)
-  * `Refresh button' (pull new level 2 data)
 
 0.x - Volume scans
   * Display iso surfaces of volume scans

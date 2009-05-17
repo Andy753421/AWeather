@@ -30,10 +30,27 @@
 /*************
  * callbacks *
  *************/
-gboolean on_window_key_press_event(GtkWidget *widget, GdkEventKey *event, gpointer data)
+gboolean on_key_press(GtkWidget *widget, GdkEventKey *event, AWeatherGui *gui)
 {
+	g_message("key_press: key=%x, state=%x", event->keyval, event->state);
+	AWeatherView *view = aweather_gui_get_view(gui);
 	if (event->keyval == GDK_q)
 		gtk_main_quit();
+	else if (event->keyval == GDK_r && event->state & GDK_CONTROL_MASK)
+		aweather_view_refresh(view);
+	else if (event->keyval == GDK_plus)
+		aweather_view_zoomin(view);
+	else if (event->keyval == GDK_minus)
+		aweather_view_zoomout(view);
+	else if (event->keyval == GDK_Tab || event->keyval == GDK_ISO_Left_Tab) {
+		GtkNotebook *tabs = GTK_NOTEBOOK(aweather_gui_get_widget(gui, "tabs"));
+		gint num_tabs = gtk_notebook_get_n_pages(tabs);
+		gint cur_tab  = gtk_notebook_get_current_page(tabs);
+		if (event->state & GDK_SHIFT_MASK)
+			gtk_notebook_set_current_page(tabs, (cur_tab-1)%num_tabs);
+		else 
+			gtk_notebook_set_current_page(tabs, (cur_tab+1)%num_tabs);
+	}
 	return TRUE;
 }
 
@@ -80,9 +97,9 @@ void on_time_changed(GtkTreeView *view, GtkTreePath *path,
 	g_free(time);
 }
 
-static gboolean on_map(GtkWidget *da, GdkEventConfigure *event, AWeatherGui *gui)
+gboolean on_map(GtkWidget *da, GdkEventConfigure *event, AWeatherGui *gui)
 {
-	//g_message("map:map");
+	g_message("on_map");
 	AWeatherView *view = aweather_gui_get_view(gui);
 	aweather_view_set_location(view, "IND");
 
@@ -106,8 +123,9 @@ static gboolean on_map(GtkWidget *da, GdkEventConfigure *event, AWeatherGui *gui
 	return FALSE;
 }
 
-static gboolean on_configure(GtkWidget *da, GdkEventConfigure *event, AWeatherGui *gui)
+gboolean on_configure(GtkWidget *da, GdkEventConfigure *event, AWeatherGui *gui)
 {
+	//g_message("on_confiure");
 	aweather_gui_gl_begin(gui);
 
 	double width  = da->allocation.width;
@@ -134,12 +152,13 @@ static gboolean on_configure(GtkWidget *da, GdkEventConfigure *event, AWeatherGu
 	return FALSE;
 }
 
-static gboolean on_expose_begin(GtkWidget *da, GdkEventExpose *event, AWeatherGui *gui)
+gboolean on_expose_begin(GtkWidget *da, GdkEventExpose *event, AWeatherGui *gui)
 {
+	g_message("aweather:espose_begin");
 	aweather_gui_gl_begin(gui);
 	return FALSE;
 }
-static gboolean on_expose_end(GtkWidget *da, GdkEventExpose *event, AWeatherGui *gui)
+gboolean on_expose_end(GtkWidget *da, GdkEventExpose *event, AWeatherGui *gui)
 {
 	g_message("aweather:espose_end\n");
 	aweather_gui_gl_end(gui);
@@ -235,7 +254,6 @@ static void site_setup(AWeatherGui *gui)
 	g_object_unref(renderer);
 	g_object_unref(store);
 
-	g_signal_connect(combo, "changed", G_CALLBACK(on_site_changed),  gui);
 	AWeatherView *aview = aweather_gui_get_view(gui);
 	g_signal_connect(aview, "location-changed", G_CALLBACK(update_location_widget), gui);
 }
@@ -251,7 +269,6 @@ static void time_setup(AWeatherGui *gui)
 					"Time", rend, "text", 0, NULL);
 	gtk_tree_view_append_column(tview, col);
 
-	g_signal_connect(tview, "row-activated", G_CALLBACK(on_time_changed), gui);
 	AWeatherView *aview = aweather_gui_get_view(gui);
 	g_signal_connect(aview, "time-changed", G_CALLBACK(update_time_widget), gui);
 }
@@ -274,16 +291,6 @@ static void opengl_setup(AWeatherGui *gui)
 	g_signal_connect      (drawing, "configure-event", G_CALLBACK(on_configure),    gui);
 	g_signal_connect      (drawing, "expose-event",    G_CALLBACK(on_expose_begin), gui);
 	g_signal_connect_after(drawing, "expose-event",    G_CALLBACK(on_expose_end),   gui);
-}
-
-static void toolbar_setup(AWeatherGui *gui)
-{
-	GtkWidget *refresh = aweather_gui_get_widget(gui, "refresh_button");
-	GtkWidget *zoomin  = aweather_gui_get_widget(gui, "zoomin_button");
-	GtkWidget *zoomout = aweather_gui_get_widget(gui, "zoomout_button");
-	g_signal_connect(refresh, "clicked", G_CALLBACK(on_refresh), gui);
-	g_signal_connect(zoomin,  "clicked", G_CALLBACK(on_zoomin ), gui);
-	g_signal_connect(zoomout, "clicked", G_CALLBACK(on_zoomout), gui);
 }
 
 
@@ -348,10 +355,9 @@ AWeatherGui *aweather_gui_new()
 	gui->window  = GTK_WINDOW      (gtk_builder_get_object(gui->builder, "window"));
 	gui->tabs    = GTK_NOTEBOOK    (gtk_builder_get_object(gui->builder, "tabs")); 
 	gui->drawing = GTK_DRAWING_AREA(gtk_builder_get_object(gui->builder, "drawing"));
-	gtk_builder_connect_signals(gui->builder, NULL);
+	gtk_builder_connect_signals(gui->builder, gui);
 
 	/* Load components */
-	toolbar_setup(gui);
 	site_setup(gui);
 	time_setup(gui);
 	opengl_setup(gui);
