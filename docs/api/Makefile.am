@@ -1,8 +1,8 @@
 AM_CPPFLAGS=$(GTK_CFLAGS)
 GTKDOC_LIBS=$(GTK_LIBS) $(RSL_LIBS) \
-	../../src/aweather-aweather-*.o
-	../../src/aweather-plugin-*.o
-	../../src/aweather-location.o
+	../../src/aweather-aweather-*.o \
+	../../src/aweather-plugin-*.o \
+	../../src/aweather-location.o \
 	../../src/aweather-data.o
 DOC_MODULE=aweather
 DOC_SOURCE_DIR=../../src/
