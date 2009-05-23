@@ -1,8 +1,28 @@
-See also: wiki
+Road plan
+---------
+0.1 - Working
+  * Fix all memory leaks
+  * Asynchronous IO and data loading
+  * Pre-load textures and polys in OpenGL
+  * GObject integration (plugin object/interface)
 
-Depth sorting
-  - Need to draw objects from lowest to highest when using transparency
+0.x - Volume scans
+  * Display iso surfaces of volume scans
 
-Fix memory leaks
+0.x - GIS
+  * Replace RIDGE overlays with GIS images
+  * Set up LLH coordinate system
+  * Generic Time/Location selection
+    (not dependent on level 2 listings)
 
-Add better color charts
+0.x - More data
+  * Derived from Level 2:
+    * Composite reflectivity
+    * Storm relative motion
+    * Echo tops
+  * Warning/watch boxes
+  * Fronts
+  * Air pressure
+
+0.x - Animation
+  * Loop though times
