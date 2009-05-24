@@ -23,8 +23,36 @@
 #include <stdio.h>
 
 #include "aweather-gui.h"
+#include "plugin-ridge.h"
 #include "data.h"
 
+/****************
+ * GObject code *
+ ****************/
+static void aweather_ridge_plugin_init(AWeatherPluginInterface *iface);
+static void aweather_ridge_expose(AWeatherPlugin *_ridge);
+G_DEFINE_TYPE_WITH_CODE(AWeatherRidge, aweather_ridge, G_TYPE_OBJECT,
+		G_IMPLEMENT_INTERFACE(AWEATHER_TYPE_PLUGIN,
+			aweather_ridge_plugin_init));
+static void aweather_ridge_class_init(AWeatherRidgeClass *klass)
+{
+	GObjectClass *object_class = (GObjectClass*)klass;
+}
+static void aweather_ridge_plugin_init(AWeatherPluginInterface *iface)
+{
+	/* Add methods to the interface */
+	iface->expose = aweather_ridge_expose;
+}
+static void aweather_ridge_init(AWeatherRidge *ridge)
+{
+	/* Set defaults */
+	ridge->gui = NULL;
+}
+
+
+/***********
+ * Helpers *
+ ***********/
 enum {
 	LAYER_TOPO,
 	LAYER_COUNTY,
@@ -50,7 +78,8 @@ static layer_t layers[] = {
 	[LAYER_CITY]     = {"Cities",   "Overlays/Cities/Short/%s_City_Short.gif",       TRUE,  6, 0},
 };
 
-static AWeatherGui *gui = NULL;
+/* TODO: Remove this */
+AWeatherGui *old_gui = NULL;
 
 /**
  * Load an image into an OpenGL texture
@@ -60,7 +89,7 @@ static AWeatherGui *gui = NULL;
 void load_texture(gchar *filename, gboolean updated, gpointer _layer)
 {
 	layer_t *layer = _layer;
-	aweather_gui_gl_begin(gui);
+	aweather_gui_gl_begin(old_gui);
 
 	/* Load image */
 	GdkPixbuf *pixbuf = gdk_pixbuf_new_from_file(filename, NULL);
@@ -88,15 +117,15 @@ void load_texture(gchar *filename, gboolean updated, gpointer _layer)
 		base);
 	g_free(base);
 
-	aweather_gui_gl_end(gui);
+	aweather_gui_gl_end(old_gui);
 
 	g_object_unref(pixbuf);
 
 	/* Redraw */
-	aweather_gui_gl_redraw(gui);
+	aweather_gui_gl_redraw(old_gui);
 }
 
-static void set_site(AWeatherView *view, gchar *site, gpointer user_data)
+static void set_site(AWeatherView *view, gchar *site, AWeatherRidge *ridge)
 {
 	g_message("site changed to %s", site);
 	for (int i = 0; i < LAYER_COUNT; i++) {
@@ -107,8 +136,47 @@ static void set_site(AWeatherView *view, gchar *site, gpointer user_data)
 	}
 }
 
-static gboolean expose(GtkWidget *da, GdkEventExpose *event, gpointer user_data)
+void toggle_layer(GtkToggleButton *check, gpointer _layer)
 {
+	layer_t *layer = _layer;
+	layer->enabled = gtk_toggle_button_get_active(check);
+	aweather_gui_gl_redraw(old_gui);
+}
+
+/***********
+ * Methods *
+ ***********/
+AWeatherRidge *aweather_ridge_new(AWeatherGui *gui)
+{
+	AWeatherRidge *ridge = g_object_new(AWEATHER_TYPE_RIDGE, NULL);
+	ridge->gui = old_gui = gui;
+
+	AWeatherView *view    = aweather_gui_get_view(gui);
+	GtkWidget    *drawing = aweather_gui_get_widget(gui, "drawing");
+	GtkWidget    *config  = aweather_gui_get_widget(gui, "tabs");
+
+	/* Add configuration tab */
+	GtkWidget *tab  = gtk_label_new("Ridge");
+	GtkWidget *body = gtk_alignment_new(0.5, 0, 0, 0);
+	GtkWidget *hbox = gtk_hbox_new(FALSE, 10);
+	for (int i = 0; i < LAYER_COUNT; i++) {
+		GtkWidget *check = gtk_check_button_new_with_label(layers[i].name);
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(check), layers[i].enabled);
+		gtk_box_pack_start(GTK_BOX(hbox), check, FALSE, TRUE, 0);
+		g_signal_connect(check, "toggled", G_CALLBACK(toggle_layer), &layers[i]);
+	}
+	gtk_container_add(GTK_CONTAINER(body), hbox);
+	gtk_notebook_append_page(GTK_NOTEBOOK(config), body, tab);
+
+	g_signal_connect(view,    "site-changed", G_CALLBACK(set_site),  ridge);
+
+	return ridge;
+}
+
+static void aweather_ridge_expose(AWeatherPlugin *_ridge)
+{
+	AWeatherRidge *ridge = AWEATHER_RIDGE(_ridge);
+
 	g_message("ridge:expose");
 	glPushMatrix();
 	glEnable(GL_TEXTURE_2D);
@@ -127,39 +195,4 @@ static gboolean expose(GtkWidget *da, GdkEventExpose *event, gpointer user_data)
 	}
 
 	glPopMatrix();
-	return FALSE;
-}
-
-void toggle_layer(GtkToggleButton *check, gpointer _layer)
-{
-	layer_t *layer = _layer;
-	layer->enabled = gtk_toggle_button_get_active(check);
-	aweather_gui_gl_redraw(gui);
-}
-
-gboolean ridge_init(AWeatherGui *_gui)
-{
-	gui = _gui;
-	AWeatherView *view    = aweather_gui_get_view(gui);
-	GtkWidget    *drawing = aweather_gui_get_widget(gui, "drawing");
-	GtkWidget    *config  = aweather_gui_get_widget(gui, "tabs");
-
-	/* Add configuration tab */
-	GtkWidget *tab  = gtk_label_new("Ridge");
-	GtkWidget *body = gtk_alignment_new(0.5, 0, 0, 0);
-	GtkWidget *hbox = gtk_hbox_new(FALSE, 10);
-	for (int i = 0; i < LAYER_COUNT; i++) {
-		GtkWidget *check = gtk_check_button_new_with_label(layers[i].name);
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(check), layers[i].enabled);
-		gtk_box_pack_start(GTK_BOX(hbox), check, FALSE, TRUE, 0);
-		g_signal_connect(check, "toggled", G_CALLBACK(toggle_layer), &layers[i]);
-	}
-	gtk_container_add(GTK_CONTAINER(body), hbox);
-	gtk_notebook_append_page(GTK_NOTEBOOK(config), body, tab);
-
-	/* Set up OpenGL Stuff */
-	g_signal_connect(drawing, "expose-event", G_CALLBACK(expose),    NULL);
-	g_signal_connect(view,    "site-changed", G_CALLBACK(set_site),  NULL);
-
-	return TRUE;
 }

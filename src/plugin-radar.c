@@ -20,23 +20,37 @@
 #include <gtk/gtkgl.h>
 #include <GL/gl.h>
 #include <math.h>
-
-#include "rsl.h"
+#include <rsl.h>
 
 #include "aweather-gui.h"
 #include "plugin-radar.h"
 #include "data.h"
 
-GtkWidget *drawing;
-GtkWidget *config_body;
-static Sweep *cur_sweep = NULL;  // make this not global
-//static int nred, ngreen, nblue;
-//static char red[256], green[256], blue[256];
-static colormap_t *colormap;
-static guint sweep_tex = 0;
-static Radar *radar = NULL;
+/****************
+ * GObject code *
+ ****************/
+static void aweather_radar_plugin_init(AWeatherPluginInterface *iface);
+static void aweather_radar_expose(AWeatherPlugin *_radar);
+G_DEFINE_TYPE_WITH_CODE(AWeatherRadar, aweather_radar, G_TYPE_OBJECT,
+		G_IMPLEMENT_INTERFACE(AWEATHER_TYPE_PLUGIN,
+			aweather_radar_plugin_init));
+static void aweather_radar_class_init(AWeatherRadarClass *klass)
+{
+	GObjectClass *object_class = (GObjectClass*)klass;
+}
+static void aweather_radar_plugin_init(AWeatherPluginInterface *iface)
+{
+	/* Add methods to the interface */
+	iface->expose = aweather_radar_expose;
+}
+static void aweather_radar_init(AWeatherRadar *radar)
+{
+	/* Set defaults */
+	radar->gui = NULL;
+}
 
-static AWeatherGui *gui = NULL;
+/* TODO: User parameters or user data or something */
+static AWeatherRadar *self = NULL;
 
 /**************************
  * Data loading functions *
@@ -61,10 +75,10 @@ static void bscan_sweep(Sweep *sweep, guint8 **data, int *width, int *height)
 			//guint val   = dz_f(ray->range[bi]);
 			guint8 val   = (guint8)ray->h.f(ray->range[bi]);
 			guint  buf_i = (ri*max_bins+bi)*4;
-			buf[buf_i+0] = colormap->data[val][0];
-			buf[buf_i+1] = colormap->data[val][1];
-			buf[buf_i+2] = colormap->data[val][2];
-			buf[buf_i+3] = colormap->data[val][3];
+			buf[buf_i+0] = self->cur_colormap->data[val][0];
+			buf[buf_i+1] = self->cur_colormap->data[val][1];
+			buf[buf_i+2] = self->cur_colormap->data[val][2];
+			buf[buf_i+3] = self->cur_colormap->data[val][3];
 			if (val == BADVAL     || val == RFVAL      || val == APFLAG ||
 			    val == NOTFOUND_H || val == NOTFOUND_V || val == NOECHO) {
 				buf[buf_i+3] = 0x00; // transparent
@@ -82,20 +96,20 @@ static void load_color_table(char *table)
 {
 	for (int i = 0; colormaps[i].name; i++)
 		if (g_str_equal(colormaps[i].name, table))
-			colormap = &colormaps[i];
+			self->cur_colormap = &colormaps[i];
 }
 
 /* Load a sweep as the active texture */
 static void load_sweep(Sweep *sweep)
 {
-	aweather_gui_gl_begin(gui);
-	cur_sweep = sweep;
+	aweather_gui_gl_begin(self->gui);
+	self->cur_sweep = sweep;
 	int height, width;
 	guint8 *data;
 	bscan_sweep(sweep, &data, &width, &height);
-	glDeleteTextures(1, &sweep_tex);
-	glGenTextures(1, &sweep_tex);
-	glBindTexture(GL_TEXTURE_2D, sweep_tex);
+	glDeleteTextures(1, &self->cur_sweep_tex);
+	glGenTextures(1, &self->cur_sweep_tex);
+	glBindTexture(GL_TEXTURE_2D, self->cur_sweep_tex);
 	glPixelStorei(GL_PACK_ALIGNMENT, 1);
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -103,15 +117,15 @@ static void load_sweep(Sweep *sweep)
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0,
 			GL_RGBA, GL_UNSIGNED_BYTE, data);
 	g_free(data);
-	aweather_gui_gl_redraw(gui);
-	aweather_gui_gl_end(gui);
+	aweather_gui_gl_redraw(self->gui);
+	aweather_gui_gl_end(self->gui);
 }
 
 /* Add selectors to the config area for the sweeps */
 static void load_radar_gui(Radar *radar)
 {
 	/* Clear existing items */
-	GtkWidget *child = gtk_bin_get_child(GTK_BIN(config_body));
+	GtkWidget *child = gtk_bin_get_child(GTK_BIN(self->config_body));
 	if (child)
 		gtk_widget_destroy(child);
 
@@ -174,7 +188,7 @@ static void load_radar_gui(Radar *radar)
 					G_CALLBACK(load_sweep), sweep);
 		}
 	}
-	gtk_container_add(GTK_CONTAINER(config_body), table);
+	gtk_container_add(GTK_CONTAINER(self->config_body), table);
 	gtk_widget_show_all(table);
 }
 
@@ -190,12 +204,12 @@ static void load_radar_rsl(GPid pid, gint status, gpointer _path)
 	char *site = g_path_get_basename(dir);
 	g_free(dir);
 	RSL_read_these_sweeps("all", NULL);
-	if (radar) {
+	if (self->cur_radar) {
 		g_message("Freeing radar");
-		RSL_free_radar(radar);
+		RSL_free_radar(self->cur_radar);
 	}
 	g_message("Allocating radar");
-	radar = RSL_wsr88d_to_radar(path, site);
+	Radar *radar = self->cur_radar = RSL_wsr88d_to_radar(path, site);
 	if (radar == NULL) {
 		g_warning("fail to load radar: path=%s, site=%s", path, site);
 		g_free(path);
@@ -275,7 +289,7 @@ static void update_times(char *site, char **last_time)
 		return;
 	}
 	gchar **lines = g_strsplit(data, "\n", -1);
-	GtkTreeView  *tview  = GTK_TREE_VIEW(aweather_gui_get_widget(gui, "time"));
+	GtkTreeView  *tview  = GTK_TREE_VIEW(aweather_gui_get_widget(self->gui, "time"));
 	GtkListStore *lstore = GTK_LIST_STORE(gtk_tree_view_get_model(tview));
 	gtk_list_store_clear(lstore);
 	GtkTreeIter iter;
@@ -299,18 +313,84 @@ static void update_times(char *site, char **last_time)
 /*************
  * Callbacks *
  *************/
-static gboolean on_expose(GtkWidget *da, GdkEventExpose *event, gpointer user_data)
+static void on_time_changed(AWeatherView *view, char *time, gpointer user_data)
 {
+	g_message("radar:setting time");
+	// format: http://mesonet.agron.iastate.edu/data/nexrd2/raw/KABR/KABR_20090510_0323
+	char *site = aweather_view_get_site(view);
+	char *base = "http://mesonet.agron.iastate.edu/data/";
+	char *path = g_strdup_printf("nexrd2/raw/K%s/K%s_%s", site, site, time);
+
+	self->cur_radar = NULL;
+	self->cur_sweep = NULL; // Clear radar
+	aweather_gui_gl_redraw(self->gui);
+
+	cache_file(base, path, AWEATHER_AUTOMATIC, load_radar, NULL);
+	g_free(path);
+}
+
+static void on_site_changed(AWeatherView *view, char *site, gpointer user_data)
+{
+	g_message("Loading wsr88d list for %s", site);
+	char *time = NULL;
+	update_times(site, &time);
+	aweather_view_set_time(view, time);
+
+	g_free(time);
+}
+
+static void on_refresh(AWeatherView *view, gpointer user_data)
+{
+	char *site = aweather_view_get_site(view);
+	char *time = NULL;
+	update_times(site, &time);
+	aweather_view_set_time(view, time);
+	g_free(time);
+}
+
+
+
+/***********
+ * Methods *
+ ***********/
+AWeatherRadar *aweather_radar_new(AWeatherGui *gui)
+{
+	//g_message("aweather_view_new");
+	AWeatherRadar *radar = g_object_new(AWEATHER_TYPE_RADAR, NULL);
+	radar->gui = gui;
+
+	self = radar;
+
+	GtkWidget    *config  = aweather_gui_get_widget(gui, "tabs");
+	AWeatherView *view    = aweather_gui_get_view(gui);
+
+	/* Add configuration tab */
+	self->config_body = gtk_alignment_new(0, 0, 1, 1);
+	gtk_container_set_border_width(GTK_CONTAINER(self->config_body), 5);
+	gtk_container_add(GTK_CONTAINER(self->config_body), gtk_label_new("No radar loaded"));
+	gtk_notebook_prepend_page(GTK_NOTEBOOK(config), self->config_body, gtk_label_new("Radar"));
+
+	/* Set up OpenGL Stuff */
+	g_signal_connect(view,    "site-changed", G_CALLBACK(on_site_changed), NULL);
+	g_signal_connect(view,    "time-changed", G_CALLBACK(on_time_changed), NULL);
+	g_signal_connect(view,    "refresh",      G_CALLBACK(on_refresh),      NULL);
+
+	return radar;
+}
+
+static void aweather_radar_expose(AWeatherPlugin *_radar)
+{
+	AWeatherRadar *radar = AWEATHER_RADAR(_radar);
 	g_message("radar:expose");
-	if (cur_sweep == NULL)
-		return FALSE;
-	Sweep *sweep = cur_sweep;
+	if (self->cur_sweep == NULL)
+		return;
+	Sweep *sweep = self->cur_sweep;
 
 	/* Draw the rays */
 
 	glMatrixMode(GL_MODELVIEW);
 	glPushMatrix();
-	glBindTexture(GL_TEXTURE_2D, sweep_tex);
+	glBindTexture(GL_TEXTURE_2D, self->cur_sweep_tex);
 	glEnable(GL_TEXTURE_2D);
 	glDisable(GL_ALPHA_TEST);
 	glColor4f(1,1,1,1);
@@ -362,10 +442,10 @@ static gboolean on_expose(GtkWidget *da, GdkEventExpose *event, gpointer user_da
 	glBegin(GL_QUADS);
 	int i;
 	for (i = 0; i < 256; i++) {
-		glColor4ub(colormap->data[i][0],
-		           colormap->data[i][1],
-		           colormap->data[i][2],
-		           colormap->data[i][3]);
+		glColor4ub(self->cur_colormap->data[i][0],
+		           self->cur_colormap->data[i][1],
+		           self->cur_colormap->data[i][2],
+		           self->cur_colormap->data[i][3]);
 		glVertex3f(-1.0, (float)((i  ) - 256/2)/(256/2), 0.0); // bot left
 		glVertex3f(-1.0, (float)((i+1) - 256/2)/(256/2), 0.0); // top left
 		glVertex3f(-0.9, (float)((i+1) - 256/2)/(256/2), 0.0); // top right
@@ -376,63 +456,4 @@ static gboolean on_expose(GtkWidget *da, GdkEventExpose *event, gpointer user_da
 	glEnable(GL_ALPHA_TEST);
         glMatrixMode(GL_PROJECTION); glPopMatrix(); 
 	glMatrixMode(GL_MODELVIEW ); glPopMatrix();
-	return FALSE;
-}
-
-static void on_time_changed(AWeatherView *view, char *time, gpointer user_data)
-{
-	g_message("radar:setting time");
-	// format: http://mesonet.agron.iastate.edu/data/nexrd2/raw/KABR/KABR_20090510_0323
-	char *site = aweather_view_get_site(view);
-	char *base = "http://mesonet.agron.iastate.edu/data/";
-	char *path = g_strdup_printf("nexrd2/raw/K%s/K%s_%s", site, site, time);
-
-	radar = NULL;
-	cur_sweep = NULL; // Clear radar
-	aweather_gui_gl_redraw(gui);
-
-	cache_file(base, path, AWEATHER_AUTOMATIC, load_radar, NULL);
-	g_free(path);
-}
-
-static void on_site_changed(AWeatherView *view, char *site, gpointer user_data)
-{
-	g_message("Loading wsr88d list for %s", site);
-	char *time = NULL;
-	update_times(site, &time);
-	aweather_view_set_time(view, time);
-
-	g_free(time);
-}
-
-static void on_refresh(AWeatherView *view, gpointer user_data)
-{
-	char *site = aweather_view_get_site(view);
-	char *time = NULL;
-	update_times(site, &time);
-	aweather_view_set_time(view, time);
-	g_free(time);
-}
-
-/* Init */
-gboolean radar_init(AWeatherGui *_gui)
-{
-	gui = _gui;
-	drawing = aweather_gui_get_widget(gui, "drawing");
-	GtkWidget    *config  = aweather_gui_get_widget(gui, "tabs");
-	AWeatherView *view    = aweather_gui_get_view(gui);
-
-	/* Add configuration tab */
-	config_body = gtk_alignment_new(0, 0, 1, 1);
-	gtk_container_set_border_width(GTK_CONTAINER(config_body), 5);
-	gtk_container_add(GTK_CONTAINER(config_body), gtk_label_new("No radar loaded"));
-	gtk_notebook_prepend_page(GTK_NOTEBOOK(config), config_body, gtk_label_new("Radar"));
-
-	/* Set up OpenGL Stuff */
-	g_signal_connect(drawing, "expose-event", G_CALLBACK(on_expose),       NULL);
-	g_signal_connect(view,    "site-changed", G_CALLBACK(on_site_changed), NULL);
-	g_signal_connect(view,    "time-changed", G_CALLBACK(on_time_changed), NULL);
-	g_signal_connect(view,    "refresh",      G_CALLBACK(on_refresh),      NULL);
-
-	return TRUE;
 }

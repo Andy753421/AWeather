@@ -37,11 +37,9 @@ int main(int argc, char *argv[])
 	//AWeatherView *view = aweather_gui_get_view(gui);
 
 	/* Load plugins */
-	//example_init(gui);
-        //ridge_init(gui);
-	//radar_init(gui);
-
 	aweather_gui_register_plugin(gui, AWEATHER_PLUGIN(aweather_example_new(gui)));
+	aweather_gui_register_plugin(gui, AWEATHER_PLUGIN(aweather_ridge_new(gui)));
+	aweather_gui_register_plugin(gui, AWEATHER_PLUGIN(aweather_radar_new(gui)));
 
 	gtk_widget_show_all(aweather_gui_get_widget(gui, "window"));
 	gtk_main();

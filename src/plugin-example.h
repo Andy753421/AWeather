@@ -43,7 +43,7 @@ struct _AWeatherExampleClass {
 	GObjectClass parent_class;
 };
 
-GType aweather_example_get_type (void);
+GType aweather_example_get_type();
 
 /* Methods */
 AWeatherExample *aweather_example_new(AWeatherGui *gui);

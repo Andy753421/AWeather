@@ -190,16 +190,16 @@ gboolean on_configure(GtkWidget *da, GdkEventConfigure *event, AWeatherGui *gui)
 	double rad  = atan((height/2)/500);
 	double deg  = (rad*180)/M_PI;
 
-	//gluPerspective(deg*2, width/height, -z-20, -z+20);
-	gluPerspective(deg*2, width/height, 1, 500*1000);
+	gluPerspective(deg*2, width/height, -z-20, -z+20);
+	//gluPerspective(deg*2, width/height, 1, 500*1000);
 
 	aweather_gui_gl_end(gui);
 	return FALSE;
 }
 
-gboolean on_expose_begin(GtkWidget *da, GdkEventExpose *event, AWeatherGui *gui)
+gboolean on_expose(GtkWidget *da, GdkEventExpose *event, AWeatherGui *gui)
 {
-	g_message("aweather:expose_begin");
+	g_message("aweather:expose - begin");
 	aweather_gui_gl_begin(gui);
 
 	double x, y, z;
@@ -218,13 +218,9 @@ gboolean on_expose_begin(GtkWidget *da, GdkEventExpose *event, AWeatherGui *gui)
 		aweather_plugin_expose(plugin);
 	}
 
-	return FALSE;
-}
-gboolean on_expose_end(GtkWidget *da, GdkEventExpose *event, AWeatherGui *gui)
-{
-	g_message("aweather:expose_end\n");
 	aweather_gui_gl_end(gui);
 	aweather_gui_gl_flush(gui);
+	g_message("aweather:expose - end\n");
 	return FALSE;
 }
 
@@ -372,10 +368,9 @@ static void opengl_setup(AWeatherGui *gui)
 		g_error("GL lacks required capabilities");
 
 	/* Set up OpenGL Stuff, glade doesn't like doing these */
-	g_signal_connect      (drawing, "map-event",       G_CALLBACK(on_map),          gui);
-	g_signal_connect      (drawing, "configure-event", G_CALLBACK(on_configure),    gui);
-	g_signal_connect      (drawing, "expose-event",    G_CALLBACK(on_expose_begin), gui);
-	g_signal_connect_after(drawing, "expose-event",    G_CALLBACK(on_expose_end),   gui);
+	g_signal_connect(drawing, "map-event",       G_CALLBACK(on_map),       gui);
+	g_signal_connect(drawing, "configure-event", G_CALLBACK(on_configure), gui);
+	g_signal_connect(drawing, "expose-event",    G_CALLBACK(on_expose),    gui);
 }
 
 

@@ -20,6 +20,9 @@ aweather_CPPFLAGS = $(RSL_CFLAGS) $(GTK_CFLAGS) -DDATADIR="\"$(datadir)\""
 wsr88ddec         = wsr88ddec.c
 wsr88ddec_LDADD   = -lbz2
 
+CLEANFILES = gmon.out valgrind.out
+MAINTAINERCLEANFILES = Makefile.in
+
 .list.c:
 	glib-genmarshal --prefix=aweather_cclosure_marshal --body   $< > $@
 .list.h:
@@ -42,4 +45,4 @@ memcheck:
 	         --num-callers=50               \
 	         --suppressions=gtk.suppression \
 	         ./aweather                     \
-	2> memcheck.log
+	2> valgrind.out

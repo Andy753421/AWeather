@@ -21,7 +21,6 @@
 #include <GL/gl.h>
 
 #include "aweather-gui.h"
-#include "aweather-plugin.h"
 #include "plugin-example.h"
 
 /****************
@@ -75,7 +74,7 @@ AWeatherExample *aweather_example_new(AWeatherGui *gui)
 	GtkWidget *config  = aweather_gui_get_widget(gui, "tabs");
 
 	/* Add configuration tab */
-	GtkWidget *label = gtk_label_new("example");
+	GtkWidget *label = gtk_label_new("Example");
 	example->button = GTK_TOGGLE_BUTTON(gtk_toggle_button_new_with_label("Rotate"));
 	gtk_notebook_append_page(GTK_NOTEBOOK(config), GTK_WIDGET(example->button), label);
 

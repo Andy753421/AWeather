@@ -18,6 +18,32 @@
 #ifndef __RIDGE_H__
 #define __RIDGE_H__
 
-gboolean ridge_init(AWeatherGui *gui);
+#include <glib-object.h>
+
+#define AWEATHER_TYPE_RIDGE            (aweather_ridge_get_type ())
+#define AWEATHER_RIDGE(obj)            (G_TYPE_CHECK_INSTANCE_CAST((obj),   AWEATHER_TYPE_RIDGE, AWeatherRidge))
+#define AWEATHER_IS_RIDGE(obj)         (G_TYPE_CHECK_INSTANCE_TYPE((obj),   AWEATHER_TYPE_RIDGE))
+#define AWEATHER_RIDGE_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST   ((klass), AWEATHER_TYPE_RIDGE, AWeatherRidgeClass))
+#define AWEATHER_IS_RIDGE_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE   ((klass), AWEATHER_TYPE_RIDGE))
+#define AWEATHER_RIDGE_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj),   AWEATHER_TYPE_RIDGE, AWeatherRidgeClass))
+
+typedef struct _AWeatherRidge      AWeatherRidge;
+typedef struct _AWeatherRidgeClass AWeatherRidgeClass;
+
+struct _AWeatherRidge {
+	GObject parent_instance;
+
+	/* instance members */
+	AWeatherGui *gui;
+};
+
+struct _AWeatherRidgeClass {
+	GObjectClass parent_class;
+};
+
+GType aweather_ridge_get_type();
+
+/* Methods */
+AWeatherRidge *aweather_ridge_new(AWeatherGui *gui);
 
 #endif
