@@ -99,11 +99,11 @@ static void load_sweep(Sweep *sweep)
 	glPixelStorei(GL_PACK_ALIGNMENT, 1);
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0,
 			GL_RGBA, GL_UNSIGNED_BYTE, data);
 	g_free(data);
-	gtk_widget_queue_draw(aweather_gui_get_widget(gui, "drawing"));
+	aweather_gui_gl_redraw(gui);
 	aweather_gui_gl_end(gui);
 }
 
@@ -115,15 +115,16 @@ static void load_radar_gui(Radar *radar)
 	if (child)
 		gtk_widget_destroy(child);
 
+	gdouble elev;
 	guint rows = 1, cols = 1, cur_cols;
 	gchar row_label_str[64], col_label_str[64], button_str[64];
-	GtkWidget *row_label, *col_label, *button = NULL;
+	GtkWidget *row_label, *col_label, *button = NULL, *elev_box;
 	GtkWidget *table = gtk_table_new(rows, cols, FALSE);
 
 	for (guint vi = 0; vi < radar->h.nvolumes; vi++) {
 		Volume *vol = radar->v[vi];
 		if (vol == NULL) continue;
-		rows++; cols = 1;
+		rows++; cols = 1; elev = 0;
 
 		/* Row label */
 		g_snprintf(row_label_str, 64, "<b>%s:</b>", vol->h.type_str);
@@ -136,29 +137,41 @@ static void load_radar_gui(Radar *radar)
 		for (guint si = 0; si < vol->h.nsweeps; si++) {
 			Sweep *sweep = vol->sweep[si];
 			if (sweep == NULL || sweep->h.elev == 0) continue;
-			cols++;
+			if (sweep->h.elev != elev) {
+				g_message("adding elev");
+				cols++;
+				elev = sweep->h.elev;
 
-			/* Column label */
-			g_object_get(table, "n-columns", &cur_cols, NULL);
-			if (cols >  cur_cols) {
-				g_snprintf(col_label_str, 64, "<b>%.2f°</b>", sweep->h.elev);
-				col_label = gtk_label_new(col_label_str);
-				gtk_label_set_use_markup(GTK_LABEL(col_label), TRUE);
-				gtk_widget_set_size_request(col_label, 40, -1);
-				gtk_table_attach(GTK_TABLE(table), col_label,
-						cols-1,cols, 0,1, GTK_FILL,GTK_FILL, 0,0);
+				/* Column label */
+				g_object_get(table, "n-columns", &cur_cols, NULL);
+				if (cols >  cur_cols) {
+					g_snprintf(col_label_str, 64, "<b>%.2f°</b>", elev);
+					col_label = gtk_label_new(col_label_str);
+					gtk_label_set_use_markup(GTK_LABEL(col_label), TRUE);
+					gtk_widget_set_size_request(col_label, 40, -1);
+					gtk_table_attach(GTK_TABLE(table), col_label,
+							cols-1,cols, 0,1, GTK_FILL,GTK_FILL, 0,0);
+				}
+
+				elev_box = gtk_hbox_new(TRUE, 0);
+				gtk_table_attach(GTK_TABLE(table), elev_box,
+						cols-1,cols, rows-1,rows, GTK_FILL,GTK_FILL, 0,0);
 			}
 
+
 			/* Button */
-			button = gtk_radio_button_new_from_widget(GTK_RADIO_BUTTON(button));
-			gtk_widget_set_size_request(button, -1, 22);
+			g_snprintf(button_str, 64, "%3.2f", elev);
+			button = gtk_radio_button_new_with_label_from_widget(
+					GTK_RADIO_BUTTON(button), button_str);
+			gtk_widget_set_size_request(button, -1, 26);
+			//button = gtk_radio_button_new_from_widget(GTK_RADIO_BUTTON(button));
+			//gtk_widget_set_size_request(button, -1, 22);
 			g_object_set(button, "draw-indicator", FALSE, NULL);
+			gtk_box_pack_end(GTK_BOX(elev_box), button, TRUE, TRUE, 0);
 			g_signal_connect_swapped(button, "clicked",
 					G_CALLBACK(load_color_table), vol->h.type_str);
 			g_signal_connect_swapped(button, "clicked",
 					G_CALLBACK(load_sweep), sweep);
-			gtk_table_attach(GTK_TABLE(table), button,
-					cols-1,cols, rows-1,rows, GTK_FILL,GTK_FILL, 0,0);
 		}
 	}
 	gtk_container_add(GTK_CONTAINER(config_body), table);
@@ -322,11 +335,11 @@ static gboolean on_expose(GtkWidget *da, GdkEventExpose *event, gpointer user_da
 
 		/* (find middle of bin) / scale for opengl */
 		// near left
-		glTexCoord2f(0.0, (double)ri/sweep->h.nrays);
+		glTexCoord2f(0.0, (double)ri/sweep->h.nrays-0.01);
 		glVertex3f(lx*near_dist, ly*near_dist, 2.0);
 
 		// far  left
-		glTexCoord2f(1.0, (double)ri/sweep->h.nrays);
+		glTexCoord2f(1.0, (double)ri/sweep->h.nrays-0.01);
 		glVertex3f(lx*far_dist,  ly*far_dist,  2.0);
 	}
 	//g_print("ri=%d, nr=%d, bw=%f\n", _ri, sweep->h.nrays, sweep->h.beam_width);
@@ -335,10 +348,10 @@ static gboolean on_expose(GtkWidget *da, GdkEventExpose *event, gpointer user_da
 
 	/* Texture debug */
 	//glBegin(GL_QUADS);
-	//glTexCoord2d( 0.,  0.); glVertex3f(-1.,  0., 0.); // bot left
-	//glTexCoord2d( 0.,  1.); glVertex3f(-1.,  1., 0.); // top left
-	//glTexCoord2d( 1.,  1.); glVertex3f( 0.,  1., 0.); // top right
-	//glTexCoord2d( 1.,  0.); glVertex3f( 0.,  0., 0.); // bot right
+	//glTexCoord2d( 0.,  0.); glVertex3f(-500.,   0., 0.); // bot left
+	//glTexCoord2d( 0.,  1.); glVertex3f(-500., 500., 0.); // top left
+	//glTexCoord2d( 1.,  1.); glVertex3f( 0.,   500., 3.); // top right
+	//glTexCoord2d( 1.,  0.); glVertex3f( 0.,     0., 3.); // bot right
 	//glEnd();
 
 	/* Print the color table */
@@ -370,19 +383,19 @@ static void on_time_changed(AWeatherView *view, char *time, gpointer user_data)
 {
 	g_message("radar:setting time");
 	// format: http://mesonet.agron.iastate.edu/data/nexrd2/raw/KABR/KABR_20090510_0323
-	char *site = aweather_view_get_location(view);
+	char *site = aweather_view_get_site(view);
 	char *base = "http://mesonet.agron.iastate.edu/data/";
 	char *path = g_strdup_printf("nexrd2/raw/K%s/K%s_%s", site, site, time);
 
 	radar = NULL;
 	cur_sweep = NULL; // Clear radar
-	gtk_widget_queue_draw(aweather_gui_get_widget(gui, "drawing"));
+	aweather_gui_gl_redraw(gui);
 
 	cache_file(base, path, AWEATHER_AUTOMATIC, load_radar, NULL);
 	g_free(path);
 }
 
-static void on_location_changed(AWeatherView *view, char *site, gpointer user_data)
+static void on_site_changed(AWeatherView *view, char *site, gpointer user_data)
 {
 	g_message("Loading wsr88d list for %s", site);
 	char *time = NULL;
@@ -394,7 +407,7 @@ static void on_location_changed(AWeatherView *view, char *site, gpointer user_da
 
 static void on_refresh(AWeatherView *view, gpointer user_data)
 {
-	char *site = aweather_view_get_location(view);
+	char *site = aweather_view_get_site(view);
 	char *time = NULL;
 	update_times(site, &time);
 	aweather_view_set_time(view, time);
@@ -416,10 +429,10 @@ gboolean radar_init(AWeatherGui *_gui)
 	gtk_notebook_prepend_page(GTK_NOTEBOOK(config), config_body, gtk_label_new("Radar"));
 
 	/* Set up OpenGL Stuff */
-	g_signal_connect(drawing, "expose-event",     G_CALLBACK(on_expose),           NULL);
-	g_signal_connect(view,    "location-changed", G_CALLBACK(on_location_changed), NULL);
-	g_signal_connect(view,    "time-changed",     G_CALLBACK(on_time_changed),     NULL);
-	g_signal_connect(view,    "refresh",          G_CALLBACK(on_refresh),          NULL);
+	g_signal_connect(drawing, "expose-event", G_CALLBACK(on_expose),       NULL);
+	g_signal_connect(view,    "site-changed", G_CALLBACK(on_site_changed), NULL);
+	g_signal_connect(view,    "time-changed", G_CALLBACK(on_time_changed), NULL);
+	g_signal_connect(view,    "refresh",      G_CALLBACK(on_refresh),      NULL);
 
 	return TRUE;
 }

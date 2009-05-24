@@ -56,6 +56,7 @@ GType aweather_gui_get_type(void);
 AWeatherGui    *aweather_gui_new();
 AWeatherView   *aweather_gui_get_view(AWeatherGui *gui);
 GtkWidget      *aweather_gui_get_widget(AWeatherGui *gui, const gchar *name);
+void            aweather_gui_gl_redraw(AWeatherGui *gui);
 void            aweather_gui_gl_begin(AWeatherGui *gui);
 void            aweather_gui_gl_end(AWeatherGui *gui);
 void            aweather_gui_gl_flush(AWeatherGui *gui);

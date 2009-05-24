@@ -17,6 +17,7 @@
 
 #include <glib.h>
 
+#include "marshal.h"
 #include "aweather-view.h"
 
 G_DEFINE_TYPE(AWeatherView, aweather_view, G_TYPE_OBJECT);
@@ -24,11 +25,12 @@ G_DEFINE_TYPE(AWeatherView, aweather_view, G_TYPE_OBJECT);
 enum {
 	PROP_0,
 	PROP_TIME,
-	PROP_LOCATION,
+	PROP_SITE,
 };
 
 enum {
 	SIG_TIME_CHANGED,
+	SIG_SITE_CHANGED,
 	SIG_LOCATION_CHANGED,
 	SIG_REFRESH,
 	NUM_SIGNALS,
@@ -42,7 +44,7 @@ static void aweather_view_init(AWeatherView *self)
 	//g_message("aweather_view_init");
 	/* Default values */
 	self->time     = g_strdup(""); //g_strdup("LATEST");
-	self->location = g_strdup(""); //g_strdup("IND");
+	self->site     = g_strdup(""); //g_strdup("IND");
 }
 
 static GObject *aweather_view_constructor(GType gtype, guint n_properties,
@@ -64,7 +66,7 @@ static void aweather_view_finalize(GObject *gobject)
 {
 	//g_message("aweather_view_finalize");
 	AWeatherView *self = AWEATHER_VIEW(gobject);
-	g_free(self->location);
+	g_free(self->site);
 	G_OBJECT_CLASS(aweather_view_parent_class)->finalize(gobject);
 }
 
@@ -74,8 +76,8 @@ static void aweather_view_set_property(GObject *object, guint property_id,
 	//g_message("aweather_view_set_property");
 	AWeatherView *self = AWEATHER_VIEW(object);
 	switch (property_id) {
-	case PROP_TIME:     aweather_view_set_time    (self, g_value_get_string(value)); break;
-	case PROP_LOCATION: aweather_view_set_location(self, g_value_get_string(value)); break;
+	case PROP_TIME:     aweather_view_set_time(self, g_value_get_string(value)); break;
+	case PROP_SITE:     aweather_view_set_site(self, g_value_get_string(value)); break;
 	default:            G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
 	}
 }
@@ -86,8 +88,8 @@ static void aweather_view_get_property(GObject *object, guint property_id,
 	//g_message("aweather_view_get_property");
 	AWeatherView *self = AWEATHER_VIEW(object);
 	switch (property_id) {
-	case PROP_TIME:     g_value_set_string(value, aweather_view_get_time    (self)); break;
-	case PROP_LOCATION: g_value_set_string(value, aweather_view_get_location(self)); break;
+	case PROP_TIME:     g_value_set_string(value, aweather_view_get_time(self)); break;
+	case PROP_SITE:     g_value_set_string(value, aweather_view_get_site(self)); break;
 	default:            G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
 	}
 }
@@ -107,11 +109,11 @@ static void aweather_view_class_init(AWeatherViewClass *klass)
 			"time of the current frame",
 			"(format unknown)", 
 			G_PARAM_READWRITE));
-	g_object_class_install_property(gobject_class, PROP_LOCATION,
+	g_object_class_install_property(gobject_class, PROP_SITE,
 		g_param_spec_pointer(
-			"location",
-			"location seen by the viewport",
-			"Location of the viewport. Currently this is the name of the radar site.", 
+			"site",
+			"site seen by the viewport",
+			"Site of the viewport. Currently this is the name of the radar site.", 
 			G_PARAM_READWRITE));
 	signals[SIG_TIME_CHANGED] = g_signal_new(
 			"time-changed",
@@ -124,8 +126,8 @@ static void aweather_view_class_init(AWeatherViewClass *klass)
 			G_TYPE_NONE,
 			1,
 			G_TYPE_STRING);
-	signals[SIG_LOCATION_CHANGED] = g_signal_new(
-			"location-changed",
+	signals[SIG_SITE_CHANGED] = g_signal_new(
+			"site-changed",
 			G_TYPE_FROM_CLASS(gobject_class),
 			G_SIGNAL_RUN_LAST,
 			0,
@@ -135,6 +137,19 @@ static void aweather_view_class_init(AWeatherViewClass *klass)
 			G_TYPE_NONE,
 			1,
 			G_TYPE_STRING);
+	signals[SIG_LOCATION_CHANGED] = g_signal_new(
+			"location-changed",
+			G_TYPE_FROM_CLASS(gobject_class),
+			G_SIGNAL_RUN_LAST,
+			0,
+			NULL,
+			NULL,
+			aweather_cclosure_marshal_VOID__DOUBLE_DOUBLE_DOUBLE,
+			G_TYPE_NONE,
+			3,
+			G_TYPE_DOUBLE,
+			G_TYPE_DOUBLE,
+			G_TYPE_DOUBLE);
 	signals[SIG_REFRESH] = g_signal_new(
 			"refresh",
 			G_TYPE_FROM_CLASS(gobject_class),
@@ -147,6 +162,30 @@ static void aweather_view_class_init(AWeatherViewClass *klass)
 			0);
 
 }
+
+/* Signal helpers */
+static void _aweather_view_emit_location_changed(AWeatherView *view)
+{
+	g_signal_emit(view, signals[SIG_LOCATION_CHANGED], 0, 
+			view->location[0],
+			view->location[1],
+			view->location[2]);
+}
+static void _aweather_view_emit_time_changed(AWeatherView *view)
+{
+	g_signal_emit(view, signals[SIG_TIME_CHANGED], 0,
+			view->time);
+}
+static void _aweather_view_emit_site_changed(AWeatherView *view)
+{
+	g_signal_emit(view, signals[SIG_SITE_CHANGED], 0,
+			view->site);
+}
+static void _aweather_view_emit_refresh(AWeatherView *view)
+{
+	g_signal_emit(view, signals[SIG_REFRESH], 0);
+}
+
 
 /* Methods */
 AWeatherView *aweather_view_new()
@@ -161,7 +200,7 @@ void aweather_view_set_time(AWeatherView *view, const char *time)
 	//g_message("aweather_view:set_time: setting time to %s", time);
 	g_free(view->time);
 	view->time = g_strdup(time);
-	g_signal_emit(view, signals[SIG_TIME_CHANGED], 0, time);
+	_aweather_view_emit_time_changed(view);
 }
 
 gchar *aweather_view_get_time(AWeatherView *view)
@@ -171,34 +210,61 @@ gchar *aweather_view_get_time(AWeatherView *view)
 	return view->time;
 }
 
-void aweather_view_set_location(AWeatherView *view, const gchar *location)
-{
-	g_assert(AWEATHER_IS_VIEW(view));
-	//g_message("aweather_view_set_location");
-	g_free(view->location);
-	view->location = g_strdup(location);
-	g_signal_emit(view, signals[SIG_LOCATION_CHANGED], 0, view->location);
-}
-
-gchar *aweather_view_get_location(AWeatherView *view)
+void aweather_view_get_location(AWeatherView *view, gdouble *x, gdouble *y, gdouble *z)
 {
 	g_assert(AWEATHER_IS_VIEW(view));
 	//g_message("aweather_view_get_location");
-	return view->location;
+	*x = view->location[0];
+	*y = view->location[1];
+	*z = view->location[2];
+}
+
+void aweather_view_set_location(AWeatherView *view, gdouble x, gdouble y, gdouble z)
+{
+	g_assert(AWEATHER_IS_VIEW(view));
+	//g_message("aweather_view_set_location");
+	view->location[0] = x;
+	view->location[1] = y;
+	view->location[2] = z;
+	_aweather_view_emit_location_changed(view);
+}
+
+void aweather_view_pan(AWeatherView *view, gdouble x, gdouble y, gdouble z)
+{
+	g_assert(AWEATHER_IS_VIEW(view));
+	g_message("aweather_view_pan: %f, %f, %f", x, y, z);
+	view->location[0] += x;
+	view->location[1] += y;
+	view->location[2] += z;
+	_aweather_view_emit_location_changed(view);
+}
+
+void aweather_view_zoom(AWeatherView *view, gdouble scale)
+{
+	g_assert(AWEATHER_IS_VIEW(view));
+	view->location[2] *= scale;
+	_aweather_view_emit_location_changed(view);
 }
 
 void aweather_view_refresh(AWeatherView *view)
 {
 	g_message("aweather_view_refresh: ..");
-	g_signal_emit(view, signals[SIG_REFRESH], 0);
+	_aweather_view_emit_refresh(view);
 }
 
-void aweather_view_zoomin(AWeatherView *view)
+void aweather_view_set_site(AWeatherView *view, const gchar *site)
 {
-	g_message("aweather_view_zoomin: ..");
+	g_assert(AWEATHER_IS_VIEW(view));
+	//g_message("aweather_view_set_site");
+	g_free(view->site);
+	view->site = g_strdup(site);
+	_aweather_view_emit_site_changed(view);
 }
 
-void aweather_view_zoomout(AWeatherView *view)
+gchar *aweather_view_get_site(AWeatherView *view)
 {
-	g_message("aweather_view_zoomout: ..");
+	g_assert(AWEATHER_IS_VIEW(view));
+	//g_message("aweather_view_get_site");
+	return view->site;
 }
+

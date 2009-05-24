@@ -93,12 +93,12 @@ void load_texture(gchar *filename, gboolean updated, gpointer _layer)
 	g_object_unref(pixbuf);
 
 	/* Redraw */
-	gtk_widget_queue_draw(aweather_gui_get_widget(gui, "drawing"));
+	aweather_gui_gl_redraw(gui);
 }
 
 static void set_site(AWeatherView *view, gchar *site, gpointer user_data)
 {
-	g_message("location changed to %s", site);
+	g_message("site changed to %s", site);
 	for (int i = 0; i < LAYER_COUNT; i++) {
 		gchar *base = "http://radar.weather.gov/ridge/";
 		gchar *path  = g_strdup_printf(layers[i].fmt, site);
@@ -134,7 +134,7 @@ void toggle_layer(GtkToggleButton *check, gpointer _layer)
 {
 	layer_t *layer = _layer;
 	layer->enabled = gtk_toggle_button_get_active(check);
-	gtk_widget_queue_draw(aweather_gui_get_widget(gui, "drawing"));
+	aweather_gui_gl_redraw(gui);
 }
 
 gboolean ridge_init(AWeatherGui *_gui)
@@ -158,8 +158,8 @@ gboolean ridge_init(AWeatherGui *_gui)
 	gtk_notebook_append_page(GTK_NOTEBOOK(config), body, tab);
 
 	/* Set up OpenGL Stuff */
-	g_signal_connect(drawing, "expose-event",     G_CALLBACK(expose),    NULL);
-	g_signal_connect(view,    "location-changed", G_CALLBACK(set_site),  NULL);
+	g_signal_connect(drawing, "expose-event", G_CALLBACK(expose),    NULL);
+	g_signal_connect(view,    "site-changed", G_CALLBACK(set_site),  NULL);
 
 	return TRUE;
 }

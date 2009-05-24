@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE glade-interface SYSTEM "glade-2.0.dtd">
-<!--Generated with glade3 3.4.5 on Sun May 17 01:11:31 2009 -->
+<!--Generated with glade3 3.4.5 on Sun May 24 00:31:16 2009 -->
 <glade-interface>
   <widget class="GtkWindow" id="window">
     <signal name="key_press_event" handler="on_key_press"/>
@@ -173,6 +173,7 @@
                         <property name="label" translatable="yes">gtk-about</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
+                        <signal name="activate" handler="on_about"/>
                       </widget>
                     </child>
                   </widget>
@@ -245,6 +246,7 @@
                     <property name="width_request">600</property>
                     <property name="height_request">550</property>
                     <property name="visible">True</property>
+                    <property name="events">GDK_POINTER_MOTION_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK | GDK_KEY_PRESS_MASK | GDK_KEY_RELEASE_MASK | GDK_STRUCTURE_MASK</property>
                   </widget>
                 </child>
                 <child>
