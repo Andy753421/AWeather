@@ -15,8 +15,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef RIDGE_H
-#define RIDGE_H
+#ifndef __RIDGE_H__
+#define __RIDGE_H__
 
 gboolean ridge_init(AWeatherGui *gui);
 

@@ -20,6 +20,9 @@
 #include "marshal.h"
 #include "aweather-view.h"
 
+/****************
+ * GObject code *
+ ****************/
 G_DEFINE_TYPE(AWeatherView, aweather_view, G_TYPE_OBJECT);
 
 enum {
@@ -38,13 +41,12 @@ enum {
 
 static guint signals[NUM_SIGNALS];
 
-/* Constructor / destructors */
 static void aweather_view_init(AWeatherView *self)
 {
 	//g_message("aweather_view_init");
 	/* Default values */
-	self->time     = g_strdup(""); //g_strdup("LATEST");
-	self->site     = g_strdup(""); //g_strdup("IND");
+	self->time = g_strdup("");
+	self->site = g_strdup("");
 }
 
 static GObject *aweather_view_constructor(GType gtype, guint n_properties,
@@ -187,7 +189,9 @@ static void _aweather_view_emit_refresh(AWeatherView *view)
 }
 
 
-/* Methods */
+/***********
+ * Methods *
+ ***********/
 AWeatherView *aweather_view_new()
 {
 	//g_message("aweather_view_new");

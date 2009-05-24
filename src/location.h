@@ -15,8 +15,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef SITE_H
-#define SITE_H
+#ifndef __SITE_H__
+#define __SITE_H__
 
 enum {
 	LOCATION_CITY,

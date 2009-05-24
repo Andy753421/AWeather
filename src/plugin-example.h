@@ -15,9 +15,37 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef EXAMPLE_H
-#define EXAMPLE_H
+#ifndef __EXAMPLE_H__
+#define __EXAMPLE_H__
 
-gboolean example_init(AWeatherGui *gui);
+#include <glib-object.h>
+
+#define AWEATHER_TYPE_EXAMPLE            (aweather_example_get_type ())
+#define AWEATHER_EXAMPLE(obj)            (G_TYPE_CHECK_INSTANCE_CAST((obj),   AWEATHER_TYPE_EXAMPLE, AWeatherExample))
+#define AWEATHER_IS_EXAMPLE(obj)         (G_TYPE_CHECK_INSTANCE_TYPE((obj),   AWEATHER_TYPE_EXAMPLE))
+#define AWEATHER_EXAMPLE_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST   ((klass), AWEATHER_TYPE_EXAMPLE, AWeatherExampleClass))
+#define AWEATHER_IS_EXAMPLE_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE   ((klass), AWEATHER_TYPE_EXAMPLE))
+#define AWEATHER_EXAMPLE_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj),   AWEATHER_TYPE_EXAMPLE, AWeatherExampleClass))
+
+typedef struct _AWeatherExample        AWeatherExample;
+typedef struct _AWeatherExampleClass   AWeatherExampleClass;
+
+struct _AWeatherExample {
+	GObject parent_instance;
+
+	/* instance members */
+	AWeatherGui     *gui;
+	GtkToggleButton *button;
+	float            rotation;
+};
+
+struct _AWeatherExampleClass {
+	GObjectClass parent_class;
+};
+
+GType aweather_example_get_type (void);
+
+/* Methods */
+AWeatherExample *aweather_example_new(AWeatherGui *gui);
 
 #endif

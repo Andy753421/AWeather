@@ -21,23 +21,83 @@
 #include <GL/gl.h>
 
 #include "aweather-gui.h"
+#include "aweather-plugin.h"
+#include "plugin-example.h"
 
-static GtkWidget *rotate_button;
-
-static float ang = 30.;
-
-static gboolean expose(GtkWidget *da, GdkEventExpose *event, gpointer user_data)
+/****************
+ * GObject code *
+ ****************/
+static void aweather_example_plugin_init(AWeatherPluginInterface *iface);
+static void aweather_example_expose(AWeatherPlugin *_example);
+G_DEFINE_TYPE_WITH_CODE(AWeatherExample, aweather_example, G_TYPE_OBJECT,
+		G_IMPLEMENT_INTERFACE(AWEATHER_TYPE_PLUGIN,
+			aweather_example_plugin_init));
+static void aweather_example_class_init(AWeatherExampleClass *klass)
 {
-	glDisable(GL_TEXTURE_2D);
-	glMatrixMode(GL_MODELVIEW ); glPushMatrix(); glLoadIdentity();
-	glMatrixMode(GL_PROJECTION); glPushMatrix(); glLoadIdentity();
-	//glOrtho(-1,1,-1,1,-10,10);
+	GObjectClass *object_class = (GObjectClass*)klass;
+}
+static void aweather_example_plugin_init(AWeatherPluginInterface *iface)
+{
+	/* Add methods to the interface */
+	iface->expose = aweather_example_expose;
+}
+static void aweather_example_init(AWeatherExample *example)
+{
+	/* Set defaults */
+	example->gui      = NULL;
+	example->button   = NULL;
+	example->rotation = 30.0;
+}
 
-	glTranslatef(0.5, -0.5, -2);
+/***********
+ * Helpers *
+ ***********/
+static gboolean rotate(gpointer _example)
+{
+	AWeatherExample *example = _example;
+	if (gtk_toggle_button_get_active(example->button)) {
+		example->rotation += 1.0;
+		aweather_gui_gl_redraw(example->gui);
+	}
+	return TRUE;
+}
+
+/***********
+ * Methods *
+ ***********/
+AWeatherExample *aweather_example_new(AWeatherGui *gui)
+{
+	//g_message("aweather_view_new");
+	AWeatherExample *example = g_object_new(AWEATHER_TYPE_EXAMPLE, NULL);
+	example->gui = gui;
+
+	GtkWidget *drawing = aweather_gui_get_widget(gui, "drawing");
+	GtkWidget *config  = aweather_gui_get_widget(gui, "tabs");
+
+	/* Add configuration tab */
+	GtkWidget *label = gtk_label_new("example");
+	example->button = GTK_TOGGLE_BUTTON(gtk_toggle_button_new_with_label("Rotate"));
+	gtk_notebook_append_page(GTK_NOTEBOOK(config), GTK_WIDGET(example->button), label);
+
+	/* Set up OpenGL Stuff */
+	//g_signal_connect(drawing, "expose-event", G_CALLBACK(expose), NULL);
+	g_timeout_add(1000/60, rotate, example);
+
+	return example;
+}
+
+static void aweather_example_expose(AWeatherPlugin *_example)
+{
+	AWeatherExample *example = AWEATHER_EXAMPLE(_example);
+	g_message("aweather_example_expose");
+	glDisable(GL_TEXTURE_2D);
+	glMatrixMode(GL_PROJECTION); glPushMatrix(); glLoadIdentity();
+	glOrtho(-1,1,-1,1,-10,10);
+	glMatrixMode(GL_MODELVIEW ); glPushMatrix(); glLoadIdentity();
 
 	float light_ambient[]  = {0.1f, 0.1f, 0.0f};
 	float light_diffuse[]  = {0.9f, 0.9f, 0.9f};
-	float light_position[] = {-20.0f, 40.0f, -40.0f, 1.0f};
+	float light_position[] = {-30.0f, 50.0f, 40.0f, 1.0f};
 	glLightfv(GL_LIGHT0, GL_AMBIENT,  light_ambient);
 	glLightfv(GL_LIGHT0, GL_DIFFUSE,  light_diffuse);
 	glLightfv(GL_LIGHT0, GL_POSITION, light_position);
@@ -45,7 +105,8 @@ static gboolean expose(GtkWidget *da, GdkEventExpose *event, gpointer user_data)
 	glEnable(GL_LIGHTING);
 	glEnable(GL_COLOR_MATERIAL);
 
-	glRotatef(ang, 1, 0, 1);
+	glTranslatef(0.5, -0.5, -2);
+	glRotatef(example->rotation, 1, 0, 1);
 	glColor4f(0.9, 0.9, 0.7, 1.0);
 	gdk_gl_draw_teapot(TRUE, 0.25);
 	gdk_gl_draw_cube(TRUE, 0.25);
@@ -57,36 +118,6 @@ static gboolean expose(GtkWidget *da, GdkEventExpose *event, gpointer user_data)
 
         glMatrixMode(GL_PROJECTION); glPopMatrix(); 
 	glMatrixMode(GL_MODELVIEW ); glPopMatrix();
-	return FALSE;
+	return;
 }
 
-static gboolean rotate(gpointer user_data)
-{
-	if (!gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(rotate_button)))
-		return TRUE;
-
-	GtkWidget *da = GTK_WIDGET (user_data);
-
-	ang++;
-
-	gdk_window_invalidate_rect(da->window, &da->allocation, FALSE);
-	gdk_window_process_updates(da->window, FALSE);
-
-	return TRUE;
-}
-
-gboolean example_init(AWeatherGui *gui)
-{
-	GtkWidget *drawing = aweather_gui_get_widget(gui, "drawing");
-	GtkWidget *config  = aweather_gui_get_widget(gui, "tabs");
-
-	/* Add configuration tab */
-	GtkWidget *label = gtk_label_new("example");
-	rotate_button = gtk_toggle_button_new_with_label("Rotate");
-	gtk_notebook_append_page(GTK_NOTEBOOK(config), rotate_button, label);
-
-	/* Set up OpenGL Stuff */
-	g_signal_connect(drawing, "expose-event", G_CALLBACK(expose), NULL);
-	g_timeout_add(1000/60, rotate, drawing);
-	return TRUE;
-}

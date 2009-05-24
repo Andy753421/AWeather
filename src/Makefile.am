@@ -5,15 +5,16 @@ bin_PROGRAMS  = aweather wsr88ddec
 BUILT_SOURCES = marshal.c marshal.h
 
 aweather_SOURCES  = main.c \
-	marshal.c        marshal.h        \
-	aweather-gui.c   aweather-gui.h   \
-	aweather-view.c  aweather-view.h  \
-	data.c           data.h           \
-	location.c       location.h       \
-	plugin-radar.c   plugin-radar.h   \
-	plugin-radar-colormap.c           \
-	plugin-ridge.c   plugin-ridge.h   \
-	plugin-example.c plugin-example.h
+	marshal.c         marshal.h         \
+	aweather-gui.c    aweather-gui.h    \
+	aweather-view.c   aweather-view.h   \
+	aweather-plugin.c aweather-plugin.h \
+	data.c            data.h            \
+	location.c        location.h        \
+	plugin-radar.c    plugin-radar.h    \
+	plugin-radar-colormap.c             \
+	plugin-ridge.c    plugin-ridge.h    \
+	plugin-example.c  plugin-example.h
 aweather_CPPFLAGS = $(RSL_CFLAGS) $(GTK_CFLAGS) -DDATADIR="\"$(datadir)\"" 
 
 wsr88ddec         = wsr88ddec.c

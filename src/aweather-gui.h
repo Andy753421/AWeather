@@ -21,6 +21,7 @@
 #include <gtk/gtk.h>
 #include <glib-object.h>
 #include "aweather-view.h"
+#include "aweather-plugin.h"
 
 /* Type macros */
 #define AWEATHER_TYPE_GUI            (aweather_gui_get_type())
@@ -42,6 +43,7 @@ struct _AWeatherGui {
 	GtkWindow      *window;
 	GtkNotebook    *tabs;
 	GtkDrawingArea *drawing;
+	GList          *plugins;
 };
 
 struct _AWeatherGuiClass {
@@ -56,11 +58,10 @@ GType aweather_gui_get_type(void);
 AWeatherGui    *aweather_gui_new();
 AWeatherView   *aweather_gui_get_view(AWeatherGui *gui);
 GtkWidget      *aweather_gui_get_widget(AWeatherGui *gui, const gchar *name);
+void            aweather_gui_register_plugin(AWeatherGui *gui, AWeatherPlugin *plugin);
 void            aweather_gui_gl_redraw(AWeatherGui *gui);
 void            aweather_gui_gl_begin(AWeatherGui *gui);
 void            aweather_gui_gl_end(AWeatherGui *gui);
 void            aweather_gui_gl_flush(AWeatherGui *gui);
-
-//void aweather_gui_register_plugin(AWeatherGui *gui, AWeatherPlugin *plugin);
 
 #endif

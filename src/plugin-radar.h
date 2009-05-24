@@ -15,8 +15,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef RADAR_H
-#define RADAR_H
+#ifndef __RADAR_H__
+#define __RADAR_H__
 
 gboolean radar_init(AWeatherGui *gui);
 

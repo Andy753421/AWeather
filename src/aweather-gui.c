@@ -25,10 +25,52 @@
 
 #include "aweather-gui.h"
 #include "aweather-view.h"
+#include "aweather-plugin.h"
 #include "location.h"
 
+/****************
+ * GObject code *
+ ****************/
+G_DEFINE_TYPE(AWeatherGui, aweather_gui, G_TYPE_OBJECT);
+static void aweather_gui_init(AWeatherGui *gui)
+{
+	gui->plugins = NULL;
+	//g_message("aweather_gui_init");
+}
+static GObject *aweather_gui_constructor(GType gtype, guint n_properties,
+		GObjectConstructParam *properties)
+{
+	//g_message("aweather_gui_constructor");
+	GObjectClass *parent_class = G_OBJECT_CLASS(aweather_gui_parent_class);
+	return  parent_class->constructor(gtype, n_properties, properties);
+}
+static void aweather_gui_dispose (GObject *gobject)
+{
+	//g_message("aweather_gui_dispose");
+	AWeatherGui *gui = AWEATHER_GUI(gobject);
+	g_object_unref(gui->view   );
+	g_object_unref(gui->builder);
+	g_object_unref(gui->window );
+	g_object_unref(gui->tabs   );
+	g_object_unref(gui->drawing);
+	G_OBJECT_CLASS(aweather_gui_parent_class)->dispose(gobject);
+}
+static void aweather_gui_finalize(GObject *gobject)
+{
+	//g_message("aweather_gui_finalize");
+	G_OBJECT_CLASS(aweather_gui_parent_class)->finalize(gobject);
+}
+static void aweather_gui_class_init(AWeatherGuiClass *klass)
+{
+	//g_message("aweather_gui_class_init");
+	GObjectClass *gobject_class = G_OBJECT_CLASS(klass);
+	gobject_class->constructor  = aweather_gui_constructor;
+	gobject_class->dispose      = aweather_gui_dispose;
+	gobject_class->finalize     = aweather_gui_finalize;
+}
+
 /*************
- * callbacks *
+ * Callbacks *
  *************/
 gboolean on_key_press(GtkWidget *widget, GdkEventKey *event, AWeatherGui *gui)
 {
@@ -148,8 +190,8 @@ gboolean on_configure(GtkWidget *da, GdkEventConfigure *event, AWeatherGui *gui)
 	double rad  = atan((height/2)/500);
 	double deg  = (rad*180)/M_PI;
 
-	/* TODO: set clipping plane properly */
-	gluPerspective(deg*2, width/height, -z-20, -z+20);
+	//gluPerspective(deg*2, width/height, -z-20, -z+20);
+	gluPerspective(deg*2, width/height, 1, 500*1000);
 
 	aweather_gui_gl_end(gui);
 	return FALSE;
@@ -157,7 +199,7 @@ gboolean on_configure(GtkWidget *da, GdkEventConfigure *event, AWeatherGui *gui)
 
 gboolean on_expose_begin(GtkWidget *da, GdkEventExpose *event, AWeatherGui *gui)
 {
-	g_message("aweather:espose_begin");
+	g_message("aweather:expose_begin");
 	aweather_gui_gl_begin(gui);
 
 	double x, y, z;
@@ -170,11 +212,17 @@ gboolean on_expose_begin(GtkWidget *da, GdkEventExpose *event, AWeatherGui *gui)
 
 	//glRotatef(-45, 1, 0, 0);
 
+	/* Expose plugins */
+	for (GList *cur = gui->plugins; cur; cur = cur->next) {
+		AWeatherPlugin *plugin = AWEATHER_PLUGIN(cur->data);
+		aweather_plugin_expose(plugin);
+	}
+
 	return FALSE;
 }
 gboolean on_expose_end(GtkWidget *da, GdkEventExpose *event, AWeatherGui *gui)
 {
-	g_message("aweather:espose_end\n");
+	g_message("aweather:expose_end\n");
 	aweather_gui_gl_end(gui);
 	aweather_gui_gl_flush(gui);
 	return FALSE;
@@ -331,53 +379,10 @@ static void opengl_setup(AWeatherGui *gui)
 }
 
 
-/****************
- * GObject code *
- ****************/
-G_DEFINE_TYPE(AWeatherGui, aweather_gui, G_TYPE_OBJECT);
 
-/* Constructor / destructors */
-static void aweather_gui_init(AWeatherGui *gui)
-{
-	//g_message("aweather_gui_init");
-}
-
-static GObject *aweather_gui_constructor(GType gtype, guint n_properties,
-		GObjectConstructParam *properties)
-{
-	//g_message("aweather_gui_constructor");
-	GObjectClass *parent_class = G_OBJECT_CLASS(aweather_gui_parent_class);
-	return  parent_class->constructor(gtype, n_properties, properties);
-}
-
-static void aweather_gui_dispose (GObject *gobject)
-{
-	//g_message("aweather_gui_dispose");
-	AWeatherGui *gui = AWEATHER_GUI(gobject);
-	g_object_unref(gui->view   );
-	g_object_unref(gui->builder);
-	g_object_unref(gui->window );
-	g_object_unref(gui->tabs   );
-	g_object_unref(gui->drawing);
-	G_OBJECT_CLASS(aweather_gui_parent_class)->dispose(gobject);
-}
-
-static void aweather_gui_finalize(GObject *gobject)
-{
-	//g_message("aweather_gui_finalize");
-	G_OBJECT_CLASS(aweather_gui_parent_class)->finalize(gobject);
-}
-
-static void aweather_gui_class_init(AWeatherGuiClass *klass)
-{
-	//g_message("aweather_gui_class_init");
-	GObjectClass *gobject_class = G_OBJECT_CLASS(klass);
-	gobject_class->constructor  = aweather_gui_constructor;
-	gobject_class->dispose      = aweather_gui_dispose;
-	gobject_class->finalize     = aweather_gui_finalize;
-}
-
-/* Methods */
+/***********
+ * Methods *
+ ***********/
 AWeatherGui *aweather_gui_new()
 {
 	//g_message("aweather_gui_new");
@@ -396,7 +401,7 @@ AWeatherGui *aweather_gui_new()
 
 
 	/* Load components */
-	aweather_view_set_location(gui->view, 0, 0, -500*1000);
+	aweather_view_set_location(gui->view, 0, 0, -300*1000);
 	g_signal_connect(gui->view, "location-changed", G_CALLBACK(on_location_changed), gui);
 	site_setup(gui);
 	time_setup(gui);
@@ -420,6 +425,11 @@ GtkWidget *aweather_gui_get_widget(AWeatherGui *gui, const gchar *name)
 	if (!GTK_IS_WIDGET(widget))
 		g_error("Failed to get widget `%s'", name);
 	return GTK_WIDGET(widget);
+}
+void aweather_gui_register_plugin(AWeatherGui *gui, AWeatherPlugin *plugin)
+{
+	g_message("registering plugin");
+	gui->plugins = g_list_append(gui->plugins, plugin);
 }
 void aweather_gui_gl_redraw(AWeatherGui *gui)
 {
@@ -456,4 +466,3 @@ void aweather_gui_gl_flush(AWeatherGui *gui)
 		glFlush();
 	gdk_gl_drawable_gl_end(gldrawable);
 }
-//void aweather_gui_register_plugin(AWeatherGui *gui, AWeatherPlugin *plugin);
