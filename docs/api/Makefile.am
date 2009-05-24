@@ -1,11 +1,12 @@
 AM_CPPFLAGS=$(GTK_CFLAGS)
 GTKDOC_LIBS=$(GTK_LIBS) $(RSL_LIBS) \
-	../../src/aweather-aweather-*.o \
-	../../src/aweather-plugin-*.o \
-	../../src/aweather-location.o \
-	../../src/aweather-data.o
+	$(top_srcdir)/src/aweather-aweather-*.o \
+	$(top_srcdir)/src/aweather-plugin-*.o \
+	$(top_srcdir)/src/aweather-data.o \
+	$(top_srcdir)/src/aweather-location.o \
+	$(top_srcdir)/src/aweather-marshal.o
 DOC_MODULE=aweather
-DOC_SOURCE_DIR=../../src/
+DOC_SOURCE_DIR=$(top_srcdir)/src/
 DOC_MAIN_SGML_FILE=$(DOC_MODULE)-docs.sgml
 MKDB_OPTIONS=--sgml-mode --output-format=xml
 MAINTAINERCLEANFILES= \
