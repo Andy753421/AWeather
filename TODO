@@ -4,7 +4,6 @@ Road plan
   * Fix all memory leaks
   * Asynchronous IO and data loading
   * Pre-load textures and polys in OpenGL
-  * Get rid of global `self' references in plugins
 
 0.x - Volume scans
   * Display iso surfaces of volume scans

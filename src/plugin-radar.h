@@ -44,8 +44,10 @@ struct _AWeatherRadar {
 	/* instance members */
 	AWeatherGui *gui;
 	GtkWidget   *config_body;
+
+	/* Private data for loading radars */
 	Radar       *cur_radar;
-	Sweep       *cur_sweep; // make this not global
+	Sweep       *cur_sweep;
 	colormap_t  *cur_colormap;
 	guint        cur_sweep_tex;
 };

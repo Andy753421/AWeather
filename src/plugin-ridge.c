@@ -49,10 +49,9 @@ static void aweather_ridge_init(AWeatherRidge *ridge)
 	ridge->gui = NULL;
 }
 
-
-/***********
- * Helpers *
- ***********/
+/*********************
+ * Overlay constants *
+ *********************/
 enum {
 	LAYER_TOPO,
 	LAYER_COUNTY,
@@ -78,18 +77,18 @@ static layer_t layers[] = {
 	[LAYER_CITY]     = {"Cities",   "Overlays/Cities/Short/%s_City_Short.gif",       TRUE,  6, 0},
 };
 
-/* TODO: Remove this */
-AWeatherGui *old_gui = NULL;
 
-/**
+/***********
+ * Helpers *
+ ***********/
+/*
  * Load an image into an OpenGL texture
  * \param  filename  Path to the image file
  * \return The OpenGL identifier for the texture
  */
-void load_texture(gchar *filename, gboolean updated, gpointer _layer)
+void load_texture(AWeatherRidge *self, layer_t *layer, gchar *filename)
 {
-	layer_t *layer = _layer;
-	aweather_gui_gl_begin(old_gui);
+	aweather_gui_gl_begin(self->gui);
 
 	/* Load image */
 	GdkPixbuf *pixbuf = gdk_pixbuf_new_from_file(filename, NULL);
@@ -117,30 +116,51 @@ void load_texture(gchar *filename, gboolean updated, gpointer _layer)
 		base);
 	g_free(base);
 
-	aweather_gui_gl_end(old_gui);
+	aweather_gui_gl_end(self->gui);
 
 	g_object_unref(pixbuf);
 
 	/* Redraw */
-	aweather_gui_gl_redraw(old_gui);
+	aweather_gui_gl_redraw(self->gui);
 }
 
-static void set_site(AWeatherView *view, gchar *site, AWeatherRidge *ridge)
+
+/*****************
+ * ASync helpers *
+ *****************/
+typedef struct {
+	AWeatherRidge *self;
+	layer_t *layer;
+} cached_t;
+void cached_cb(gchar *filename, gboolean updated, gpointer _udata)
+{
+	cached_t *udata = _udata;
+	load_texture(udata->self, udata->layer, filename);
+	g_free(udata);
+}
+
+/*************
+ * callbacks *
+ *************/
+static void on_site_changed(AWeatherView *view, gchar *site, AWeatherRidge *self)
 {
 	g_message("site changed to %s", site);
 	for (int i = 0; i < LAYER_COUNT; i++) {
 		gchar *base = "http://radar.weather.gov/ridge/";
 		gchar *path  = g_strdup_printf(layers[i].fmt, site);
-		cache_file(base, path, AWEATHER_NEVER, load_texture, &layers[i]);
+		cached_t *udata = g_malloc(sizeof(cached_t));
+		udata->self  = self;
+		udata->layer = &layers[i];
+		cache_file(base, path, AWEATHER_NEVER, cached_cb, udata);
 		g_free(path);
 	}
 }
 
-void toggle_layer(GtkToggleButton *check, gpointer _layer)
+void toggle_layer(GtkToggleButton *check, AWeatherGui *gui)
 {
-	layer_t *layer = _layer;
+	layer_t *layer = g_object_get_data(G_OBJECT(check), "layer");
 	layer->enabled = gtk_toggle_button_get_active(check);
-	aweather_gui_gl_redraw(old_gui);
+	aweather_gui_gl_redraw(gui);
 }
 
 /***********
@@ -149,7 +169,7 @@ void toggle_layer(GtkToggleButton *check, gpointer _layer)
 AWeatherRidge *aweather_ridge_new(AWeatherGui *gui)
 {
 	AWeatherRidge *ridge = g_object_new(AWEATHER_TYPE_RIDGE, NULL);
-	ridge->gui = old_gui = gui;
+	ridge->gui = gui;
 
 	AWeatherView *view    = aweather_gui_get_view(gui);
 	GtkWidget    *drawing = aweather_gui_get_widget(gui, "drawing");
@@ -163,12 +183,13 @@ AWeatherRidge *aweather_ridge_new(AWeatherGui *gui)
 		GtkWidget *check = gtk_check_button_new_with_label(layers[i].name);
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(check), layers[i].enabled);
 		gtk_box_pack_start(GTK_BOX(hbox), check, FALSE, TRUE, 0);
-		g_signal_connect(check, "toggled", G_CALLBACK(toggle_layer), &layers[i]);
+		g_object_set_data(G_OBJECT(check), "layer", &layers[i]);
+		g_signal_connect(check, "toggled", G_CALLBACK(toggle_layer), gui);
 	}
 	gtk_container_add(GTK_CONTAINER(body), hbox);
 	gtk_notebook_append_page(GTK_NOTEBOOK(config), body, tab);
 
-	g_signal_connect(view,    "site-changed", G_CALLBACK(set_site),  ridge);
+	g_signal_connect(view, "site-changed", G_CALLBACK(on_site_changed),  ridge);
 
 	return ridge;
 }

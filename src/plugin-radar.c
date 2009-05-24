@@ -30,7 +30,7 @@
  * GObject code *
  ****************/
 static void aweather_radar_plugin_init(AWeatherPluginInterface *iface);
-static void aweather_radar_expose(AWeatherPlugin *_radar);
+static void _aweather_radar_expose(AWeatherPlugin *_radar);
 G_DEFINE_TYPE_WITH_CODE(AWeatherRadar, aweather_radar, G_TYPE_OBJECT,
 		G_IMPLEMENT_INTERFACE(AWEATHER_TYPE_PLUGIN,
 			aweather_radar_plugin_init));
@@ -41,7 +41,7 @@ static void aweather_radar_class_init(AWeatherRadarClass *klass)
 static void aweather_radar_plugin_init(AWeatherPluginInterface *iface)
 {
 	/* Add methods to the interface */
-	iface->expose = aweather_radar_expose;
+	iface->expose = _aweather_radar_expose;
 }
 static void aweather_radar_init(AWeatherRadar *radar)
 {
@@ -49,14 +49,12 @@ static void aweather_radar_init(AWeatherRadar *radar)
 	radar->gui = NULL;
 }
 
-/* TODO: User parameters or user data or something */
-static AWeatherRadar *self = NULL;
-
 /**************************
  * Data loading functions *
  **************************/
 /* Convert a sweep to an 2d array of data points */
-static void bscan_sweep(Sweep *sweep, guint8 **data, int *width, int *height)
+static void bscan_sweep(AWeatherRadar *self, Sweep *sweep, colormap_t *colormap,
+		guint8 **data, int *width, int *height)
 {
 	/* Calculate max number of bins */
 	int i, max_bins = 0;
@@ -75,10 +73,10 @@ static void bscan_sweep(Sweep *sweep, guint8 **data, int *width, int *height)
 			//guint val   = dz_f(ray->range[bi]);
 			guint8 val   = (guint8)ray->h.f(ray->range[bi]);
 			guint  buf_i = (ri*max_bins+bi)*4;
-			buf[buf_i+0] = self->cur_colormap->data[val][0];
-			buf[buf_i+1] = self->cur_colormap->data[val][1];
-			buf[buf_i+2] = self->cur_colormap->data[val][2];
-			buf[buf_i+3] = self->cur_colormap->data[val][3];
+			buf[buf_i+0] = colormap->data[val][0];
+			buf[buf_i+1] = colormap->data[val][1];
+			buf[buf_i+2] = colormap->data[val][2];
+			buf[buf_i+3] = colormap->data[val][3];
 			if (val == BADVAL     || val == RFVAL      || val == APFLAG ||
 			    val == NOTFOUND_H || val == NOTFOUND_V || val == NOECHO) {
 				buf[buf_i+3] = 0x00; // transparent
@@ -92,21 +90,14 @@ static void bscan_sweep(Sweep *sweep, guint8 **data, int *width, int *height)
 	*data   = buf;
 }
 
-static void load_color_table(char *table)
-{
-	for (int i = 0; colormaps[i].name; i++)
-		if (g_str_equal(colormaps[i].name, table))
-			self->cur_colormap = &colormaps[i];
-}
-
 /* Load a sweep as the active texture */
-static void load_sweep(Sweep *sweep)
+static void load_sweep(AWeatherRadar *self, Sweep *sweep)
 {
 	aweather_gui_gl_begin(self->gui);
 	self->cur_sweep = sweep;
 	int height, width;
 	guint8 *data;
-	bscan_sweep(sweep, &data, &width, &height);
+	bscan_sweep(self, sweep, self->cur_colormap, &data, &width, &height);
 	glDeleteTextures(1, &self->cur_sweep_tex);
 	glGenTextures(1, &self->cur_sweep_tex);
 	glBindTexture(GL_TEXTURE_2D, self->cur_sweep_tex);
@@ -121,8 +112,17 @@ static void load_sweep(Sweep *sweep)
 	aweather_gui_gl_end(self->gui);
 }
 
+static void load_colormap(AWeatherRadar *self, gchar *table)
+{
+	/* Set colormap so we can draw it on expose */
+	for (int i = 0; colormaps[i].name; i++)
+		if (g_str_equal(colormaps[i].name, table))
+			self->cur_colormap = &colormaps[i];
+}
+
 /* Add selectors to the config area for the sweeps */
-static void load_radar_gui(Radar *radar)
+static void on_sweep_clicked(GtkRadioButton *button, gpointer _self);
+static void load_radar_gui(AWeatherRadar *self, Radar *radar)
 {
 	/* Clear existing items */
 	GtkWidget *child = gtk_bin_get_child(GTK_BIN(self->config_body));
@@ -182,25 +182,20 @@ static void load_radar_gui(Radar *radar)
 			//gtk_widget_set_size_request(button, -1, 22);
 			g_object_set(button, "draw-indicator", FALSE, NULL);
 			gtk_box_pack_end(GTK_BOX(elev_box), button, TRUE, TRUE, 0);
-			g_signal_connect_swapped(button, "clicked",
-					G_CALLBACK(load_color_table), vol->h.type_str);
-			g_signal_connect_swapped(button, "clicked",
-					G_CALLBACK(load_sweep), sweep);
+
+			g_object_set_data(G_OBJECT(button), "type",  vol->h.type_str);
+			g_object_set_data(G_OBJECT(button), "sweep", sweep);
+			g_signal_connect(button, "clicked", G_CALLBACK(on_sweep_clicked), self);
 		}
 	}
 	gtk_container_add(GTK_CONTAINER(self->config_body), table);
 	gtk_widget_show_all(table);
 }
 
-/* Load a radar from a file */
-static void load_radar_rsl(GPid pid, gint status, gpointer _path)
+/* Load a radar from a decompressed file */
+static void load_radar(AWeatherRadar *self, gchar *radar_file)
 {
-	gchar *path = _path;
-	if (status != 0) {
-		g_warning("wsr88ddec exited with status %d", status);
-		return;
-	}
-	char *dir  = g_path_get_dirname(path);
+	char *dir  = g_path_get_dirname(radar_file);
 	char *site = g_path_get_basename(dir);
 	g_free(dir);
 	RSL_read_these_sweeps("all", NULL);
@@ -209,14 +204,12 @@ static void load_radar_rsl(GPid pid, gint status, gpointer _path)
 		RSL_free_radar(self->cur_radar);
 	}
 	g_message("Allocating radar");
-	Radar *radar = self->cur_radar = RSL_wsr88d_to_radar(path, site);
+	Radar *radar = self->cur_radar = RSL_wsr88d_to_radar(radar_file, site);
 	if (radar == NULL) {
-		g_warning("fail to load radar: path=%s, site=%s", path, site);
-		g_free(path);
+		g_warning("fail to load radar: path=%s, site=%s", radar_file, site);
 		g_free(site);
 		return;
 	}
-	g_free(path);
 	g_free(site);
 
 	/* Load the first sweep by default */
@@ -228,49 +221,18 @@ static void load_radar_rsl(GPid pid, gint status, gpointer _path)
 			if (radar->v[vi]== NULL) continue;
 			for (int si = 0; si < radar->v[vi]->h.nsweeps; si++) {
 				if (radar->v[vi]->sweep[si]== NULL) continue;
-				load_color_table(radar->v[vi]->h.type_str);
-				load_sweep(radar->v[vi]->sweep[si]);
+				load_colormap(self, radar->v[vi]->h.type_str);
+				load_sweep(self, radar->v[vi]->sweep[si]);
 				break;
 			}
 			break;
 		}
 	}
 
-	load_radar_gui(radar);
+	load_radar_gui(self, radar);
 }
 
-/* decompress a radar file, then chain to the actuall loading function */
-static void load_radar(char *path, gboolean updated, gpointer user_data)
-{
-	char *raw  = g_strconcat(path, ".raw", NULL);
-	if (!updated) {
-		load_radar_rsl(0, 0, raw);
-	} else {
-		g_message("File updated, decompressing..");
-		char *argv[] = {"wsr88ddec", path, raw, NULL};
-		GPid pid;
-		GError *error = NULL;
-		g_spawn_async(
-			NULL,    // const gchar *working_directory,
-			argv,    // gchar **argv,
-			NULL,    // gchar **envp,
-			G_SPAWN_SEARCH_PATH|
-			G_SPAWN_DO_NOT_REAP_CHILD, 
-			         // GSpawnFlags flags,
-			NULL,    // GSpawnChildSetupFunc child_setup,
-			NULL,    // gpointer user_data,
-			&pid,    // GPid *child_pid,
-			&error); // GError **error
-		if (error) {
-			g_warning("failed to decompress WSR88D data: %s",
-					error->message);
-			g_error_free(error);
-		}
-		g_child_watch_add(pid, load_radar_rsl, raw);
-	}
-}
-
-static void update_times(char *site, char **last_time)
+static void update_times(AWeatherRadar *self, char *site, char **last_time)
 {
 	char *list_uri = g_strdup_printf(
 			"http://mesonet.agron.iastate.edu/data/nexrd2/raw/K%s/dir.list",
@@ -310,11 +272,75 @@ static void update_times(char *site, char **last_time)
 	g_strfreev(lines);
 }
 
+/*****************
+ * ASync helpers *
+ *****************/
+typedef struct {
+	AWeatherRadar *self;
+	gchar *radar_file;
+} decompressed_t;
+
+static void decompressed_cb(GPid pid, gint status, gpointer _self)
+{
+	decompressed_t *udata = _self;
+	if (status != 0) {
+		g_warning("wsr88ddec exited with status %d", status);
+		return;
+	}
+	// TODO: pass cur_file as params? 
+	load_radar(udata->self, udata->radar_file);
+	g_free(udata->radar_file);
+	g_free(udata);
+}
+
+static void cached_cb(char *path, gboolean updated, gpointer _self)
+{
+	AWeatherRadar *self = AWEATHER_RADAR(_self);
+	char *decompressed = g_strconcat(path, ".raw", NULL);
+	if (!updated) {
+		load_radar(self, decompressed);
+		return;
+	}
+
+	decompressed_t *udata = g_malloc(sizeof(decompressed_t));
+	udata->self       = self;
+	udata->radar_file = decompressed;
+	g_message("File updated, decompressing..");
+	char *argv[] = {"wsr88ddec", path, decompressed, NULL};
+	GPid pid;
+	GError *error = NULL;
+	g_spawn_async(
+		NULL,    // const gchar *working_directory,
+		argv,    // gchar **argv,
+		NULL,    // gchar **envp,
+		G_SPAWN_SEARCH_PATH|
+		G_SPAWN_DO_NOT_REAP_CHILD, 
+			 // GSpawnFlags flags,
+		NULL,    // GSpawnChildSetupFunc child_setup,
+		NULL,    // gpointer user_data,
+		&pid,    // GPid *child_pid,
+		&error); // GError **error
+	if (error) {
+		g_warning("failed to decompress WSR88D data: %s",
+				error->message);
+		g_error_free(error);
+	}
+	g_child_watch_add(pid, decompressed_cb, udata);
+}
+
 /*************
  * Callbacks *
  *************/
-static void on_time_changed(AWeatherView *view, char *time, gpointer user_data)
+static void on_sweep_clicked(GtkRadioButton *button, gpointer _self)
 {
+	AWeatherRadar *self = AWEATHER_RADAR(_self);
+	load_colormap(self, g_object_get_data(G_OBJECT(button), "type" ));
+	load_sweep   (self, g_object_get_data(G_OBJECT(button), "sweep"));
+}
+
+static void on_time_changed(AWeatherView *view, char *time, gpointer _self)
+{
+	AWeatherRadar *self = AWEATHER_RADAR(_self);
 	g_message("radar:setting time");
 	// format: http://mesonet.agron.iastate.edu/data/nexrd2/raw/KABR/KABR_20090510_0323
 	char *site = aweather_view_get_site(view);
@@ -325,30 +351,30 @@ static void on_time_changed(AWeatherView *view, char *time, gpointer user_data)
 	self->cur_sweep = NULL; // Clear radar
 	aweather_gui_gl_redraw(self->gui);
 
-	cache_file(base, path, AWEATHER_AUTOMATIC, load_radar, NULL);
+	cache_file(base, path, AWEATHER_AUTOMATIC, cached_cb, self);
 	g_free(path);
 }
 
-static void on_site_changed(AWeatherView *view, char *site, gpointer user_data)
+static void on_site_changed(AWeatherView *view, char *site, gpointer _self)
 {
+	AWeatherRadar *self = AWEATHER_RADAR(_self);
 	g_message("Loading wsr88d list for %s", site);
 	char *time = NULL;
-	update_times(site, &time);
+	update_times(self, site, &time);
 	aweather_view_set_time(view, time);
 
 	g_free(time);
 }
 
-static void on_refresh(AWeatherView *view, gpointer user_data)
+static void on_refresh(AWeatherView *view, gpointer user_data, gpointer _self)
 {
+	AWeatherRadar *self = AWEATHER_RADAR(_self);
 	char *site = aweather_view_get_site(view);
 	char *time = NULL;
-	update_times(site, &time);
+	update_times(self, site, &time);
 	aweather_view_set_time(view, time);
 	g_free(time);
 }
-
-
 
 /***********
  * Methods *
@@ -356,10 +382,8 @@ static void on_refresh(AWeatherView *view, gpointer user_data)
 AWeatherRadar *aweather_radar_new(AWeatherGui *gui)
 {
 	//g_message("aweather_view_new");
-	AWeatherRadar *radar = g_object_new(AWEATHER_TYPE_RADAR, NULL);
-	radar->gui = gui;
-
-	self = radar;
+	AWeatherRadar *self = g_object_new(AWEATHER_TYPE_RADAR, NULL);
+	self->gui = gui;
 
 	GtkWidget    *config  = aweather_gui_get_widget(gui, "tabs");
 	AWeatherView *view    = aweather_gui_get_view(gui);
@@ -371,16 +395,16 @@ AWeatherRadar *aweather_radar_new(AWeatherGui *gui)
 	gtk_notebook_prepend_page(GTK_NOTEBOOK(config), self->config_body, gtk_label_new("Radar"));
 
 	/* Set up OpenGL Stuff */
-	g_signal_connect(view,    "site-changed", G_CALLBACK(on_site_changed), NULL);
-	g_signal_connect(view,    "time-changed", G_CALLBACK(on_time_changed), NULL);
-	g_signal_connect(view,    "refresh",      G_CALLBACK(on_refresh),      NULL);
+	g_signal_connect(view,    "site-changed", G_CALLBACK(on_site_changed), self);
+	g_signal_connect(view,    "time-changed", G_CALLBACK(on_time_changed), self);
+	g_signal_connect(view,    "refresh",      G_CALLBACK(on_refresh),      self);
 
-	return radar;
+	return self;
 }
 
-static void aweather_radar_expose(AWeatherPlugin *_radar)
+static void _aweather_radar_expose(AWeatherPlugin *_self)
 {
-	AWeatherRadar *radar = AWEATHER_RADAR(_radar);
+	AWeatherRadar *self = AWEATHER_RADAR(_self);
 	g_message("radar:expose");
 	if (self->cur_sweep == NULL)
 		return;
