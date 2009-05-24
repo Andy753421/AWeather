@@ -92,7 +92,7 @@ static void do_cache(GFile *src, GFile *dst, char *reason,
 	return;
 }
 
-/**
+/*
  * Cache a image from Ridge to the local disk
  * \param  path  Path to the Ridge file, starting after /ridge/
  * \return The local path to the cached image
