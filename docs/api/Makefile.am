@@ -9,6 +9,7 @@ DOC_MODULE=aweather
 DOC_SOURCE_DIR=$(top_srcdir)/src/
 DOC_MAIN_SGML_FILE=$(DOC_MODULE)-docs.sgml
 MKDB_OPTIONS=--sgml-mode --output-format=xml
-MAINTAINERCLEANFILES= \
-	tmpl/* Makefile.in aweather-docs.sgml aweather-overrides.txt aweather.types 
 include $(top_srcdir)/gtk-doc.make
+CLEANFILES += aweather-sections.txt
+MAINTAINERCLEANFILES=\
+	tmpl/* Makefile.in aweather-docs.sgml aweather-overrides.txt aweather.types 
