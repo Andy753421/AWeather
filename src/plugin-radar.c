@@ -371,7 +371,7 @@ static void on_site_changed(AWeatherView *view, char *site, gpointer _self)
 	g_free(time);
 }
 
-static void on_refresh(AWeatherView *view, gpointer user_data, gpointer _self)
+static void on_refresh(AWeatherView *view, gpointer _self)
 {
 	AWeatherRadar *self = AWEATHER_RADAR(_self);
 	char *site = aweather_view_get_site(view);
