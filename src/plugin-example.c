@@ -66,7 +66,7 @@ static gboolean rotate(gpointer _example)
  ***********/
 AWeatherExample *aweather_example_new(AWeatherGui *gui)
 {
-	//g_message("aweather_view_new");
+	g_debug("AWeatherExample: new");
 	AWeatherExample *example = g_object_new(AWEATHER_TYPE_EXAMPLE, NULL);
 	example->gui = gui;
 
@@ -88,7 +88,7 @@ AWeatherExample *aweather_example_new(AWeatherGui *gui)
 static void aweather_example_expose(AWeatherPlugin *_example)
 {
 	AWeatherExample *example = AWEATHER_EXAMPLE(_example);
-	g_message("aweather_example_expose");
+	g_debug("AWeatherExample: expose");
 	glDisable(GL_TEXTURE_2D);
 	glMatrixMode(GL_PROJECTION); glPushMatrix(); glLoadIdentity();
 	glOrtho(-1,1,-1,1,-10,10);

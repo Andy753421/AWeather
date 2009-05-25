@@ -35,19 +35,16 @@ typedef struct _AWeatherGui      AWeatherGui;
 typedef struct _AWeatherGuiClass AWeatherGuiClass;
 
 struct _AWeatherGui {
-	GObject parent_instance;
+	GtkWindow parent_instance;
 
 	/* instance members */
 	AWeatherView   *view;
 	GtkBuilder     *builder;
-	GtkWindow      *window;
-	GtkNotebook    *tabs;
-	GtkDrawingArea *drawing;
 	GList          *plugins;
 };
 
 struct _AWeatherGuiClass {
-	GObjectClass parent_class;
+	GtkWindowClass parent_class;
 	
 	/* class members */
 };

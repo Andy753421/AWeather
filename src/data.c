@@ -51,7 +51,7 @@ static void cache_file_cb(GObject *source_object, GAsyncResult *res, gpointer _i
 	GError *error = NULL;
 	g_file_copy_finish(G_FILE(source_object), res, &error);
 	if (error) {
-		g_message("error copying file ([%s]->[%s]): %s",
+		g_warning("error copying file ([%s]->[%s]): %s",
 			url, local, error->message);
 		g_error_free(error);
 	} else {
@@ -68,7 +68,7 @@ static void do_cache(GFile *src, GFile *dst, char *reason,
 		AWeatherCacheDoneCallback callback, gpointer user_data)
 {
 	char *name = g_file_get_basename(dst);
-	g_message("Caching file %s: %s", name, reason);
+	g_debug("data: do_cache - Caching file %s: %s", name, reason);
 	g_free(name);
 
 	GFile *parent = g_file_get_parent(dst);
@@ -82,13 +82,13 @@ static void do_cache(GFile *src, GFile *dst, char *reason,
 	info->dst       = dst;
 	info->user_data = user_data;
 	g_file_copy_async(src, dst,
-		G_FILE_COPY_OVERWRITE, // GFileCopyFlags flags,
-		0,                     // int io_priority,
-		NULL,                  // GCancellable *cancellable,
-		NULL,                  // GFileProgressCallback progress_callback,
-		NULL,                  // gpointer progress_callback_data,
-		cache_file_cb,         // GAsyncReadyCallback callback,
-		info);                 // gpointer user_data
+		G_FILE_COPY_OVERWRITE,   // GFileCopyFlags flags,
+		G_PRIORITY_DEFAULT_IDLE, // int io_priority,
+		NULL,                    // GCancellable *cancellable,
+		NULL,                    // GFileProgressCallback progress_callback,
+		NULL,                    // gpointer progress_callback_data,
+		cache_file_cb,           // GAsyncReadyCallback callback,
+		info);                   // gpointer user_data
 	return;
 }
 

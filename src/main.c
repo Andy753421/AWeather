@@ -24,24 +24,66 @@
 #include "plugin-ridge.h"
 #include "plugin-example.h"
 
+static gint log_levels = 0;
+
+static void log_func(const gchar *log_domain, GLogLevelFlags log_level,
+              const gchar *message, gpointer udata)
+{
+	if (log_level & log_levels)
+		g_log_default_handler(log_domain, log_level, message, udata);
+}
+
+static gboolean on_map(AWeatherGui *gui, GdkEvent *event, gchar *site)
+{
+	AWeatherView *view = aweather_gui_get_view(gui);
+	aweather_view_set_site(view, site);
+	return FALSE;
+}
+
 /********
  * Main *
  ********/
 int main(int argc, char *argv[])
 {
-	gtk_init(&argc, &argv);
+	/* Arguments */
+	gint     opt_debug = 6;
+	gchar   *opt_site  = "IND";
+	gboolean opt_auto  = FALSE;
+	GOptionEntry entries[] = {
+		//long    short flg type                 location    description                 arg desc
+		{"debug", 'd',  0,  G_OPTION_ARG_INT,    &opt_debug, "Change default log level", "[1-7]"},
+		{"site",  's',  0,  G_OPTION_ARG_STRING, &opt_site,  "Set initial site",         NULL},
+		{"auto",  'a',  0,  G_OPTION_ARG_NONE,   &opt_auto,  "Auto update radar (todo)", NULL},
+		{NULL}
+	};
+
+	/* Init */
+	GError *error = NULL;
+	g_thread_init(NULL);
+	if (!gtk_init_with_args(&argc, &argv, "aweather", entries, NULL, &error)) {
+		g_print("%s\n", error->message);
+		g_error_free(error);
+		return -1;
+	}
 	gtk_gl_init(&argc, &argv);
+
+	/* Finish arguments */
+	log_levels = 1 << opt_debug;
+
+	/* Logging */
+	g_log_set_handler(NULL, G_LOG_LEVEL_MASK, log_func, NULL);
 
 	/* Set up AWeather */
 	AWeatherGui  *gui  = aweather_gui_new();
-	//AWeatherView *view = aweather_gui_get_view(gui);
+	AWeatherView *view = aweather_gui_get_view(gui);
+	g_signal_connect(gui, "map-event", G_CALLBACK(on_map), opt_site);
 
 	/* Load plugins */
 	aweather_gui_register_plugin(gui, AWEATHER_PLUGIN(aweather_example_new(gui)));
 	aweather_gui_register_plugin(gui, AWEATHER_PLUGIN(aweather_ridge_new(gui)));
 	aweather_gui_register_plugin(gui, AWEATHER_PLUGIN(aweather_radar_new(gui)));
 
-	gtk_widget_show_all(aweather_gui_get_widget(gui, "window"));
+	gtk_widget_show_all(GTK_WIDGET(gui));
 	gtk_main();
 
 	return 0;

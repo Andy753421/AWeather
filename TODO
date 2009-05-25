@@ -2,7 +2,6 @@ Road plan
 ---------
 0.1 - Working
   * Fix all memory leaks
-  * Asynchronous IO and data loading
   * Pre-load textures and polys in OpenGL
 
 0.x - Volume scans

@@ -152,7 +152,6 @@ static void load_radar_gui(AWeatherRadar *self, Radar *radar)
 			Sweep *sweep = vol->sweep[si];
 			if (sweep == NULL || sweep->h.elev == 0) continue;
 			if (sweep->h.elev != elev) {
-				g_message("adding elev");
 				cols++;
 				elev = sweep->h.elev;
 
@@ -200,10 +199,10 @@ static void load_radar(AWeatherRadar *self, gchar *radar_file)
 	g_free(dir);
 	RSL_read_these_sweeps("all", NULL);
 	if (self->cur_radar) {
-		g_message("Freeing radar");
+		g_debug("AWeatherRadar: load_radar - Freeing old radar");
 		RSL_free_radar(self->cur_radar);
 	}
-	g_message("Allocating radar");
+	g_debug("AWeatherRadar: load_radar - Loading new radar");
 	Radar *radar = self->cur_radar = RSL_wsr88d_to_radar(radar_file, site);
 	if (radar == NULL) {
 		g_warning("fail to load radar: path=%s, site=%s", radar_file, site);
@@ -305,7 +304,7 @@ static void cached_cb(char *path, gboolean updated, gpointer _self)
 	decompressed_t *udata = g_malloc(sizeof(decompressed_t));
 	udata->self       = self;
 	udata->radar_file = decompressed;
-	g_message("File updated, decompressing..");
+	g_debug("AWeatherRadar: cached_cb - File updated, decompressing..");
 	char *argv[] = {"wsr88ddec", path, decompressed, NULL};
 	GPid pid;
 	GError *error = NULL;
@@ -341,7 +340,7 @@ static void on_sweep_clicked(GtkRadioButton *button, gpointer _self)
 static void on_time_changed(AWeatherView *view, char *time, gpointer _self)
 {
 	AWeatherRadar *self = AWEATHER_RADAR(_self);
-	g_message("radar:setting time");
+	g_debug("AWeatherRadar: on_time_changed - setting time");
 	// format: http://mesonet.agron.iastate.edu/data/nexrd2/raw/KABR/KABR_20090510_0323
 	char *site = aweather_view_get_site(view);
 	char *base = "http://mesonet.agron.iastate.edu/data/";
@@ -358,7 +357,7 @@ static void on_time_changed(AWeatherView *view, char *time, gpointer _self)
 static void on_site_changed(AWeatherView *view, char *site, gpointer _self)
 {
 	AWeatherRadar *self = AWEATHER_RADAR(_self);
-	g_message("Loading wsr88d list for %s", site);
+	g_debug("AWeatherRadar: on_site_changed - Loading wsr88d list for %s", site);
 	char *time = NULL;
 	update_times(self, site, &time);
 	aweather_view_set_time(view, time);
@@ -381,7 +380,7 @@ static void on_refresh(AWeatherView *view, gpointer user_data, gpointer _self)
  ***********/
 AWeatherRadar *aweather_radar_new(AWeatherGui *gui)
 {
-	//g_message("aweather_view_new");
+	g_debug("AWeatherRadar: new");
 	AWeatherRadar *self = g_object_new(AWEATHER_TYPE_RADAR, NULL);
 	self->gui = gui;
 
@@ -405,7 +404,7 @@ AWeatherRadar *aweather_radar_new(AWeatherGui *gui)
 static void _aweather_radar_expose(AWeatherPlugin *_self)
 {
 	AWeatherRadar *self = AWEATHER_RADAR(_self);
-	g_message("radar:expose");
+	g_debug("AWeatherRadar: expose");
 	if (self->cur_sweep == NULL)
 		return;
 	Sweep *sweep = self->cur_sweep;

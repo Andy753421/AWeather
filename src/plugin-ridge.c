@@ -111,7 +111,8 @@ void load_texture(AWeatherRidge *self, layer_t *layer, gchar *filename)
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
 	char *base = g_path_get_basename(filename);
-	g_message("loaded image:  w=%-3d  h=%-3d  fmt=%x  px=(%02x,%02x,%02x,%02x)  img=%s",
+	g_debug("AWeatherRidge: load_texture - "
+		"w=%-3d  h=%-3d  fmt=%x  px=(%02x,%02x,%02x,%02x)  img=%s",
 		width, height, format, pixels[0], pixels[1], pixels[2], pixels[3],
 		base);
 	g_free(base);
@@ -144,7 +145,7 @@ void cached_cb(gchar *filename, gboolean updated, gpointer _udata)
  *************/
 static void on_site_changed(AWeatherView *view, gchar *site, AWeatherRidge *self)
 {
-	g_message("site changed to %s", site);
+	g_debug("AWeatherRidge: on_site_changed - site=%s", site);
 	for (int i = 0; i < LAYER_COUNT; i++) {
 		gchar *base = "http://radar.weather.gov/ridge/";
 		gchar *path  = g_strdup_printf(layers[i].fmt, site);
@@ -198,7 +199,7 @@ static void aweather_ridge_expose(AWeatherPlugin *_ridge)
 {
 	AWeatherRidge *ridge = AWEATHER_RIDGE(_ridge);
 
-	g_message("ridge:expose");
+	g_debug("AWeatherRidge: expose");
 	glPushMatrix();
 	glEnable(GL_TEXTURE_2D);
 	glColor4f(1,1,1,1);

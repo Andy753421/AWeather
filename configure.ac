@@ -9,7 +9,7 @@ PKG_PROG_PKG_CONFIG
 GTK_DOC_CHECK(1.9)
 
 # Check for required packages
-PKG_CHECK_MODULES(GTK,  gtk+-2.0 gtkglext-1.0 gmodule-export-2.0 gobject-2.0)
+PKG_CHECK_MODULES(GTK,  gtk+-2.0 gtkglext-1.0 gmodule-export-2.0 gobject-2.0 gthread-2.0)
 
 # Define odd RSL install location
 #AC_SUBST(RSL_CFLAGS, "-I/usr/local/trmm/GVBOX/include/")
