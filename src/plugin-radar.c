@@ -197,12 +197,8 @@ static void load_radar(AWeatherRadar *self, gchar *radar_file)
 	char *dir  = g_path_get_dirname(radar_file);
 	char *site = g_path_get_basename(dir);
 	g_free(dir);
-	RSL_read_these_sweeps("all", NULL);
-	if (self->cur_radar) {
-		g_debug("AWeatherRadar: load_radar - Freeing old radar");
-		RSL_free_radar(self->cur_radar);
-	}
 	g_debug("AWeatherRadar: load_radar - Loading new radar");
+	RSL_read_these_sweeps("all", NULL);
 	Radar *radar = self->cur_radar = RSL_wsr88d_to_radar(radar_file, site);
 	if (radar == NULL) {
 		g_warning("fail to load radar: path=%s, site=%s", radar_file, site);
@@ -279,14 +275,15 @@ typedef struct {
 	gchar *radar_file;
 } decompressed_t;
 
-static void decompressed_cb(GPid pid, gint status, gpointer _self)
+static void decompressed_cb(GPid pid, gint status, gpointer _udata)
 {
-	decompressed_t *udata = _self;
+	decompressed_t *udata = _udata;
 	if (status != 0) {
 		g_warning("wsr88ddec exited with status %d", status);
 		return;
 	}
 	load_radar(udata->self, udata->radar_file);
+	g_spawn_close_pid(pid);
 	g_free(udata->radar_file);
 	g_free(udata);
 }
@@ -352,8 +349,10 @@ static void on_time_changed(AWeatherView *view, char *time, gpointer _self)
 	gtk_container_add(GTK_CONTAINER(self->config_body),
 		gtk_label_new("Loading radar..."));
 	gtk_widget_show_all(self->config_body);
+	if (self->cur_radar)
+		RSL_free_radar(self->cur_radar);
 	self->cur_radar = NULL;
-	self->cur_sweep = NULL; // Clear radar
+	self->cur_sweep = NULL;
 	aweather_gui_gl_redraw(self->gui);
 
 	/* Start loading the new radar */

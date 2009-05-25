@@ -1,10 +1,8 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE glade-interface SYSTEM "glade-2.0.dtd">
-<!--Generated with glade3 3.4.5 on Mon May 25 01:31:13 2009 -->
+<!--Generated with glade3 3.4.5 on Mon May 25 12:26:08 2009 -->
 <glade-interface>
   <widget class="GtkWindow" id="window">
-    <signal name="key_press_event" handler="on_key_press"/>
-    <signal name="delete_event" handler="gtk_main_quit"/>
     <child>
       <widget class="GtkVBox" id="body">
         <property name="visible">True</property>
@@ -127,7 +125,7 @@
                         <property name="label" translatable="yes">gtk-zoom-in</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
-                        <signal name="activate" handler="on_zoomout"/>
+                        <signal name="activate" handler="on_zoomin"/>
                       </widget>
                     </child>
                     <child>
@@ -246,7 +244,15 @@
                     <property name="width_request">600</property>
                     <property name="height_request">550</property>
                     <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="has_focus">True</property>
+                    <property name="is_focus">True</property>
+                    <property name="can_default">True</property>
+                    <property name="has_default">True</property>
+                    <property name="receives_default">True</property>
                     <property name="events">GDK_POINTER_MOTION_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK | GDK_KEY_PRESS_MASK | GDK_KEY_RELEASE_MASK | GDK_STRUCTURE_MASK</property>
+                    <signal name="button_press_event" handler="on_drawing_button_press"/>
+                    <signal name="key_press_event" handler="on_drawing_key_press"/>
                   </widget>
                 </child>
                 <child>

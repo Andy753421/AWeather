@@ -29,7 +29,7 @@ MAINTAINERCLEANFILES = Makefile.in
 	glib-genmarshal --prefix=aweather_cclosure_marshal --header $< > $@
 
 test: all
-	./aweather
+	./aweather -d 7
 
 gdb: all
 	gdb ./aweather

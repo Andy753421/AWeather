@@ -69,22 +69,36 @@ static void aweather_gui_class_init(AWeatherGuiClass *klass)
 /*************
  * Callbacks *
  *************/
-gboolean on_key_press(GtkWidget *widget, GdkEventKey *event, AWeatherGui *gui)
+gboolean on_drawing_button_press(GtkWidget *widget, GdkEventButton *event, AWeatherGui *gui)
 {
-	g_debug("AWeatherGui: on_key_press - key=%x, state=%x", event->keyval, event->state);
+	g_debug("AWeatherGui: on_drawing_button_press - Grabbing focus");
+	GtkWidget *drawing = aweather_gui_get_widget(gui, "drawing");
+	gtk_widget_grab_focus(drawing);
+	return TRUE;
+}
+gboolean on_drawing_key_press(GtkWidget *widget, GdkEventKey *event, AWeatherGui *gui)
+{
+	g_debug("AWeatherGui: on_drawing_key_press - key=%x, state=%x", event->keyval, event->state);
 	AWeatherView *view = aweather_gui_get_view(gui);
 	double x,y,z;
 	aweather_view_get_location(view, &x, &y, &z);
-	if (event->keyval == GDK_q)
-		gtk_main_quit();
-	else if (event->keyval == GDK_r && event->state & GDK_CONTROL_MASK)
-		aweather_view_refresh(view);
-	else if (event->keyval == GDK_Right) aweather_view_pan(view,  z/10, 0, 0);
+	if      (event->keyval == GDK_Right) aweather_view_pan(view,  z/10, 0, 0);
 	else if (event->keyval == GDK_Left)  aweather_view_pan(view, -z/10, 0, 0);
 	else if (event->keyval == GDK_Up)    aweather_view_pan(view, 0,  z/10, 0);
 	else if (event->keyval == GDK_Down)  aweather_view_pan(view, 0, -z/10, 0);
 	else if (event->keyval == GDK_minus) aweather_view_zoom(view, 10./9);
 	else if (event->keyval == GDK_plus)  aweather_view_zoom(view, 9./10);
+	return TRUE;
+}
+
+gboolean on_gui_key_press(GtkWidget *widget, GdkEventKey *event, AWeatherGui *gui)
+{
+	g_debug("AWeatherGui: on_gui_key_press - key=%x, state=%x", event->keyval, event->state);
+	AWeatherView *view = aweather_gui_get_view(gui);
+	if (event->keyval == GDK_q)
+		gtk_main_quit();
+	else if (event->keyval == GDK_r && event->state & GDK_CONTROL_MASK)
+		aweather_view_refresh(view);
 	else if (event->keyval == GDK_Tab || event->keyval == GDK_ISO_Left_Tab) {
 		GtkNotebook *tabs = GTK_NOTEBOOK(aweather_gui_get_widget(gui, "tabs"));
 		gint num_tabs = gtk_notebook_get_n_pages(tabs);
@@ -94,7 +108,7 @@ gboolean on_key_press(GtkWidget *widget, GdkEventKey *event, AWeatherGui *gui)
 		else 
 			gtk_notebook_set_current_page(tabs, (cur_tab+1)%num_tabs);
 	};
-	return TRUE;
+	return FALSE;
 }
 
 void on_refresh(GtkToolButton *button, AWeatherGui *gui)
@@ -387,7 +401,7 @@ AWeatherGui *aweather_gui_new()
 		g_error("Failed to create gtk builder: %s", error->message);
 	gtk_builder_connect_signals(self->builder, self);
 	g_signal_connect(self, "delete-event",    G_CALLBACK(gtk_main_quit), self);
-	g_signal_connect(self, "key-press-event", G_CALLBACK(on_key_press),  self);
+	g_signal_connect(self, "key-press-event", G_CALLBACK(on_gui_key_press),  self);
 	gtk_widget_reparent(aweather_gui_get_widget(self, "body"), GTK_WIDGET(self));
 
 	/* Load components */
