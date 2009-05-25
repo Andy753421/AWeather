@@ -286,7 +286,6 @@ static void decompressed_cb(GPid pid, gint status, gpointer _self)
 		g_warning("wsr88ddec exited with status %d", status);
 		return;
 	}
-	// TODO: pass cur_file as params? 
 	load_radar(udata->self, udata->radar_file);
 	g_free(udata->radar_file);
 	g_free(udata);
@@ -346,10 +345,18 @@ static void on_time_changed(AWeatherView *view, char *time, gpointer _self)
 	char *base = "http://mesonet.agron.iastate.edu/data/";
 	char *path = g_strdup_printf("nexrd2/raw/K%s/K%s_%s", site, site, time);
 
+	/* Clear out children */
+	GtkWidget *child = gtk_bin_get_child(GTK_BIN(self->config_body));
+	if (child)
+		gtk_widget_destroy(child);
+	gtk_container_add(GTK_CONTAINER(self->config_body),
+		gtk_label_new("Loading radar..."));
+	gtk_widget_show_all(self->config_body);
 	self->cur_radar = NULL;
 	self->cur_sweep = NULL; // Clear radar
 	aweather_gui_gl_redraw(self->gui);
 
+	/* Start loading the new radar */
 	cache_file(base, path, AWEATHER_AUTOMATIC, cached_cb, self);
 	g_free(path);
 }
