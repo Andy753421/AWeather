@@ -29,24 +29,46 @@
 /****************
  * GObject code *
  ****************/
+/* Plugin init */
 static void aweather_radar_plugin_init(AWeatherPluginInterface *iface);
 static void _aweather_radar_expose(AWeatherPlugin *_radar);
 G_DEFINE_TYPE_WITH_CODE(AWeatherRadar, aweather_radar, G_TYPE_OBJECT,
 		G_IMPLEMENT_INTERFACE(AWEATHER_TYPE_PLUGIN,
 			aweather_radar_plugin_init));
-static void aweather_radar_class_init(AWeatherRadarClass *klass)
-{
-	GObjectClass *object_class = (GObjectClass*)klass;
-}
 static void aweather_radar_plugin_init(AWeatherPluginInterface *iface)
 {
+	g_debug("AWeatherRadar: plugin_init");
 	/* Add methods to the interface */
 	iface->expose = _aweather_radar_expose;
 }
+/* Class/Object init */
 static void aweather_radar_init(AWeatherRadar *radar)
 {
+	g_debug("AWeatherRadar: class_init");
 	/* Set defaults */
 	radar->gui = NULL;
+}
+static void aweather_radar_dispose(GObject *gobject)
+{
+	g_debug("AWeatherRadar: dispose");
+	AWeatherRadar *self = AWEATHER_RADAR(gobject);
+	/* Drop references */
+	G_OBJECT_CLASS(aweather_radar_parent_class)->dispose(gobject);
+}
+static void aweather_radar_finalize(GObject *gobject)
+{
+	g_debug("AWeatherRadar: finalize");
+	AWeatherRadar *self = AWEATHER_RADAR(gobject);
+	/* Free data */
+	G_OBJECT_CLASS(aweather_radar_parent_class)->finalize(gobject);
+
+}
+static void aweather_radar_class_init(AWeatherRadarClass *klass)
+{
+	g_debug("AWeatherRadar: class_init");
+	GObjectClass *gobject_class = (GObjectClass*)klass;
+	gobject_class->dispose  = aweather_radar_dispose;
+	gobject_class->finalize = aweather_radar_finalize;
 }
 
 /**************************

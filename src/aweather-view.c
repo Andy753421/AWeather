@@ -23,14 +23,12 @@
 /****************
  * GObject code *
  ****************/
-G_DEFINE_TYPE(AWeatherView, aweather_view, G_TYPE_OBJECT);
-
+/* Constants */
 enum {
 	PROP_0,
 	PROP_TIME,
 	PROP_SITE,
 };
-
 enum {
 	SIG_TIME_CHANGED,
 	SIG_SITE_CHANGED,
@@ -38,9 +36,10 @@ enum {
 	SIG_REFRESH,
 	NUM_SIGNALS,
 };
-
 static guint signals[NUM_SIGNALS];
 
+/* Class/Object init */
+G_DEFINE_TYPE(AWeatherView, aweather_view, G_TYPE_OBJECT);
 static void aweather_view_init(AWeatherView *self)
 {
 	g_debug("AWeatherView: init");
@@ -48,30 +47,20 @@ static void aweather_view_init(AWeatherView *self)
 	self->time = g_strdup("");
 	self->site = g_strdup("");
 }
-
-static GObject *aweather_view_constructor(GType gtype, guint n_properties,
-		GObjectConstructParam *properties)
-{
-	g_debug("AWeatherView: constructor");
-	GObjectClass *parent_class = G_OBJECT_CLASS(aweather_view_parent_class);
-	return  parent_class->constructor(gtype, n_properties, properties);
-}
-
 static void aweather_view_dispose(GObject *gobject)
 {
 	g_debug("AWeatherView: dispose");
 	/* Drop references to other GObjects */
 	G_OBJECT_CLASS(aweather_view_parent_class)->dispose(gobject);
 }
-
 static void aweather_view_finalize(GObject *gobject)
 {
 	g_debug("AWeatherView: finalize");
 	AWeatherView *self = AWEATHER_VIEW(gobject);
+	g_free(self->time);
 	g_free(self->site);
 	G_OBJECT_CLASS(aweather_view_parent_class)->finalize(gobject);
 }
-
 static void aweather_view_set_property(GObject *object, guint property_id,
 		const GValue *value, GParamSpec *pspec)
 {
@@ -83,7 +72,6 @@ static void aweather_view_set_property(GObject *object, guint property_id,
 	default:            G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
 	}
 }
-
 static void aweather_view_get_property(GObject *object, guint property_id,
 		GValue *value, GParamSpec *pspec)
 {
@@ -95,12 +83,10 @@ static void aweather_view_get_property(GObject *object, guint property_id,
 	default:            G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
 	}
 }
-
 static void aweather_view_class_init(AWeatherViewClass *klass)
 {
 	g_debug("AWeatherView: class_init");
 	GObjectClass *gobject_class = G_OBJECT_CLASS(klass);
-	gobject_class->constructor  = aweather_view_constructor;
 	gobject_class->dispose      = aweather_view_dispose;
 	gobject_class->finalize     = aweather_view_finalize;
 	gobject_class->get_property = aweather_view_get_property;

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE glade-interface SYSTEM "glade-2.0.dtd">
-<!--Generated with glade3 3.4.5 on Mon May 25 13:14:23 2009 -->
+<!--Generated with glade3 3.4.5 on Tue May 26 01:20:09 2009 -->
 <glade-interface>
   <widget class="GtkWindow" id="window">
     <child>
@@ -60,7 +60,7 @@
                         <property name="label" translatable="yes">gtk-quit</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
-                        <signal name="activate" handler="gtk_main_quit"/>
+                        <signal name="activate" handler="on_quit"/>
                       </widget>
                     </child>
                   </widget>

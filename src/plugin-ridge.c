@@ -29,24 +29,46 @@
 /****************
  * GObject code *
  ****************/
+/* Plugin init */
 static void aweather_ridge_plugin_init(AWeatherPluginInterface *iface);
 static void aweather_ridge_expose(AWeatherPlugin *_ridge);
 G_DEFINE_TYPE_WITH_CODE(AWeatherRidge, aweather_ridge, G_TYPE_OBJECT,
 		G_IMPLEMENT_INTERFACE(AWEATHER_TYPE_PLUGIN,
 			aweather_ridge_plugin_init));
-static void aweather_ridge_class_init(AWeatherRidgeClass *klass)
-{
-	GObjectClass *object_class = (GObjectClass*)klass;
-}
 static void aweather_ridge_plugin_init(AWeatherPluginInterface *iface)
 {
+	g_debug("AWeatherRidge: plugin_init");
 	/* Add methods to the interface */
 	iface->expose = aweather_ridge_expose;
 }
+/* Class/Object init */
 static void aweather_ridge_init(AWeatherRidge *ridge)
 {
+	g_debug("AWeatherRidge: init");
 	/* Set defaults */
 	ridge->gui = NULL;
+}
+static void aweather_ridge_dispose(GObject *gobject)
+{
+	g_debug("AWeatherRidge: dispose");
+	AWeatherRidge *self = AWEATHER_RIDGE(gobject);
+	/* Drop references */
+	G_OBJECT_CLASS(aweather_ridge_parent_class)->dispose(gobject);
+}
+static void aweather_ridge_finalize(GObject *gobject)
+{
+	g_debug("AWeatherRidge: finalize");
+	AWeatherRidge *self = AWEATHER_RIDGE(gobject);
+	/* Free data */
+	G_OBJECT_CLASS(aweather_ridge_parent_class)->finalize(gobject);
+
+}
+static void aweather_ridge_class_init(AWeatherRidgeClass *klass)
+{
+	g_debug("AWeatherRidge: class_init");
+	GObjectClass *gobject_class = (GObjectClass*)klass;
+	gobject_class->dispose  = aweather_ridge_dispose;
+	gobject_class->finalize = aweather_ridge_finalize;
 }
 
 /*********************

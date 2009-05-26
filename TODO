@@ -4,6 +4,12 @@ Road plan
   * Fix all memory leaks
   * Pre-load textures and polys in OpenGL
 
+0.x - Misc
+  * Resume downloads (back to CURL/Soup)
+  * Configuration file
+    * Default site
+    * Keybindings?
+
 0.x - Volume scans
   * Display iso surfaces of volume scans
 

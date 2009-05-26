@@ -79,9 +79,9 @@ int main(int argc, char *argv[])
 	g_signal_connect(gui, "map-event", G_CALLBACK(on_map), opt_site);
 
 	/* Load plugins */
-	aweather_gui_register_plugin(gui, AWEATHER_PLUGIN(aweather_example_new(gui)));
-	aweather_gui_register_plugin(gui, AWEATHER_PLUGIN(aweather_ridge_new(gui)));
-	aweather_gui_register_plugin(gui, AWEATHER_PLUGIN(aweather_radar_new(gui)));
+	//aweather_gui_register_plugin(gui, AWEATHER_PLUGIN(aweather_example_new(gui)));
+	//aweather_gui_register_plugin(gui, AWEATHER_PLUGIN(aweather_ridge_new(gui)));
+	//aweather_gui_register_plugin(gui, AWEATHER_PLUGIN(aweather_radar_new(gui)));
 
 	gtk_widget_show_all(GTK_WIDGET(gui));
 	gtk_main();

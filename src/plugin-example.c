@@ -26,26 +26,48 @@
 /****************
  * GObject code *
  ****************/
+/* Plugin init */
 static void aweather_example_plugin_init(AWeatherPluginInterface *iface);
 static void aweather_example_expose(AWeatherPlugin *_example);
 G_DEFINE_TYPE_WITH_CODE(AWeatherExample, aweather_example, G_TYPE_OBJECT,
 		G_IMPLEMENT_INTERFACE(AWEATHER_TYPE_PLUGIN,
 			aweather_example_plugin_init));
-static void aweather_example_class_init(AWeatherExampleClass *klass)
-{
-	GObjectClass *object_class = (GObjectClass*)klass;
-}
 static void aweather_example_plugin_init(AWeatherPluginInterface *iface)
 {
+	g_debug("AWeatherExample: plugin_init");
 	/* Add methods to the interface */
 	iface->expose = aweather_example_expose;
 }
+/* Class/Object init */
 static void aweather_example_init(AWeatherExample *example)
 {
+	g_debug("AWeatherExample: init");
 	/* Set defaults */
 	example->gui      = NULL;
 	example->button   = NULL;
 	example->rotation = 30.0;
+}
+static void aweather_example_dispose(GObject *gobject)
+{
+	g_debug("AWeatherExample: dispose");
+	AWeatherExample *self = AWEATHER_EXAMPLE(gobject);
+	/* Drop references */
+	G_OBJECT_CLASS(aweather_example_parent_class)->dispose(gobject);
+}
+static void aweather_example_finalize(GObject *gobject)
+{
+	g_debug("AWeatherExample: finalize");
+	AWeatherExample *self = AWEATHER_EXAMPLE(gobject);
+	/* Free data */
+	G_OBJECT_CLASS(aweather_example_parent_class)->finalize(gobject);
+
+}
+static void aweather_example_class_init(AWeatherExampleClass *klass)
+{
+	g_debug("AWeatherExample: class_init");
+	GObjectClass *gobject_class = (GObjectClass*)klass;
+	gobject_class->dispose  = aweather_example_dispose;
+	gobject_class->finalize = aweather_example_finalize;
 }
 
 /***********

@@ -42,7 +42,7 @@ memcheck:
 	G_DEBUG=gc-friendly,resident-modules    \
 	valgrind --leak-check=full              \
 	         --leak-resolution=high         \
-	         --num-callers=50               \
+	         --num-callers=100              \
 	         --suppressions=gtk.suppression \
 	         ./aweather                     \
 	2> valgrind.out
