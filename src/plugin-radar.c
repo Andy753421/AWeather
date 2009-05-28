@@ -18,6 +18,7 @@
 #include <config.h>
 #include <gtk/gtk.h>
 #include <gtk/gtkgl.h>
+#include <gio/gio.h>
 #include <GL/gl.h>
 #include <math.h>
 #include <rsl.h>
@@ -154,7 +155,7 @@ static void load_radar_gui(AWeatherRadar *self, Radar *radar)
 	gdouble elev;
 	guint rows = 1, cols = 1, cur_cols;
 	gchar row_label_str[64], col_label_str[64], button_str[64];
-	GtkWidget *row_label, *col_label, *button = NULL, *elev_box;
+	GtkWidget *row_label, *col_label, *button = NULL, *elev_box = NULL;
 	GtkWidget *table = gtk_table_new(rows, cols, FALSE);
 
 	for (guint vi = 0; vi < radar->h.nvolumes; vi++) {

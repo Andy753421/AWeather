@@ -45,13 +45,14 @@ static goffset g_file_get_size(GFile *file)
 
 static void cache_file_cb(GObject *source_object, GAsyncResult *res, gpointer _info)
 {
+	g_debug("data: cache_file_cb");
 	cache_file_end_t *info = _info;
 	char   *url   = g_file_get_path(info->src);
 	char   *local = g_file_get_path(info->dst);
 	GError *error = NULL;
 	g_file_copy_finish(G_FILE(source_object), res, &error);
 	if (error) {
-		g_warning("error copying file ([%s]->[%s]): %s",
+		g_warning("data: error copying file ([%s]->[%s]): %s",
 			url, local, error->message);
 		g_error_free(error);
 	} else {
@@ -72,8 +73,11 @@ static void do_cache(GFile *src, GFile *dst, char *reason,
 	g_free(name);
 
 	GFile *parent = g_file_get_parent(dst);
-	if (!g_file_query_exists(parent, NULL))
-		g_file_make_directory_with_parents(parent, NULL, NULL);
+	if (!g_file_query_exists(parent, NULL)) {
+		char *path = g_file_get_path(parent);
+		g_mkdir_with_parents(path, 0755);
+		g_free(path);
+	}
 	g_object_unref(parent);
 
 	cache_file_end_t *info = g_malloc0(sizeof(cache_file_end_t));
