@@ -89,13 +89,14 @@ int main(int argc, char **argv)
 
 	//debug("reading body\n");
 	while ((st = fread(&size, 1, 4, input))) {
+		//debug("size=%08x\n", size);
 		//debug("read %u bytes\n", st);
 		//fwrite(&size, 1, 4, output); // DEBUG
 		size = abs(ntohl(size));
 		if (size < 0)
 			return 0;
 		//debug("size = %x\n", size);
-		if (size > 10*1024*1024)
+		if (size > 20*1024*1024)
 			err(1, "sanity check failed, buf is to big: %d", size);
 		buf = realloc(buf, size);
 		fread (buf, 1, size, input);

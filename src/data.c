@@ -36,7 +36,7 @@ static FILE *fopen_p(const gchar *path, const gchar *mode)
 {
 	gchar *parent = g_path_get_dirname(path);
 	if (!g_file_test(parent, G_FILE_TEST_EXISTS))
-		g_mkdir_with_parents(path, 0755);
+		g_mkdir_with_parents(parent, 0755);
 	g_free(parent);
 	return fopen(path, mode);
 }
@@ -45,10 +45,13 @@ static void cache_file_cb(SoupSession *session, SoupMessage *message, gpointer _
 {
 	cache_file_end_t *info = _info;
 	gchar *uri = soup_uri_to_string(soup_message_get_uri(message), FALSE);
-	g_debug("data: cache_file_cb ([%s]->[%s])", uri, info->local);
+	g_debug("data: cache_file_cb");
 
 	if (!SOUP_STATUS_IS_SUCCESSFUL(message->status_code)) {
-		g_warning("data: error copying file ([%s]->[%s])", uri, info->local);
+		g_warning("data: cache_file_cb - error copying file, status=%d\n"
+				"\tsrc=%s\n"
+				"\tdst=%s",
+				message->status_code, uri, info->local);
 	} else {
 		gint wrote = fwrite(message->response_body->data,  1,
 				message->response_body->length, info->fp);

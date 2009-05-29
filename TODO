@@ -5,7 +5,6 @@ Road plan
   * Pre-load textures and polys in OpenGL
 
 0.x - Misc
-  * Resume downloads (back to CURL/Soup)
   * Configuration file
     * Default site
     * Keybindings?
