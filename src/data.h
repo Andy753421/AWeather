@@ -19,15 +19,15 @@
 #define __DATA_H__
 
 typedef enum {
-	AWEATHER_ALWAYS,
-	AWEATHER_AUTOMATIC,
-	AWEATHER_NEVER,
-} AWeatherPolicyType;
+	AWEATHER_ONCE,    // Cache the file if it does not exist
+	AWEATHER_UPDATE,  // Append additional data to cached copy (resume)
+	AWEATHER_REFRESH, // Delete existing file and cache a new copy
+} AWeatherCacheType;
 
 typedef void (*AWeatherCacheDoneCallback)(gchar *file, gboolean updated,
 		gpointer user_data);
 
-void cache_file(char *base, char *path, AWeatherPolicyType update,
+void cache_file(char *base, char *path, AWeatherCacheType update,
 		AWeatherCacheDoneCallback callback, gpointer user_data);
 
 #endif

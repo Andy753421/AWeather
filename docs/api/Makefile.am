@@ -1,5 +1,5 @@
-AM_CPPFLAGS=$(GTK_CFLAGS)
-GTKDOC_LIBS=$(GTK_LIBS) $(RSL_LIBS) \
+AM_CPPFLAGS= $(RSL_CFLAGS) $(SOUP_CFLAGS) $(GLIB_CFLAGS) $(GTK_CFLAGS)
+GTKDOC_LIBS=$(RSL_LIBS) $(SOUP_LIBS) $(GLIB_LIBS) $(GTK_LIBS) \
 	$(top_srcdir)/src/aweather-aweather-*.o \
 	$(top_srcdir)/src/aweather-plugin-*.o \
 	$(top_srcdir)/src/aweather-data.o \

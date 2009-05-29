@@ -1,4 +1,3 @@
-AM_LDFLAGS    = $(RSL_LIBS) $(GTK_LIBS)
 AM_CFLAGS     = -Wall -Werror -Wno-unused --std=gnu99 
 bin_PROGRAMS  = aweather wsr88ddec
 
@@ -15,7 +14,9 @@ aweather_SOURCES  = main.c \
 	plugin-radar-colormap.c             \
 	plugin-ridge.c    plugin-ridge.h    \
 	plugin-example.c  plugin-example.h
-aweather_CPPFLAGS = $(RSL_CFLAGS) $(GTK_CFLAGS) -DDATADIR="\"$(datadir)\"" 
+aweather_CPPFLAGS = -DDATADIR="\"$(datadir)\"" \
+	$(RSL_CFLAGS) $(SOUP_CFLAGS) $(GLIB_CFLAGS) $(GTK_CFLAGS)
+aweather_LDADD    = $(RSL_LIBS) $(SOUP_LIBS) $(GLIB_LIBS) $(GTK_LIBS)
 
 wsr88ddec         = wsr88ddec.c
 wsr88ddec_LDADD   = -lbz2

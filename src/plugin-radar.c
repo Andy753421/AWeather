@@ -379,7 +379,7 @@ static void on_time_changed(AWeatherView *view, char *time, gpointer _self)
 	aweather_gui_gl_redraw(self->gui);
 
 	/* Start loading the new radar */
-	cache_file(base, path, AWEATHER_AUTOMATIC, cached_cb, self);
+	cache_file(base, path, AWEATHER_UPDATE, cached_cb, self);
 	g_free(path);
 }
 

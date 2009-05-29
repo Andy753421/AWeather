@@ -174,7 +174,7 @@ static void on_site_changed(AWeatherView *view, gchar *site, AWeatherRidge *self
 		cached_t *udata = g_malloc(sizeof(cached_t));
 		udata->self  = self;
 		udata->layer = &layers[i];
-		cache_file(base, path, AWEATHER_NEVER, cached_cb, udata);
+		cache_file(base, path, AWEATHER_ONCE, cached_cb, udata);
 		g_free(path);
 	}
 }

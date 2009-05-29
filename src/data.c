@@ -16,84 +16,76 @@
  */
 
 #include <config.h>
+#include <stdio.h>
 #include <glib.h>
-#include <gio/gio.h>
+#include <libsoup/soup.h>
 
 #include "data.h"
 
 typedef struct {
 	AWeatherCacheDoneCallback callback;
-	GFile *src;
-	GFile *dst;
-	gchar *user_data;
+	gpointer user_data;
+	gchar *local;
+	FILE  *fp;
 } cache_file_end_t;
 
-static goffset g_file_get_size(GFile *file)
+/*
+ * Open a file, creating parent directories if needed
+ */
+static FILE *fopen_p(const gchar *path, const gchar *mode)
 {
-	GError *error = NULL;
-	GFileInfo *info = g_file_query_info(file,
-			G_FILE_ATTRIBUTE_STANDARD_SIZE, 0, NULL, &error);
-	if (error){
-		g_warning("unable to get file size: %s", error->message);
-		g_error_free(error);
-	}
-	goffset size = g_file_info_get_size(info);
-	g_file_info_remove_attribute(info, G_FILE_ATTRIBUTE_STANDARD_SIZE);
-	g_object_unref(info);
-	return size;
+	gchar *parent = g_path_get_dirname(path);
+	if (!g_file_test(parent, G_FILE_TEST_EXISTS))
+		g_mkdir_with_parents(path, 0755);
+	g_free(parent);
+	return fopen(path, mode);
 }
 
-static void cache_file_cb(GObject *source_object, GAsyncResult *res, gpointer _info)
+static void cache_file_cb(SoupSession *session, SoupMessage *message, gpointer _info)
 {
-	g_debug("data: cache_file_cb");
 	cache_file_end_t *info = _info;
-	char   *url   = g_file_get_path(info->src);
-	char   *local = g_file_get_path(info->dst);
-	GError *error = NULL;
-	g_file_copy_finish(G_FILE(source_object), res, &error);
-	if (error) {
-		g_warning("data: error copying file ([%s]->[%s]): %s",
-			url, local, error->message);
-		g_error_free(error);
+	gchar *uri = soup_uri_to_string(soup_message_get_uri(message), FALSE);
+	g_debug("data: cache_file_cb ([%s]->[%s])", uri, info->local);
+
+	if (!SOUP_STATUS_IS_SUCCESSFUL(message->status_code)) {
+		g_warning("data: error copying file ([%s]->[%s])", uri, info->local);
 	} else {
-		info->callback(local, TRUE, info->user_data);
+		gint wrote = fwrite(message->response_body->data,  1,
+				message->response_body->length, info->fp);
+		g_debug("data: status=%u wrote=%d/%lld",
+				message->status_code,
+				wrote, message->response_body->length);
+		fclose(info->fp);
+		info->callback(info->local, TRUE, info->user_data);
 	}
-	g_object_unref(info->src);
-	g_object_unref(info->dst);
-	g_free(info);
-	g_free(url);
-	g_free(local);
+	g_free(uri);
+	g_free(info->local);
+	g_object_unref(session);
 }
 
-static void do_cache(GFile *src, GFile *dst, char *reason,
+static void do_cache(gchar *uri, gchar *local, gboolean truncate, gchar *reason,
 		AWeatherCacheDoneCallback callback, gpointer user_data)
 {
-	char *name = g_file_get_basename(dst);
+	char *name = g_path_get_basename(uri);
 	g_debug("data: do_cache - Caching file %s: %s", name, reason);
 	g_free(name);
 
-	GFile *parent = g_file_get_parent(dst);
-	if (!g_file_query_exists(parent, NULL)) {
-		char *path = g_file_get_path(parent);
-		g_mkdir_with_parents(path, 0755);
-		g_free(path);
-	}
-	g_object_unref(parent);
-
 	cache_file_end_t *info = g_malloc0(sizeof(cache_file_end_t));
 	info->callback  = callback;
-	info->src       = src;
-	info->dst       = dst;
 	info->user_data = user_data;
-	g_file_copy_async(src, dst,
-		G_FILE_COPY_OVERWRITE,   // GFileCopyFlags flags,
-		G_PRIORITY_DEFAULT_IDLE, // int io_priority,
-		NULL,                    // GCancellable *cancellable,
-		NULL,                    // GFileProgressCallback progress_callback,
-		NULL,                    // gpointer progress_callback_data,
-		cache_file_cb,           // GAsyncReadyCallback callback,
-		info);                   // gpointer user_data
-	return;
+	info->local     = local;
+
+	if (truncate) info->fp = fopen_p(local, "w");
+	else          info->fp = fopen_p(local, "a");
+	long bytes = ftell(info->fp);
+
+	SoupSession *session = soup_session_async_new();
+	SoupMessage *message = soup_message_new("GET", uri);
+	if (message == NULL)
+		g_error("message is null, cannot parse uri");
+	if (bytes != 0)
+		soup_message_headers_set_range(message->request_headers, bytes, -1);
+	soup_session_queue_message(session, message, cache_file_cb, info);
 }
 
 /*
@@ -101,28 +93,27 @@ static void do_cache(GFile *src, GFile *dst, char *reason,
  * \param  path  Path to the Ridge file, starting after /ridge/
  * \return The local path to the cached image
  */
-void cache_file(char *base, char *path, AWeatherPolicyType update,
+void cache_file(char *base, char *path, AWeatherCacheType update,
 		AWeatherCacheDoneCallback callback, gpointer user_data)
 {
-	gchar *url   = g_strconcat(base, path, NULL);
+	gchar *uri   = g_strconcat(base, path, NULL);
 	gchar *local = g_build_filename(g_get_user_cache_dir(), PACKAGE, path, NULL);
-	GFile *src   = g_file_new_for_uri(url);
-	GFile *dst   = g_file_new_for_path(local);
 
-	if (update == AWEATHER_ALWAYS)
-		return do_cache(src, dst, "cache forced", callback, user_data);
+	if (update == AWEATHER_REFRESH)
+		return do_cache(uri, local, TRUE, "cache forced",
+				callback, user_data);
 
-	if (!g_file_test(local, G_FILE_TEST_EXISTS))
-		return do_cache(src, dst, "local does not exist", callback, user_data);
+	if (update == AWEATHER_UPDATE)
+		return do_cache(uri, local, FALSE, "attempting updating",
+				callback, user_data);
 
-	if (update == AWEATHER_AUTOMATIC && g_file_get_size(src) != g_file_get_size(dst))
-		return do_cache(src, dst, "size mismatch", callback, user_data);
+	if (update == AWEATHER_ONCE && !g_file_test(local, G_FILE_TEST_EXISTS))
+		return do_cache(uri, local, TRUE, "local does not exist",
+				callback, user_data);
 
 	/* No nead to cache, run the callback now and clean up */
 	callback(local, FALSE, user_data);
-	g_object_unref(src);
-	g_object_unref(dst);
 	g_free(local);
-	g_free(url);
+	g_free(uri);
 	return;
 }
