@@ -47,12 +47,10 @@ static void cache_file_cb(SoupSession *session, SoupMessage *message, gpointer _
 	gchar *uri = soup_uri_to_string(soup_message_get_uri(message), FALSE);
 	g_debug("data: cache_file_cb");
 
-	if (!SOUP_STATUS_IS_SUCCESSFUL(message->status_code)) {
-		g_warning("data: cache_file_cb - error copying file, status=%d\n"
-				"\tsrc=%s\n"
-				"\tdst=%s",
-				message->status_code, uri, info->local);
-	} else {
+	if (message->status_code == 416) {
+		/* Range unsatisfiable, file already complete */
+		info->callback(info->local, FALSE, info->user_data);
+	} else if (SOUP_STATUS_IS_SUCCESSFUL(message->status_code)) {
 		gint wrote = fwrite(message->response_body->data,  1,
 				message->response_body->length, info->fp);
 		g_debug("data: status=%u wrote=%d/%lld",
@@ -60,6 +58,11 @@ static void cache_file_cb(SoupSession *session, SoupMessage *message, gpointer _
 				wrote, message->response_body->length);
 		fclose(info->fp);
 		info->callback(info->local, TRUE, info->user_data);
+	} else {
+		g_warning("data: cache_file_cb - error copying file, status=%d\n"
+				"\tsrc=%s\n"
+				"\tdst=%s",
+				message->status_code, uri, info->local);
 	}
 	g_free(uri);
 	g_free(info->local);
@@ -78,6 +81,8 @@ static void do_cache(gchar *uri, gchar *local, gboolean truncate, gchar *reason,
 	info->user_data = user_data;
 	info->local     = local;
 
+	/* TODO: move this to callback so we don't end up with 0 byte files
+	 * Then change back to check for valid file after download */
 	if (truncate) info->fp = fopen_p(local, "w");
 	else          info->fp = fopen_p(local, "a");
 	long bytes = ftell(info->fp);

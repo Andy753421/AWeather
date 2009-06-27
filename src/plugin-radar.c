@@ -250,44 +250,69 @@ static void load_radar(AWeatherRadar *self, gchar *radar_file)
 	load_radar_gui(self, radar);
 }
 
-static void update_times(AWeatherRadar *self, char *site, char **last_time)
+static void update_times(AWeatherRadar *self, AWeatherView *view, char *site, char **last_time)
 {
-	char *list_uri = g_strdup_printf(
-			"http://mesonet.agron.iastate.edu/data/nexrd2/raw/K%s/dir.list",
-			site);
-	GFile *list    = g_file_new_for_uri(list_uri);
-	g_free(list_uri);
+	GList *times = NULL;
+	if (aweather_view_get_offline(view)) {
+		gchar *path = g_build_filename(g_get_user_cache_dir(), PACKAGE, "nexrd2", "raw", site, NULL);
+		GDir *dir = g_dir_open(path, 0, NULL);
+		if (dir) {
+			const gchar *name;
+			while ((name = g_dir_read_name(dir))) {
+				times = g_list_prepend(times, g_strdup(name));
+			}
+			g_dir_close(dir);
+		}
+		g_free(path);
+	} else {
+		gchar *data;
+		gsize length;
+		GError *error = NULL;
 
-	gchar *data;
-	gsize length;
-	GError *error = NULL;
-	g_file_load_contents(list, NULL, &data, &length, NULL, &error);
-	g_object_unref(list);
-	if (error) {
-		g_warning("Error loading list for %s: %s", site, error->message);
-		g_error_free(error);
-		return;
+		char *list_uri = g_strdup_printf("http://mesonet.agron.iastate.edu/data/nexrd2/raw/%s/dir.list", site);
+		GFile *list = g_file_new_for_uri(list_uri);
+		g_file_load_contents(list, NULL, &data, &length, NULL, &error);
+		if (error) {
+			g_warning("Error loading list for %s: %s", site, error->message);
+			g_error_free(error);
+		} else {
+			gchar **lines = g_strsplit(data, "\n", -1);
+			for (int i = 0; lines[i] && lines[i][0]; i++) {
+				char **parts = g_strsplit(lines[i], " ", 2);
+				times = g_list_prepend(times, parts[1]);
+				g_strfreev(parts);
+			}
+			g_strfreev(lines);
+			g_free(data);
+		}
+
+		g_free(list_uri);
+		g_object_unref(list);
 	}
-	gchar **lines = g_strsplit(data, "\n", -1);
+
+	GRegex *regex = g_regex_new("^[A-Z]{4}_([0-9]{8}_[0-9]{4})$", 0, 0, NULL); // KLSX_20090622_2113
+	GMatchInfo *info;
+
 	GtkTreeView  *tview  = GTK_TREE_VIEW(aweather_gui_get_widget(self->gui, "time"));
 	GtkListStore *lstore = GTK_LIST_STORE(gtk_tree_view_get_model(tview));
 	gtk_list_store_clear(lstore);
 	GtkTreeIter iter;
-	for (int i = 0; lines[i] && lines[i][0]; i++) {
-		// format: `841907 KABR_20090510_0159'
-		//g_message("\tadding %p [%s]", lines[i], lines[i]);
-		char **parts = g_strsplit(lines[i], " ", 2);
-		char *time = parts[1]+5;
-		gtk_list_store_insert(lstore, &iter, 0);
-		gtk_list_store_set(lstore, &iter, 0, time, -1);
-		g_strfreev(parts);
+	times = g_list_reverse(times);
+	for (GList *cur = times; cur; cur = cur->next) {
+		g_message("trying time %s", (gchar*)cur->data);
+		if (g_regex_match(regex, cur->data, 0, &info)) {
+			gchar *time = g_match_info_fetch(info, 1);
+			g_message("adding time %s", (gchar*)cur->data);
+			gtk_list_store_insert(lstore, &iter, 0);
+			gtk_list_store_set(lstore, &iter, 0, time, -1);
+			if (last_time)
+				*last_time = time;
+		}
 	}
 
-	if (last_time)
-		gtk_tree_model_get(GTK_TREE_MODEL(lstore), &iter, 0, last_time, -1);
-
-	g_free(data);
-	g_strfreev(lines);
+	g_regex_unref(regex);
+	g_list_foreach(times, (GFunc)g_free, NULL);
+	g_list_free(times);
 }
 
 /*****************
@@ -356,14 +381,14 @@ static void on_sweep_clicked(GtkRadioButton *button, gpointer _self)
 	load_sweep   (self, g_object_get_data(G_OBJECT(button), "sweep"));
 }
 
-static void on_time_changed(AWeatherView *view, char *time, gpointer _self)
+static void on_time_changed(AWeatherView *view, const char *time, gpointer _self)
 {
 	AWeatherRadar *self = AWEATHER_RADAR(_self);
-	g_debug("AWeatherRadar: on_time_changed - setting time");
+	g_debug("AWeatherRadar: on_time_changed - setting time=%s", time);
 	// format: http://mesonet.agron.iastate.edu/data/nexrd2/raw/KABR/KABR_20090510_0323
 	char *site = aweather_view_get_site(view);
 	char *base = "http://mesonet.agron.iastate.edu/data/";
-	char *path = g_strdup_printf("nexrd2/raw/K%s/K%s_%s", site, site, time);
+	char *path = g_strdup_printf("nexrd2/raw/%s/%s_%s", site, site, time);
 
 	/* Clear out children */
 	GtkWidget *child = gtk_bin_get_child(GTK_BIN(self->config_body));
@@ -379,7 +404,10 @@ static void on_time_changed(AWeatherView *view, char *time, gpointer _self)
 	aweather_gui_gl_redraw(self->gui);
 
 	/* Start loading the new radar */
-	cache_file(base, path, AWEATHER_UPDATE, cached_cb, self);
+	if (aweather_view_get_offline(view)) 
+		cache_file(base, path, AWEATHER_ONCE, cached_cb, self);
+	else 
+		cache_file(base, path, AWEATHER_UPDATE, cached_cb, self);
 	g_free(path);
 }
 
@@ -388,7 +416,7 @@ static void on_site_changed(AWeatherView *view, char *site, gpointer _self)
 	AWeatherRadar *self = AWEATHER_RADAR(_self);
 	g_debug("AWeatherRadar: on_site_changed - Loading wsr88d list for %s", site);
 	char *time = NULL;
-	update_times(self, site, &time);
+	update_times(self, view, site, &time);
 	aweather_view_set_time(view, time);
 
 	g_free(time);
@@ -399,7 +427,7 @@ static void on_refresh(AWeatherView *view, gpointer _self)
 	AWeatherRadar *self = AWEATHER_RADAR(_self);
 	char *site = aweather_view_get_site(view);
 	char *time = NULL;
-	update_times(self, site, &time);
+	update_times(self, view, site, &time);
 	aweather_view_set_time(view, time);
 	g_free(time);
 }

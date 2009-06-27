@@ -113,9 +113,12 @@ void load_texture(AWeatherRidge *self, layer_t *layer, gchar *filename)
 	aweather_gui_gl_begin(self->gui);
 
 	/* Load image */
-	GdkPixbuf *pixbuf = gdk_pixbuf_new_from_file(filename, NULL);
-	if (!pixbuf)
+	GError *error = NULL;
+	GdkPixbuf *pixbuf = gdk_pixbuf_new_from_file(filename, &error);
+	if (!pixbuf || error) {
 		g_warning("Failed to load texture: %s", filename);
+		return;
+	}
 	guchar    *pixels = gdk_pixbuf_get_pixels(pixbuf);
 	int        width  = gdk_pixbuf_get_width(pixbuf);
 	int        height = gdk_pixbuf_get_height(pixbuf);
@@ -170,11 +173,12 @@ static void on_site_changed(AWeatherView *view, gchar *site, AWeatherRidge *self
 	g_debug("AWeatherRidge: on_site_changed - site=%s", site);
 	for (int i = 0; i < LAYER_COUNT; i++) {
 		gchar *base = "http://radar.weather.gov/ridge/";
-		gchar *path  = g_strdup_printf(layers[i].fmt, site);
+		gchar *path  = g_strdup_printf(layers[i].fmt, site+1);
 		cached_t *udata = g_malloc(sizeof(cached_t));
 		udata->self  = self;
 		udata->layer = &layers[i];
 		cache_file(base, path, AWEATHER_ONCE, cached_cb, udata);
+		//cache_file(base, path, AWEATHER_UPDATE, cached_cb, udata);
 		g_free(path);
 	}
 }

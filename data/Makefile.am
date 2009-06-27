@@ -1,10 +1,5 @@
 gtkbuilderdir = $(datadir)/aweather/
-dist_gtkbuilder_DATA = main.xml about.xml
+dist_gtkbuilder_DATA = main.ui about.ui
 
-.glade.xml:
-	gtk-builder-convert $< $@
-
-clean-local:
-	rm -f *.xml
 maintainer-clean-local:
 	rm -f Makefile.in

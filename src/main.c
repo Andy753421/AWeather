@@ -46,14 +46,16 @@ static gboolean on_map(AWeatherGui *gui, GdkEvent *event, gchar *site)
 int main(int argc, char *argv[])
 {
 	/* Arguments */
-	gint     opt_debug = 6;
-	gchar   *opt_site  = "IND";
-	gboolean opt_auto  = FALSE;
+	gint     opt_debug   = 6;
+	gchar   *opt_site    = "KIND";
+	gboolean opt_auto    = FALSE;
+	gboolean opt_offline = FALSE;
 	GOptionEntry entries[] = {
-		//long    short flg type                 location    description                 arg desc
-		{"debug", 'd',  0,  G_OPTION_ARG_INT,    &opt_debug, "Change default log level", "[1-7]"},
-		{"site",  's',  0,  G_OPTION_ARG_STRING, &opt_site,  "Set initial site",         NULL},
-		{"auto",  'a',  0,  G_OPTION_ARG_NONE,   &opt_auto,  "Auto update radar (todo)", NULL},
+		//long      short flg type                 location      description                 arg desc
+		{"debug",   'd',  0,  G_OPTION_ARG_INT,    &opt_debug,   "Change default log level", "[1-7]"},
+		{"site",    's',  0,  G_OPTION_ARG_STRING, &opt_site,    "Set initial site",         NULL},
+		{"offline", 'o',  0,  G_OPTION_ARG_NONE,   &opt_offline, "Run in offline mode",      NULL},
+		{"auto",    'a',  0,  G_OPTION_ARG_NONE,   &opt_auto,    "Auto update radar (todo)", NULL},
 		{NULL}
 	};
 
@@ -76,6 +78,7 @@ int main(int argc, char *argv[])
 	/* Set up AWeather */
 	AWeatherGui  *gui  = aweather_gui_new();
 	AWeatherView *view = aweather_gui_get_view(gui);
+	aweather_view_set_offline(view, opt_offline);
 	g_signal_connect(gui, "map-event", G_CALLBACK(on_map), opt_site);
 
 	/* Load plugins */

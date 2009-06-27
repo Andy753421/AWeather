@@ -45,6 +45,7 @@ static void aweather_view_init(AWeatherView *self)
 	g_debug("AWeatherView: init");
 	/* Default values */
 	self->time = g_strdup("");
+	self->offline = FALSE;
 	self->site = g_strdup("");
 }
 static void aweather_view_dispose(GObject *gobject)
@@ -110,7 +111,7 @@ static void aweather_view_class_init(AWeatherViewClass *klass)
 			0,
 			NULL,
 			NULL,
-			g_cclosure_marshal_VOID__INT,
+			g_cclosure_marshal_VOID__STRING,
 			G_TYPE_NONE,
 			1,
 			G_TYPE_STRING);
@@ -198,6 +199,20 @@ gchar *aweather_view_get_time(AWeatherView *view)
 	g_assert(AWEATHER_IS_VIEW(view));
 	g_debug("AWeatherView: get_time");
 	return view->time;
+}
+
+void aweather_view_set_offline(AWeatherView *view, gboolean offline)
+{
+	g_assert(AWEATHER_IS_VIEW(view));
+	g_debug("AWeatherView: set_offline - %d", offline);
+	view->offline = offline;
+}
+
+gboolean aweather_view_get_offline(AWeatherView *view)
+{
+	g_assert(AWEATHER_IS_VIEW(view));
+	g_debug("AWeatherView: get_offline - %d", view->offline);
+	return view->offline;
 }
 
 void aweather_view_get_location(AWeatherView *view, gdouble *x, gdouble *y, gdouble *z)

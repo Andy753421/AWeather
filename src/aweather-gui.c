@@ -88,10 +88,6 @@ static void aweather_gui_class_init(AWeatherGuiClass *klass)
 /*************
  * Callbacks *
  *************/
-void on_quit(GtkMenuItem *menu, AWeatherGui *gui)
-{
-	gtk_widget_destroy(GTK_WIDGET(gui));
-}
 gboolean on_drawing_button_press(GtkWidget *widget, GdkEventButton *event, AWeatherGui *gui)
 {
 	g_debug("AWeatherGui: on_drawing_button_press - Grabbing focus");
@@ -137,22 +133,49 @@ gboolean on_gui_key_press(GtkWidget *widget, GdkEventKey *event, AWeatherGui *gu
 	return FALSE;
 }
 
-void on_refresh(GtkToolButton *button, AWeatherGui *gui)
+void on_quit(GtkMenuItem *menu, AWeatherGui *gui)
 {
-	AWeatherView *view = aweather_gui_get_view(gui);
-	aweather_view_refresh(view);
+	gtk_widget_destroy(GTK_WIDGET(gui));
 }
 
-void on_zoomin(GtkToolButton *button, AWeatherGui *gui)
+void on_offline(GtkToggleAction *action, AWeatherGui *gui)
+{
+	AWeatherView *view = aweather_gui_get_view(gui);
+	aweather_view_set_offline(view,
+		gtk_toggle_action_get_active(action));
+}
+
+void on_zoomin(GtkAction *action, AWeatherGui *gui)
 {
 	AWeatherView *view = aweather_gui_get_view(gui);
 	aweather_view_zoom(view, 3./4);
 }
 
-void on_zoomout(GtkToolButton *button, AWeatherGui *gui)
+void on_zoomout(GtkAction *action, AWeatherGui *gui)
 {
 	AWeatherView *view = aweather_gui_get_view(gui);
 	aweather_view_zoom(view, 4./3);
+}
+
+void on_refresh(GtkAction *action, AWeatherGui *gui)
+{
+	AWeatherView *view = aweather_gui_get_view(gui);
+	aweather_view_refresh(view);
+}
+
+void on_about(GtkAction *action, AWeatherGui *gui)
+{
+	// TODO: use gtk_widget_hide_on_delete()
+	GError *error = NULL;
+	GtkBuilder *builder = gtk_builder_new();
+	if (!gtk_builder_add_from_file(builder, DATADIR "/aweather/about.ui", &error))
+		g_error("Failed to create gtk builder: %s", error->message);
+	gtk_builder_connect_signals(builder, NULL);
+	GtkWidget *window = GTK_WIDGET(gtk_builder_get_object(builder, "window"));
+	gtk_window_set_transient_for(GTK_WINDOW(window),
+			GTK_WINDOW(aweather_gui_get_widget(gui, "window")));
+	gtk_widget_show_all(window);
+	g_object_unref(builder);
 }
 
 void on_time_changed(GtkTreeView *view, GtkTreePath *path,
@@ -260,21 +283,6 @@ gboolean on_expose(GtkWidget *da, GdkEventExpose *event, AWeatherGui *gui)
 	return FALSE;
 }
 
-void on_about(GtkMenuItem *item, AWeatherGui *gui)
-{
-	// TODO: use gtk_widget_hide_on_delete()
-	GError *error = NULL;
-	GtkBuilder *builder = gtk_builder_new();
-	if (!gtk_builder_add_from_file(builder, DATADIR "/aweather/about.xml", &error))
-		g_error("Failed to create gtk builder: %s", error->message);
-	gtk_builder_connect_signals(builder, NULL);
-	GtkWidget *window = GTK_WIDGET(gtk_builder_get_object(builder, "window"));
-	gtk_window_set_transient_for(GTK_WINDOW(window),
-			GTK_WINDOW(aweather_gui_get_widget(gui, "window")));
-	gtk_widget_show_all(window);
-	g_object_unref(builder);
-}
-
 void on_location_changed(AWeatherView *view,
 		gdouble x, gdouble y, gdouble z, AWeatherGui *gui)
 {
@@ -285,9 +293,9 @@ void on_location_changed(AWeatherView *view,
 }
 
 /* TODO: replace the code in these with `gtk_tree_model_find' utility */
-static void update_time_widget(AWeatherView *view, char *time, AWeatherGui *gui)
+static void update_time_widget(AWeatherView *view, const char *time, AWeatherGui *gui)
 {
-	g_debug("AWeatherGui: update_time_widget");
+	g_debug("AWeatherGui: update_time_widget - time=%s", time);
 	GtkTreeView  *tview = GTK_TREE_VIEW(aweather_gui_get_widget(gui, "time"));
 	GtkTreeModel *model = GTK_TREE_MODEL(gtk_tree_view_get_model(tview));
 	for (int i = 0; i < gtk_tree_model_iter_n_children(model, NULL); i++) {
@@ -322,6 +330,8 @@ static void update_site_widget(AWeatherView *view, char *site, AWeatherGui *gui)
 			gtk_tree_model_iter_nth_child(model, &iter2, &iter1, i);
 			char *text;
 			gtk_tree_model_get(model, &iter2, 1, &text, -1);
+			if (text == NULL)
+				continue;
 			if (g_str_equal(text, site)) {
 				g_signal_handlers_block_by_func(combo,
 						G_CALLBACK(on_site_changed), gui);
@@ -349,7 +359,7 @@ static void combo_sensitive(GtkCellLayout *cell_layout, GtkCellRenderer *cell,
 static void site_setup(AWeatherGui *gui)
 {
 	GtkTreeIter state, city;
-	GtkTreeStore *store = gtk_tree_store_new(2, G_TYPE_STRING, G_TYPE_STRING);
+	GtkTreeStore *store = GTK_TREE_STORE(aweather_gui_get_object(gui, "sites"));
 	for (int i = 0; cities[i].label; i++) {
 		if (cities[i].type == LOCATION_STATE) {
 			gtk_tree_store_append(store, &state, NULL);
@@ -362,15 +372,10 @@ static void site_setup(AWeatherGui *gui)
 		}
 	}
 
-	GtkWidget       *combo    = aweather_gui_get_widget(gui, "site");
-	GtkCellRenderer *renderer = gtk_cell_renderer_text_new();
-	gtk_cell_layout_pack_start(GTK_CELL_LAYOUT(combo), renderer, FALSE);
-	gtk_cell_layout_set_attributes(GTK_CELL_LAYOUT(combo), renderer, "text", 0, NULL);
-	gtk_combo_box_set_model(GTK_COMBO_BOX(combo), GTK_TREE_MODEL(store));
-	gtk_cell_layout_set_cell_data_func(GTK_CELL_LAYOUT(combo), renderer,
-			combo_sensitive, NULL, NULL);
-	g_object_unref(renderer);
-	g_object_unref(store);
+	GtkWidget *combo    = aweather_gui_get_widget(gui, "site");
+	GObject   *renderer = aweather_gui_get_object(gui, "site_rend");
+	gtk_cell_layout_set_cell_data_func(GTK_CELL_LAYOUT(combo),
+			GTK_CELL_RENDERER(renderer), combo_sensitive, NULL, NULL);
 
 	AWeatherView *aview = aweather_gui_get_view(gui);
 	g_signal_connect(aview, "site-changed", G_CALLBACK(update_site_widget), gui);
@@ -378,14 +383,13 @@ static void site_setup(AWeatherGui *gui)
 
 static void time_setup(AWeatherGui *gui)
 {
-	GtkTreeView  *tview  = GTK_TREE_VIEW(aweather_gui_get_widget(gui, "time"));
-	GtkTreeModel *store  = GTK_TREE_MODEL(gtk_list_store_new(1, G_TYPE_STRING));
-	gtk_tree_view_set_model(tview, store);
-
-	GtkCellRenderer   *rend = gtk_cell_renderer_text_new();
-	GtkTreeViewColumn *col  = gtk_tree_view_column_new_with_attributes(
+	GtkTreeView       *tview = GTK_TREE_VIEW(aweather_gui_get_widget(gui, "time"));
+	GtkCellRenderer   *rend  = gtk_cell_renderer_text_new();
+	GtkTreeViewColumn *col   = gtk_tree_view_column_new_with_attributes(
 					"Time", rend, "text", 0, NULL);
+
 	gtk_tree_view_append_column(tview, col);
+	g_object_set(rend, "size-points", 8.0, NULL);
 
 	AWeatherView *aview = aweather_gui_get_view(gui);
 	g_signal_connect(aview, "time-changed", G_CALLBACK(update_time_widget), gui);
@@ -424,7 +428,7 @@ AWeatherGui *aweather_gui_new()
 	self->view    = aweather_view_new();
 	self->builder = gtk_builder_new();
 
-	if (!gtk_builder_add_from_file(self->builder, DATADIR "/aweather/main.xml", &error))
+	if (!gtk_builder_add_from_file(self->builder, DATADIR "/aweather/main.ui", &error))
 		g_error("Failed to create gtk builder: %s", error->message);
 	gtk_builder_connect_signals(self->builder, self);
 	g_signal_connect(self, "key-press-event", G_CALLBACK(on_gui_key_press), self);
@@ -457,6 +461,12 @@ GtkWidget *aweather_gui_get_widget(AWeatherGui *gui, const gchar *name)
 	if (!GTK_IS_WIDGET(widget))
 		g_error("Failed to get widget `%s'", name);
 	return GTK_WIDGET(widget);
+}
+GObject *aweather_gui_get_object(AWeatherGui *gui, const gchar *name)
+{
+	g_debug("AWeatherGui: get_widget - name=%s", name);
+	g_assert(AWEATHER_IS_GUI(gui));
+	return gtk_builder_get_object(gui->builder, name);
 }
 void aweather_gui_register_plugin(AWeatherGui *gui, AWeatherPlugin *plugin)
 {
