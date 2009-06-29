@@ -71,7 +71,8 @@ void chunk_cb(SoupMessage *message, SoupBuffer *chunk, gpointer _info)
 	if (!SOUP_STATUS_IS_SUCCESSFUL(message->status_code))
 		return;
 
-	fwrite(chunk->data, chunk->length, 1, info->fp);
+	if (!fwrite(chunk->data, chunk->length, 1, info->fp))
+		g_error("data: chunk_cb - Unable to write data");
 	goffset cur   = ftell(info->fp);
 	//goffset total = soup_message_headers_get_range(message->response_headers);
 	goffset start=0, end=0, total=0;

@@ -1,0 +1,9 @@
+See the subversion log for detailed information
+http://lug.rose-hulman.edu/svn/proj-aweather/
+
+v0.1 (2009/06/29):
+  * Initial release
+  * Ridge overlays
+  * Level II radar
+  * Pan/zoom
+  * Offline mode

@@ -84,8 +84,10 @@ int main(int argc, char **argv)
 
 	/* Clear header */
 	//debug("reading header\n");
-	fread (buf, 1, 24, input);
-	fwrite(buf, 1, 24, output);
+	if (!fread (buf, 24, 1, input))
+		err(1, "error reading header");
+	if (!fwrite(buf, 24, 1, output))
+		err(1, "error writing header");
 
 	//debug("reading body\n");
 	while ((st = fread(&size, 1, 4, input))) {
@@ -99,13 +101,15 @@ int main(int argc, char **argv)
 		if (size > 20*1024*1024)
 			err(1, "sanity check failed, buf is to big: %d", size);
 		buf = realloc(buf, size);
-		fread (buf, 1, size, input);
+		if (!fread(buf, size, 1, input))
+			err(1, "error reading data");
 		//fwrite(buf, 1, size, output); // DEBUG
 
 		int dec_len;
 		char *dec = bunzip2(buf, size, &dec_len);
 		// debug("decompressed %u bytes\n", dec_len);
-		fwrite(dec, 1, dec_len, output);
+		if (!fwrite(dec, 1, dec_len, output))
+			err(1, "error writing data");
 		free(dec);
 	}
 
