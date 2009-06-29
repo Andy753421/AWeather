@@ -23,10 +23,12 @@
 #include "data.h"
 
 typedef struct {
-	AWeatherCacheDoneCallback callback;
-	gpointer user_data;
+	gchar *uri;
 	gchar *local;
 	FILE  *fp;
+	AWeatherCacheDoneCallback  user_done_cb;
+	AWeatherCacheChunkCallback user_chunk_cb;
+	gpointer user_data;
 } cache_file_end_t;
 
 /*
@@ -41,59 +43,65 @@ static FILE *fopen_p(const gchar *path, const gchar *mode)
 	return fopen(path, mode);
 }
 
-static void cache_file_cb(SoupSession *session, SoupMessage *message, gpointer _info)
+static void done_cb(SoupSession *session, SoupMessage *message, gpointer _info)
 {
 	cache_file_end_t *info = _info;
-	gchar *uri = soup_uri_to_string(soup_message_get_uri(message), FALSE);
-	g_debug("data: cache_file_cb");
+	g_debug("data: done_cb");
 
-	if (message->status_code == 416) {
+	if (message->status_code == 416)
 		/* Range unsatisfiable, file already complete */
-		info->callback(info->local, FALSE, info->user_data);
-	} else if (SOUP_STATUS_IS_SUCCESSFUL(message->status_code)) {
-		gint wrote = fwrite(message->response_body->data,  1,
-				message->response_body->length, info->fp);
-		g_debug("data: status=%u wrote=%d/%lld",
-				message->status_code,
-				wrote, message->response_body->length);
-		fclose(info->fp);
-		info->callback(info->local, TRUE, info->user_data);
-	} else {
-		g_warning("data: cache_file_cb - error copying file, status=%d\n"
+		info->user_done_cb(info->local, FALSE, info->user_data);
+	else if (SOUP_STATUS_IS_SUCCESSFUL(message->status_code))
+		info->user_done_cb(info->local, TRUE, info->user_data);
+	else
+		g_warning("data: done_cb - error copying file, status=%d\n"
 				"\tsrc=%s\n"
 				"\tdst=%s",
-				message->status_code, uri, info->local);
-	}
-	g_free(uri);
+				message->status_code, info->uri, info->local);
+	g_free(info->uri);
 	g_free(info->local);
-	g_object_unref(session);
+	fclose(info->fp);
+	g_free(info);
+	//g_object_unref(session); This is probably leaking
 }
 
-static void do_cache(gchar *uri, gchar *local, gboolean truncate, gchar *reason,
-		AWeatherCacheDoneCallback callback, gpointer user_data)
+void chunk_cb(SoupMessage *message, SoupBuffer *chunk, gpointer _info)
 {
-	char *name = g_path_get_basename(uri);
+	cache_file_end_t *info = _info;
+	if (!SOUP_STATUS_IS_SUCCESSFUL(message->status_code))
+		return;
+
+	fwrite(chunk->data, chunk->length, 1, info->fp);
+	goffset cur   = ftell(info->fp);
+	//goffset total = soup_message_headers_get_range(message->response_headers);
+	goffset start=0, end=0, total=0;
+	soup_message_headers_get_content_range(message->response_headers,
+			&start, &end, &total);
+
+	if (info->user_chunk_cb)
+		info->user_chunk_cb(info->local, cur, total, info->user_data);
+}
+
+static SoupSession *do_cache(cache_file_end_t *info, gboolean truncate, gchar *reason)
+{
+	char *name = g_path_get_basename(info->uri);
 	g_debug("data: do_cache - Caching file %s: %s", name, reason);
 	g_free(name);
 
-	cache_file_end_t *info = g_malloc0(sizeof(cache_file_end_t));
-	info->callback  = callback;
-	info->user_data = user_data;
-	info->local     = local;
-
 	/* TODO: move this to callback so we don't end up with 0 byte files
 	 * Then change back to check for valid file after download */
-	if (truncate) info->fp = fopen_p(local, "w");
-	else          info->fp = fopen_p(local, "a");
+	if (truncate) info->fp = fopen_p(info->local, "w");
+	else          info->fp = fopen_p(info->local, "a");
 	long bytes = ftell(info->fp);
 
 	SoupSession *session = soup_session_async_new();
-	SoupMessage *message = soup_message_new("GET", uri);
+	SoupMessage *message = soup_message_new("GET", info->uri);
 	if (message == NULL)
 		g_error("message is null, cannot parse uri");
-	if (bytes != 0)
-		soup_message_headers_set_range(message->request_headers, bytes, -1);
-	soup_session_queue_message(session, message, cache_file_cb, info);
+	g_signal_connect(message, "got-chunk", G_CALLBACK(chunk_cb), info);
+	soup_message_headers_set_range(message->request_headers, bytes, -1);
+	soup_session_queue_message(session, message, done_cb, info);
+	return session;
 }
 
 /*
@@ -101,27 +109,33 @@ static void do_cache(gchar *uri, gchar *local, gboolean truncate, gchar *reason,
  * \param  path  Path to the Ridge file, starting after /ridge/
  * \return The local path to the cached image
  */
-void cache_file(char *base, char *path, AWeatherCacheType update,
-		AWeatherCacheDoneCallback callback, gpointer user_data)
+SoupSession *cache_file(char *base, char *path, AWeatherCacheType update,
+		AWeatherCacheChunkCallback user_chunk_cb,
+		AWeatherCacheDoneCallback user_done_cb,
+		gpointer user_data)
 {
-	gchar *uri   = g_strconcat(base, path, NULL);
-	gchar *local = g_build_filename(g_get_user_cache_dir(), PACKAGE, path, NULL);
+
+	cache_file_end_t *info = g_malloc0(sizeof(cache_file_end_t));
+	info->uri           = g_strconcat(base, path, NULL);
+	info->local         = g_build_filename(g_get_user_cache_dir(), PACKAGE, path, NULL);
+	info->fp            = NULL;
+	info->user_chunk_cb = user_chunk_cb;
+	info->user_done_cb  = user_done_cb;
+	info->user_data     = user_data;
 
 	if (update == AWEATHER_REFRESH)
-		return do_cache(uri, local, TRUE, "cache forced",
-				callback, user_data);
+		return do_cache(info, TRUE, "cache forced");
 
 	if (update == AWEATHER_UPDATE)
-		return do_cache(uri, local, FALSE, "attempting updating",
-				callback, user_data);
+		return do_cache(info, FALSE, "attempting updating");
 
-	if (update == AWEATHER_ONCE && !g_file_test(local, G_FILE_TEST_EXISTS))
-		return do_cache(uri, local, TRUE, "local does not exist",
-				callback, user_data);
+	if (update == AWEATHER_ONCE && !g_file_test(info->local, G_FILE_TEST_EXISTS))
+		return do_cache(info, TRUE, "local does not exist");
 
 	/* No nead to cache, run the callback now and clean up */
-	callback(local, FALSE, user_data);
-	g_free(local);
-	g_free(uri);
-	return;
+	user_done_cb(info->local, FALSE, user_data);
+	g_free(info->uri);
+	g_free(info->local);
+	g_free(info);
+	return NULL;
 }

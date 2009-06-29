@@ -47,7 +47,8 @@ static void aweather_radar_init(AWeatherRadar *radar)
 {
 	g_debug("AWeatherRadar: class_init");
 	/* Set defaults */
-	radar->gui = NULL;
+	radar->gui  = NULL;
+	radar->soup = NULL;
 }
 static void aweather_radar_dispose(GObject *gobject)
 {
@@ -279,7 +280,7 @@ static void update_times(AWeatherRadar *self, AWeatherView *view, char *site, ch
 			gchar **lines = g_strsplit(data, "\n", -1);
 			for (int i = 0; lines[i] && lines[i][0]; i++) {
 				char **parts = g_strsplit(lines[i], " ", 2);
-				times = g_list_prepend(times, parts[1]);
+				times = g_list_prepend(times, g_strdup(parts[1]));
 				g_strfreev(parts);
 			}
 			g_strfreev(lines);
@@ -336,7 +337,23 @@ static void decompressed_cb(GPid pid, gint status, gpointer _udata)
 	g_free(udata);
 }
 
-static void cached_cb(char *path, gboolean updated, gpointer _self)
+static void cache_chunk_cb(char *path, goffset cur, goffset total, gpointer _self)
+{
+	AWeatherRadar *self = AWEATHER_RADAR(_self);
+	double percent = (double)cur/total;
+
+	g_message("AWeatherRadar: cache_chunk_cb - %lld/%lld = %.2f%%",
+			cur, total, percent*100);
+
+	gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(self->progress_bar), MIN(percent, 1.0));
+
+	gchar *msg = g_strdup_printf("Loading radar... %5.1f%% (%.2f/%.2f MB)",
+			percent*100, (double)cur/1000000, (double)total/1000000);
+	gtk_label_set_text(GTK_LABEL(self->progress_label), msg);
+	g_free(msg);
+}
+
+static void cache_done_cb(char *path, gboolean updated, gpointer _self)
 {
 	AWeatherRadar *self = AWEATHER_RADAR(_self);
 	char *decompressed = g_strconcat(path, ".raw", NULL);
@@ -348,7 +365,7 @@ static void cached_cb(char *path, gboolean updated, gpointer _self)
 	decompressed_t *udata = g_malloc(sizeof(decompressed_t));
 	udata->self       = self;
 	udata->radar_file = decompressed;
-	g_debug("AWeatherRadar: cached_cb - File updated, decompressing..");
+	g_debug("AWeatherRadar: cache_done_cb - File updated, decompressing..");
 	char *argv[] = {"wsr88ddec", path, decompressed, NULL};
 	GPid pid;
 	GError *error = NULL;
@@ -369,6 +386,7 @@ static void cached_cb(char *path, gboolean updated, gpointer _self)
 		g_error_free(error);
 	}
 	g_child_watch_add(pid, decompressed_cb, udata);
+	self->soup = NULL;
 }
 
 /*************
@@ -390,13 +408,20 @@ static void on_time_changed(AWeatherView *view, const char *time, gpointer _self
 	char *base = "http://mesonet.agron.iastate.edu/data/";
 	char *path = g_strdup_printf("nexrd2/raw/%s/%s_%s", site, site, time);
 
-	/* Clear out children */
+	/* Set up progress bar */
 	GtkWidget *child = gtk_bin_get_child(GTK_BIN(self->config_body));
-	if (child)
-		gtk_widget_destroy(child);
-	gtk_container_add(GTK_CONTAINER(self->config_body),
-		gtk_label_new("Loading radar..."));
+	if (child) gtk_widget_destroy(child);
+
+	GtkWidget *vbox = gtk_vbox_new(FALSE, 10);
+	gtk_container_set_border_width(GTK_CONTAINER(vbox), 10);
+	self->progress_bar   = gtk_progress_bar_new();
+	self->progress_label = gtk_label_new("Loading radar...");
+	gtk_box_pack_start(GTK_BOX(vbox), self->progress_bar,   FALSE, FALSE, 0);
+	gtk_box_pack_start(GTK_BOX(vbox), self->progress_label, FALSE, FALSE, 0);
+	gtk_container_add(GTK_CONTAINER(self->config_body), vbox);
 	gtk_widget_show_all(self->config_body);
+
+	/* Clear radar */
 	if (self->cur_radar)
 		RSL_free_radar(self->cur_radar);
 	self->cur_radar = NULL;
@@ -404,10 +429,16 @@ static void on_time_changed(AWeatherView *view, const char *time, gpointer _self
 	aweather_gui_gl_redraw(self->gui);
 
 	/* Start loading the new radar */
+	if (self->soup) {
+		soup_session_abort(self->soup);
+		self->soup = NULL;
+	}
 	if (aweather_view_get_offline(view)) 
-		cache_file(base, path, AWEATHER_ONCE, cached_cb, self);
+		self->soup = cache_file(base, path, AWEATHER_ONCE,
+				cache_chunk_cb, cache_done_cb, self);
 	else 
-		cache_file(base, path, AWEATHER_UPDATE, cached_cb, self);
+		self->soup = cache_file(base, path, AWEATHER_UPDATE,
+				cache_chunk_cb, cache_done_cb, self);
 	g_free(path);
 }
 

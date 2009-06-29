@@ -34,6 +34,7 @@ enum {
 	SIG_SITE_CHANGED,
 	SIG_LOCATION_CHANGED,
 	SIG_REFRESH,
+	SIG_OFFLINE,
 	NUM_SIGNALS,
 };
 static guint signals[NUM_SIGNALS];
@@ -45,8 +46,11 @@ static void aweather_view_init(AWeatherView *self)
 	g_debug("AWeatherView: init");
 	/* Default values */
 	self->time = g_strdup("");
-	self->offline = FALSE;
 	self->site = g_strdup("");
+	self->location[0] = 0;
+	self->location[1] = 0;
+	self->location[2] = -300*1000;
+	self->offline = FALSE;
 }
 static void aweather_view_dispose(GObject *gobject)
 {
@@ -149,7 +153,17 @@ static void aweather_view_class_init(AWeatherViewClass *klass)
 			g_cclosure_marshal_VOID__VOID,
 			G_TYPE_NONE,
 			0);
-
+	signals[SIG_OFFLINE] = g_signal_new(
+			"offline",
+			G_TYPE_FROM_CLASS(gobject_class),
+			G_SIGNAL_RUN_LAST,
+			0,
+			NULL,
+			NULL,
+			g_cclosure_marshal_VOID__BOOLEAN,
+			G_TYPE_NONE,
+			1,
+			G_TYPE_BOOLEAN);
 }
 
 /* Signal helpers */
@@ -173,6 +187,11 @@ static void _aweather_view_emit_site_changed(AWeatherView *view)
 static void _aweather_view_emit_refresh(AWeatherView *view)
 {
 	g_signal_emit(view, signals[SIG_REFRESH], 0);
+}
+static void _aweather_view_emit_offline(AWeatherView *view)
+{
+	g_signal_emit(view, signals[SIG_OFFLINE], 0,
+			view->offline);
 }
 
 
@@ -201,18 +220,14 @@ gchar *aweather_view_get_time(AWeatherView *view)
 	return view->time;
 }
 
-void aweather_view_set_offline(AWeatherView *view, gboolean offline)
+void aweather_view_set_location(AWeatherView *view, gdouble x, gdouble y, gdouble z)
 {
 	g_assert(AWEATHER_IS_VIEW(view));
-	g_debug("AWeatherView: set_offline - %d", offline);
-	view->offline = offline;
-}
-
-gboolean aweather_view_get_offline(AWeatherView *view)
-{
-	g_assert(AWEATHER_IS_VIEW(view));
-	g_debug("AWeatherView: get_offline - %d", view->offline);
-	return view->offline;
+	g_debug("AWeatherView: set_location");
+	view->location[0] = x;
+	view->location[1] = y;
+	view->location[2] = z;
+	_aweather_view_emit_location_changed(view);
 }
 
 void aweather_view_get_location(AWeatherView *view, gdouble *x, gdouble *y, gdouble *z)
@@ -222,16 +237,6 @@ void aweather_view_get_location(AWeatherView *view, gdouble *x, gdouble *y, gdou
 	*x = view->location[0];
 	*y = view->location[1];
 	*z = view->location[2];
-}
-
-void aweather_view_set_location(AWeatherView *view, gdouble x, gdouble y, gdouble z)
-{
-	g_assert(AWEATHER_IS_VIEW(view));
-	g_debug("AWeatherView: set_location");
-	view->location[0] = x;
-	view->location[1] = y;
-	view->location[2] = z;
-	_aweather_view_emit_location_changed(view);
 }
 
 void aweather_view_pan(AWeatherView *view, gdouble x, gdouble y, gdouble z)
@@ -258,6 +263,22 @@ void aweather_view_refresh(AWeatherView *view)
 	_aweather_view_emit_refresh(view);
 }
 
+void aweather_view_set_offline(AWeatherView *view, gboolean offline)
+{
+	g_assert(AWEATHER_IS_VIEW(view));
+	g_debug("AWeatherView: set_offline - %d", offline);
+	view->offline = offline;
+	_aweather_view_emit_offline(view);
+}
+
+gboolean aweather_view_get_offline(AWeatherView *view)
+{
+	g_assert(AWEATHER_IS_VIEW(view));
+	g_debug("AWeatherView: get_offline - %d", view->offline);
+	return view->offline;
+}
+
+/* To be deprecated, use {get,set}_location */
 void aweather_view_set_site(AWeatherView *view, const gchar *site)
 {
 	g_assert(AWEATHER_IS_VIEW(view));
@@ -273,4 +294,3 @@ gchar *aweather_view_get_site(AWeatherView *view)
 	g_debug("AWeatherView: get_site");
 	return view->site;
 }
-

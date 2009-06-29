@@ -427,19 +427,25 @@ AWeatherGui *aweather_gui_new()
 	AWeatherGui *self = g_object_new(AWEATHER_TYPE_GUI, NULL);
 	self->view    = aweather_view_new();
 	self->builder = gtk_builder_new();
-
 	if (!gtk_builder_add_from_file(self->builder, DATADIR "/aweather/main.ui", &error))
 		g_error("Failed to create gtk builder: %s", error->message);
-	gtk_builder_connect_signals(self->builder, self);
-	g_signal_connect(self, "key-press-event", G_CALLBACK(on_gui_key_press), self);
 	gtk_widget_reparent(aweather_gui_get_widget(self, "body"), GTK_WIDGET(self));
 
+	/* Connect signals */
+	gtk_builder_connect_signals(self->builder, self);
+	g_signal_connect(self, "key-press-event",
+			G_CALLBACK(on_gui_key_press), self);
+	g_signal_connect(self->view, "location-changed",
+			G_CALLBACK(on_location_changed), self);
+	g_signal_connect_swapped(self->view, "offline",
+			G_CALLBACK(gtk_toggle_action_set_active),
+			aweather_gui_get_object(self, "offline"));
+
 	/* Load components */
-	aweather_view_set_location(self->view, 0, 0, -300*1000);
-	g_signal_connect(self->view, "location-changed", G_CALLBACK(on_location_changed), self);
 	site_setup(self);
 	time_setup(self);
 	opengl_setup(self);
+
 	return self;
 }
 AWeatherView *aweather_gui_get_view(AWeatherGui *gui)

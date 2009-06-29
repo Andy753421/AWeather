@@ -36,9 +36,9 @@ struct _AWeatherView {
 
 	/* instance members */
 	gchar   *time;
-	gboolean offline;
 	gchar   *site;
 	gdouble  location[3];
+	gboolean offline;
 };
 
 struct _AWeatherViewClass {
@@ -55,15 +55,15 @@ AWeatherView *aweather_view_new();
 void aweather_view_set_time(AWeatherView *view, const gchar *time);
 gchar *aweather_view_get_time(AWeatherView *view);
 
-void aweather_view_set_offline(AWeatherView *view, gboolean offline);
-gboolean aweather_view_get_offline(AWeatherView *view);
-
-void aweather_view_get_location(AWeatherView *view, gdouble *x, gdouble *y, gdouble *z);
 void aweather_view_set_location(AWeatherView *view, gdouble  x, gdouble  y, gdouble  z);
+void aweather_view_get_location(AWeatherView *view, gdouble *x, gdouble *y, gdouble *z);
 void aweather_view_pan         (AWeatherView *view, gdouble  x, gdouble  y, gdouble  z);
 void aweather_view_zoom        (AWeatherView *view, gdouble  scale);
 
 void aweather_view_refresh(AWeatherView *view);
+
+void aweather_view_set_offline(AWeatherView *view, gboolean offline);
+gboolean aweather_view_get_offline(AWeatherView *view);
 
 /* To be deprecated, use {get,set}_location */
 void aweather_view_set_site(AWeatherView *view, const gchar *site);

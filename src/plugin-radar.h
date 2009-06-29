@@ -19,6 +19,7 @@
 #define __RADAR_H__
 
 #include <glib-object.h>
+#include <libsoup/soup.h>
 #include <rsl.h>
 
 /* TODO: convert */
@@ -44,6 +45,9 @@ struct _AWeatherRadar {
 	/* instance members */
 	AWeatherGui *gui;
 	GtkWidget   *config_body;
+	GtkWidget   *progress_bar;
+	GtkWidget   *progress_label;
+	SoupSession *soup;
 
 	/* Private data for loading radars */
 	Radar       *cur_radar;
