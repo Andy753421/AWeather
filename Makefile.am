@@ -6,11 +6,11 @@ MAINTAINERCLEANFILES = aclocal.m4 compile config.guess config.h.in gtk-doc.make 
 test: all
 	(cd src && make test)
 
-post: all dist
-	echo svn cp \
-		https://lug.rose-hulman.edu/svn/proj-aweather/trunk \
-		https://lug.rose-hulman.edu/svn/proj-aweather/tags/$(VERSION)
+release: all dist
+	svn cp \
+		https://lug.rose-hulman.edu/svn/proj-$(PACKAGE)/trunk \
+		https://lug.rose-hulman.edu/svn/proj-$(PACKAGE)/tags/$(VERSION)
 	echo $(VERSION) > LATEST
-	scp LATEST plotter-$(VERSION).tar.* \
-		"root@$(SERVER):/home/plotter/htdocs/files"; \
-	echo rm -f LATEST
+	scp LATEST $(PACKAGE)-$(VERSION).tar.* \
+		"lug@lug.rose-hulman.edu:/home/lug/htdocs/proj/$(PACKAGE)"; \
+	rm -f LATEST
