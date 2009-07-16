@@ -14,3 +14,18 @@ release: all dist
 	scp LATEST $(PACKAGE)-$(VERSION).tar.* \
 		"lug@lug.rose-hulman.edu:/home/lug/htdocs/proj/$(PACKAGE)"; \
 	rm -f LATEST
+
+depscan:
+	gtkdoc-depscan             \
+		--book=atk         \
+		--book=gdk         \
+		--book=gdk-pixbuf  \
+		--book=glib        \
+		--book=gio         \
+		--book=gobject     \
+		--book=gtk         \
+		--book=pango       \
+		--book=libsoup-2.4 \
+		--list-unknown     \
+		"$@"               \
+		src/*.c

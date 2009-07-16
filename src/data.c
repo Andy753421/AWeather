@@ -96,6 +96,7 @@ static SoupSession *do_cache(cache_file_end_t *info, gboolean truncate, gchar *r
 	long bytes = ftell(info->fp);
 
 	SoupSession *session = soup_session_async_new();
+	g_object_set(session, "user-agent", PACKAGE_STRING, NULL);
 	SoupMessage *message = soup_message_new("GET", info->uri);
 	if (message == NULL)
 		g_error("message is null, cannot parse uri");

@@ -27,6 +27,8 @@
 #include "plugin-radar.h"
 #include "data.h"
 
+static char *nexrad_base = "http://mesonet.agron.iastate.edu/data/";
+
 /****************
  * GObject code *
  ****************/
@@ -251,46 +253,10 @@ static void load_radar(AWeatherRadar *self, gchar *radar_file)
 	load_radar_gui(self, radar);
 }
 
-static void update_times(AWeatherRadar *self, AWeatherView *view, char *site, char **last_time)
+/* TODO: These update times functions are getting ugly... */
+static void update_times_gtk(AWeatherRadar *self, GList *times)
 {
-	GList *times = NULL;
-	if (aweather_view_get_offline(view)) {
-		gchar *path = g_build_filename(g_get_user_cache_dir(), PACKAGE, "nexrd2", "raw", site, NULL);
-		GDir *dir = g_dir_open(path, 0, NULL);
-		if (dir) {
-			const gchar *name;
-			while ((name = g_dir_read_name(dir))) {
-				times = g_list_prepend(times, g_strdup(name));
-			}
-			g_dir_close(dir);
-		}
-		g_free(path);
-	} else {
-		gchar *data;
-		gsize length;
-		GError *error = NULL;
-
-		char *list_uri = g_strdup_printf("http://mesonet.agron.iastate.edu/data/nexrd2/raw/%s/dir.list", site);
-		GFile *list = g_file_new_for_uri(list_uri);
-		g_file_load_contents(list, NULL, &data, &length, NULL, &error);
-		if (error) {
-			g_warning("Error loading list for %s: %s", site, error->message);
-			g_error_free(error);
-		} else {
-			gchar **lines = g_strsplit(data, "\n", -1);
-			for (int i = 0; lines[i] && lines[i][0]; i++) {
-				char **parts = g_strsplit(lines[i], " ", 2);
-				times = g_list_prepend(times, g_strdup(parts[1]));
-				g_strfreev(parts);
-			}
-			g_strfreev(lines);
-			g_free(data);
-		}
-
-		g_free(list_uri);
-		g_object_unref(list);
-	}
-
+	gchar *last_time = NULL;
 	GRegex *regex = g_regex_new("^[A-Z]{4}_([0-9]{8}_[0-9]{4})$", 0, 0, NULL); // KLSX_20090622_2113
 	GMatchInfo *info;
 
@@ -306,14 +272,54 @@ static void update_times(AWeatherRadar *self, AWeatherView *view, char *site, ch
 			g_message("adding time %s", (gchar*)cur->data);
 			gtk_list_store_insert(lstore, &iter, 0);
 			gtk_list_store_set(lstore, &iter, 0, time, -1);
-			if (last_time)
-				*last_time = time;
+			last_time = time;
 		}
 	}
+
+	AWeatherView *view = aweather_gui_get_view(self->gui);
+	aweather_view_set_time(view, last_time);
 
 	g_regex_unref(regex);
 	g_list_foreach(times, (GFunc)g_free, NULL);
 	g_list_free(times);
+}
+static void update_times_online_cb(char *path, gboolean updated, gpointer _self)
+{
+	GList *times = NULL;
+	gchar *data;
+	gsize length;
+	g_file_get_contents(path, &data, &length, NULL);
+	gchar **lines = g_strsplit(data, "\n", -1);
+	for (int i = 0; lines[i] && lines[i][0]; i++) {
+		char **parts = g_strsplit(lines[i], " ", 2);
+		times = g_list_prepend(times, g_strdup(parts[1]));
+		g_strfreev(parts);
+	}
+	g_strfreev(lines);
+	g_free(data);
+
+	update_times_gtk(_self, times);
+}
+static void update_times(AWeatherRadar *self, AWeatherView *view, char *site)
+{
+	if (aweather_view_get_offline(view)) {
+		GList *times = NULL;
+		gchar *path = g_build_filename(g_get_user_cache_dir(), PACKAGE, "nexrd2", "raw", site, NULL);
+		GDir *dir = g_dir_open(path, 0, NULL);
+		if (dir) {
+			const gchar *name;
+			while ((name = g_dir_read_name(dir))) {
+				times = g_list_prepend(times, g_strdup(name));
+			}
+			g_dir_close(dir);
+		}
+		g_free(path);
+		update_times_gtk(self, times);
+	} else {
+		gchar *path = g_strdup_printf("nexrd2/raw/%s/dir.list", site);
+		cache_file(nexrad_base, path, AWEATHER_REFRESH, NULL, update_times_online_cb, self);
+		/* update_times_gtk from update_times_online_cb */
+	}
 }
 
 /*****************
@@ -405,7 +411,6 @@ static void on_time_changed(AWeatherView *view, const char *time, gpointer _self
 	g_debug("AWeatherRadar: on_time_changed - setting time=%s", time);
 	// format: http://mesonet.agron.iastate.edu/data/nexrd2/raw/KABR/KABR_20090510_0323
 	char *site = aweather_view_get_site(view);
-	char *base = "http://mesonet.agron.iastate.edu/data/";
 	char *path = g_strdup_printf("nexrd2/raw/%s/%s_%s", site, site, time);
 
 	/* Set up progress bar */
@@ -434,10 +439,10 @@ static void on_time_changed(AWeatherView *view, const char *time, gpointer _self
 		self->soup = NULL;
 	}
 	if (aweather_view_get_offline(view)) 
-		self->soup = cache_file(base, path, AWEATHER_ONCE,
+		self->soup = cache_file(nexrad_base, path, AWEATHER_ONCE,
 				cache_chunk_cb, cache_done_cb, self);
 	else 
-		self->soup = cache_file(base, path, AWEATHER_UPDATE,
+		self->soup = cache_file(nexrad_base, path, AWEATHER_UPDATE,
 				cache_chunk_cb, cache_done_cb, self);
 	g_free(path);
 }
@@ -446,21 +451,14 @@ static void on_site_changed(AWeatherView *view, char *site, gpointer _self)
 {
 	AWeatherRadar *self = AWEATHER_RADAR(_self);
 	g_debug("AWeatherRadar: on_site_changed - Loading wsr88d list for %s", site);
-	char *time = NULL;
-	update_times(self, view, site, &time);
-	aweather_view_set_time(view, time);
-
-	g_free(time);
+	update_times(self, view, site), &time;
 }
 
 static void on_refresh(AWeatherView *view, gpointer _self)
 {
 	AWeatherRadar *self = AWEATHER_RADAR(_self);
 	char *site = aweather_view_get_site(view);
-	char *time = NULL;
-	update_times(self, view, site, &time);
-	aweather_view_set_time(view, time);
-	g_free(time);
+	update_times(self, view, site);
 }
 
 /***********

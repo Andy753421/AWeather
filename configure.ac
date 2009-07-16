@@ -1,5 +1,5 @@
 # Init and options
-AC_INIT([aweather], [0.1], [spenceal@rose-hulman.edu])
+AC_INIT([aweather], [0.1.1], [spenceal@rose-hulman.edu])
 AM_INIT_AUTOMAKE([-Wall -Werror -Wno-portability foreign])
 AC_CONFIG_HEADERS([config.h])
 
@@ -9,9 +9,9 @@ PKG_PROG_PKG_CONFIG
 GTK_DOC_CHECK(1.9)
 
 # Check for required packages
+PKG_CHECK_MODULES(GLIB, glib-2.0 >= 2.14 gobject-2.0 gthread-2.0 gmodule-export-2.0)
+PKG_CHECK_MODULES(GTK,  gtk+-2.0 >= 2.16 gtkglext-1.0)
 PKG_CHECK_MODULES(SOUP, libsoup-2.4 >= 2.26)
-PKG_CHECK_MODULES(GLIB, gio-2.0 gmodule-export-2.0 gobject-2.0 gthread-2.0)
-PKG_CHECK_MODULES(GTK,  gtk+-2.0 gtkglext-1.0)
 
 # Define odd RSL install location
 #AC_SUBST(RSL_CFLAGS, "-I/usr/local/trmm/GVBOX/include/")
