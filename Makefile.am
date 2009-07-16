@@ -7,6 +7,8 @@ test: all
 	(cd src && make test)
 
 release: all dist
+	@echo -en "\nRelease $(PACKAGE)-$(VERSION) (y/n): "
+	@read ans && [ "$$ans" != "y" ] && exit 1 || exit 0
 	svn cp \
 		https://lug.rose-hulman.edu/svn/proj-$(PACKAGE)/trunk \
 		https://lug.rose-hulman.edu/svn/proj-$(PACKAGE)/tags/$(VERSION)
