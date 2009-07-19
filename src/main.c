@@ -33,10 +33,12 @@ static void log_func(const gchar *log_domain, GLogLevelFlags log_level,
 		g_log_default_handler(log_domain, log_level, message, udata);
 }
 
+static gulong on_map_id = 0;
 static gboolean on_map(AWeatherGui *gui, GdkEvent *event, gchar *site)
 {
 	AWeatherView *view = aweather_gui_get_view(gui);
 	aweather_view_set_site(view, site);
+	g_signal_handler_disconnect(gui, on_map_id);
 	return FALSE;
 }
 
@@ -79,7 +81,7 @@ int main(int argc, char *argv[])
 	AWeatherGui  *gui  = aweather_gui_new();
 	AWeatherView *view = aweather_gui_get_view(gui);
 	aweather_view_set_offline(view, opt_offline);
-	g_signal_connect(gui, "map-event", G_CALLBACK(on_map), opt_site);
+	on_map_id = g_signal_connect(gui, "map-event", G_CALLBACK(on_map), opt_site);
 
 	/* Load plugins */
 	aweather_gui_register_plugin(gui, AWEATHER_PLUGIN(aweather_example_new(gui)));
