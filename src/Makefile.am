@@ -10,6 +10,7 @@ aweather_SOURCES  = main.c \
 	aweather-plugin.c aweather-plugin.h \
 	data.c            data.h            \
 	location.c        location.h        \
+	marching.c        marching.h        \
 	plugin-radar.c    plugin-radar.h    \
 	plugin-radar-colormap.c             \
 	plugin-ridge.c    plugin-ridge.h    \
@@ -30,7 +31,7 @@ MAINTAINERCLEANFILES = Makefile.in
 	glib-genmarshal --prefix=aweather_cclosure_marshal --header $< > $@
 
 test: all
-	./aweather -o -d 7 -s KLSX
+	./aweather -o -d 7 -s KVNX
 
 gdb: all
 	gdb ./aweather

@@ -23,9 +23,11 @@
 #include <math.h>
 #include <rsl.h>
 
+#include "misc.h"
 #include "aweather-gui.h"
 #include "plugin-radar.h"
 #include "data.h"
+#include "marching.h"
 
 static char *nexrad_base = "http://mesonet.agron.iastate.edu/data/";
 
@@ -49,8 +51,10 @@ static void aweather_radar_init(AWeatherRadar *radar)
 {
 	g_debug("AWeatherRadar: class_init");
 	/* Set defaults */
-	radar->gui  = NULL;
-	radar->soup = NULL;
+	radar->gui           = NULL;
+	radar->soup          = NULL;
+	radar->cur_triangles = NULL;
+	radar->cur_num_triangles = 0;
 }
 static void aweather_radar_dispose(GObject *gobject)
 {
@@ -83,18 +87,17 @@ static void bscan_sweep(AWeatherRadar *self, Sweep *sweep, colormap_t *colormap,
 		guint8 **data, int *width, int *height)
 {
 	/* Calculate max number of bins */
-	int i, max_bins = 0;
-	for (i = 0; i < sweep->h.nrays; i++)
+	int max_bins = 0;
+	for (int i = 0; i < sweep->h.nrays; i++)
 		max_bins = MAX(max_bins, sweep->ray[i]->h.nbins);
 
 	/* Allocate buffer using max number of bins for each ray */
 	guint8 *buf = g_malloc0(sweep->h.nrays * max_bins * 4);
 
 	/* Fill the data */
-	int ri, bi;
-	for (ri = 0; ri < sweep->h.nrays; ri++) {
+	for (int ri = 0; ri < sweep->h.nrays; ri++) {
 		Ray *ray  = sweep->ray[ri];
-		for (bi = 0; bi < ray->h.nbins; bi++) {
+		for (int bi = 0; bi < ray->h.nbins; bi++) {
 			/* copy RGBA into buffer */
 			//guint val   = dz_f(ray->range[bi]);
 			guint8 val   = (guint8)ray->h.f(ray->range[bi]);
@@ -102,7 +105,7 @@ static void bscan_sweep(AWeatherRadar *self, Sweep *sweep, colormap_t *colormap,
 			buf[buf_i+0] = colormap->data[val][0];
 			buf[buf_i+1] = colormap->data[val][1];
 			buf[buf_i+2] = colormap->data[val][2];
-			buf[buf_i+3] = colormap->data[val][3];
+			buf[buf_i+3] = colormap->data[val][3]; // TESTING
 			if (val == BADVAL     || val == RFVAL      || val == APFLAG ||
 			    val == NOTFOUND_H || val == NOTFOUND_V || val == NOECHO) {
 				buf[buf_i+3] = 0x00; // transparent
@@ -187,7 +190,7 @@ static void load_radar_gui(AWeatherRadar *self, Radar *radar)
 					g_snprintf(col_label_str, 64, "<b>%.2f°</b>", elev);
 					col_label = gtk_label_new(col_label_str);
 					gtk_label_set_use_markup(GTK_LABEL(col_label), TRUE);
-					gtk_widget_set_size_request(col_label, 40, -1);
+					gtk_widget_set_size_request(col_label, 70, -1);
 					gtk_table_attach(GTK_TABLE(table), col_label,
 							cols-1,cols, 0,1, GTK_FILL,GTK_FILL, 0,0);
 				}
@@ -217,6 +220,37 @@ static void load_radar_gui(AWeatherRadar *self, Radar *radar)
 	gtk_widget_show_all(table);
 }
 
+static void _aweather_radar_grid_set(GRIDCELL *grid, int gi, Ray *ray, int bi)
+{
+	Range range = ray->range[bi];
+
+	double angle = d2r(ray->h.azimuth);
+	double tilt  = d2r(ray->h.elev);
+
+	double lx    = sin(angle);
+	double ly    = cos(angle);
+	double lz    = sin(tilt);
+
+	double dist   = bi*ray->h.gate_size + ray->h.range_bin1;
+		
+	grid->p[gi].x = lx*dist;
+	grid->p[gi].y = ly*dist;
+	grid->p[gi].z = lz*dist;
+
+	guint8 val = (guint8)ray->h.f(ray->range[bi]);
+	if (val == BADVAL     || val == RFVAL      || val == APFLAG ||
+	    val == NOTFOUND_H || val == NOTFOUND_V || val == NOECHO ||
+	    val > 80)
+		val = 0;
+	grid->val[gi] = (float)val;
+	//g_debug("(%.2f,%.2f,%.2f) - (%.0f,%.0f,%.0f) = %d", 
+	//	angle, tilt, dist,
+	//	grid->p[gi].x,
+	//	grid->p[gi].y,
+	//	grid->p[gi].z,
+	//	val);
+}
+
 /* Load a radar from a decompressed file */
 static void load_radar(AWeatherRadar *self, gchar *radar_file)
 {
@@ -232,6 +266,81 @@ static void load_radar(AWeatherRadar *self, gchar *radar_file)
 		return;
 	}
 	g_free(site);
+
+#ifdef MARCHING
+	/* Load the surface */
+	if (self->cur_triangles) {
+		g_free(self->cur_triangles);
+		self->cur_triangles = NULL;
+	}
+	self->cur_num_triangles = 0;
+	int x = 1;
+	for (guint vi = 0; vi < radar->h.nvolumes; vi++) {
+		if (radar->v[vi] == NULL) continue;
+
+		for (guint si = 0; si+1 < radar->v[vi]->h.nsweeps; si++) {
+			Sweep *sweep0 = radar->v[vi]->sweep[si+0];
+			Sweep *sweep1 = radar->v[vi]->sweep[si+1];
+
+			//g_debug("_aweather_radar_expose: sweep[%3d-%3d] -- nrays = %d, %d",
+			//	si, si+1,sweep0->h.nrays, sweep1->h.nrays);
+
+			/* Skip super->regular resolution switch for now */
+			if (sweep0 == NULL || sweep0->h.elev == 0 ||
+			    sweep1 == NULL || sweep1->h.elev == 0 ||
+			    sweep0->h.nrays != sweep1->h.nrays)
+				continue;
+
+			/* We repack the arrays so that raysX[0] is always north, etc */
+			Ray **rays0 = g_malloc0(sizeof(Ray*)*sweep0->h.nrays);
+			Ray **rays1 = g_malloc0(sizeof(Ray*)*sweep1->h.nrays);
+
+			for (guint ri = 0; ri < sweep0->h.nrays; ri++)
+				rays0[(guint)(sweep0->ray[ri]->h.azimuth * sweep0->h.nrays / 360)] =
+					sweep0->ray[ri];
+			for (guint ri = 0; ri < sweep1->h.nrays; ri++)
+				rays1[(guint)(sweep1->ray[ri]->h.azimuth * sweep1->h.nrays / 360)] =
+					sweep1->ray[ri];
+
+			for (guint ri = 0; ri+x < sweep0->h.nrays; ri+=x) {
+				//g_debug("_aweather_radar_expose: ray[%3d-%3d] -- nbins = %d, %d, %d, %d",
+				//	ri, ri+x,
+				//	rays0[ri  ]->h.nbins, 
+				//	rays0[ri+1]->h.nbins, 
+				//	rays1[ri  ]->h.nbins, 
+				//	rays1[ri+1]->h.nbins);
+
+				for (guint bi = 0; bi+x < rays1[ri]->h.nbins; bi+=x) {
+					GRIDCELL grid = {};
+					_aweather_radar_grid_set(&grid, 7, rays0[(ri  )%sweep0->h.nrays], bi+x);
+					_aweather_radar_grid_set(&grid, 6, rays0[(ri+x)%sweep0->h.nrays], bi+x);
+					_aweather_radar_grid_set(&grid, 5, rays0[(ri+x)%sweep0->h.nrays], bi  );
+					_aweather_radar_grid_set(&grid, 4, rays0[(ri  )%sweep0->h.nrays], bi  );
+					_aweather_radar_grid_set(&grid, 3, rays1[(ri  )%sweep0->h.nrays], bi+x);
+					_aweather_radar_grid_set(&grid, 2, rays1[(ri+x)%sweep0->h.nrays], bi+x);
+					_aweather_radar_grid_set(&grid, 1, rays1[(ri+x)%sweep0->h.nrays], bi  );
+					_aweather_radar_grid_set(&grid, 0, rays1[(ri  )%sweep0->h.nrays], bi  );
+					
+					TRIANGLE tris[10];
+					int n = march_one_cube(grid, 40, tris);
+
+					self->cur_triangles = g_realloc(self->cur_triangles,
+						(self->cur_num_triangles+n)*sizeof(TRIANGLE));
+					for (int i = 0; i < n; i++) {
+						//g_debug("triangle: ");
+						//g_debug("\t(%f,%f,%f)", tris[i].p[0].x, tris[i].p[0].y, tris[i].p[0].z);
+						//g_debug("\t(%f,%f,%f)", tris[i].p[1].x, tris[i].p[1].y, tris[i].p[1].z);
+						//g_debug("\t(%f,%f,%f)", tris[i].p[2].x, tris[i].p[2].y, tris[i].p[2].z);
+						self->cur_triangles[self->cur_num_triangles+i] = tris[i];
+					}
+					self->cur_num_triangles += n;
+					//g_debug(" ");
+				}
+			}
+		}
+		break; // Exit after first volume (reflectivity)
+	}
+#endif
 
 	/* Load the first sweep by default */
 	if (radar->h.nvolumes < 1 || radar->v[0]->h.nsweeps < 1) {
@@ -495,8 +604,39 @@ static void _aweather_radar_expose(AWeatherPlugin *_self)
 		return;
 	Sweep *sweep = self->cur_sweep;
 
-	/* Draw the rays */
+#ifdef MARCHING
+	/* Draw the surface */
+	glMatrixMode(GL_MODELVIEW);
+	glPushMatrix();
+	glDisable(GL_TEXTURE_2D);
+	float light_ambient[]  = {0.1f, 0.1f, 0.0f};
+	float light_diffuse[]  = {0.9f, 0.9f, 0.9f};
+	float light_position[] = {-300000.0f, 500000.0f, 400000.0f, 1.0f};
+	glLightfv(GL_LIGHT0, GL_AMBIENT,  light_ambient);
+	glLightfv(GL_LIGHT0, GL_DIFFUSE,  light_diffuse);
+	glLightfv(GL_LIGHT0, GL_POSITION, light_position);
+	glEnable(GL_LIGHT0);
+	glEnable(GL_LIGHTING);
+	glEnable(GL_COLOR_MATERIAL);
+	glColor4f(1,1,1,0.75);
+	g_debug("ntri=%d", self->cur_num_triangles);
+	glBegin(GL_TRIANGLES);
+	for (int i = 0; i < self->cur_num_triangles; i++) {
+		TRIANGLE t = self->cur_triangles[i];
+		do_normal(t.p[0].x, t.p[0].y, t.p[0].z,
+		          t.p[1].x, t.p[1].y, t.p[1].z,
+		          t.p[2].x, t.p[2].y, t.p[2].z);
+		glVertex3f(t.p[0].x, t.p[0].y, t.p[0].z);
+		glVertex3f(t.p[1].x, t.p[1].y, t.p[1].z);
+		glVertex3f(t.p[2].x, t.p[2].y, t.p[2].z);
+	}
+	glEnd();
+	glPopMatrix();
+#endif
 
+	/* Draw the rays */
+	glDisable(GL_LIGHTING);
+	glDisable(GL_COLOR_MATERIAL);
 	glMatrixMode(GL_MODELVIEW);
 	glPushMatrix();
 	glBindTexture(GL_TEXTURE_2D, self->cur_sweep_tex);
@@ -509,11 +649,11 @@ static void _aweather_radar_expose(AWeatherPlugin *_self)
 		double angle = 0;
 		if (ri < sweep->h.nrays) {
 			ray = sweep->ray[ri];
-			angle = ((ray->h.azimuth - ((double)ray->h.beam_width/2.))*M_PI)/180.0; 
+			angle = d2r(ray->h.azimuth - ((double)ray->h.beam_width/2.));
 		} else {
 			/* Do the right side of the last sweep */
 			ray = sweep->ray[ri-1];
-			angle = ((ray->h.azimuth + ((double)ray->h.beam_width/2.))*M_PI)/180.0; 
+			angle = d2r(ray->h.azimuth + ((double)ray->h.beam_width/2.));
 		}
 
 		double lx = sin(angle);
@@ -528,8 +668,10 @@ static void _aweather_radar_expose(AWeatherPlugin *_self)
 		glVertex3f(lx*near_dist, ly*near_dist, 2.0);
 
 		// far  left
+		// todo: correct range-height function
+		double height = sin(d2r(ray->h.elev)) * far_dist;
 		glTexCoord2f(1.0, (double)ri/sweep->h.nrays-0.01);
-		glVertex3f(lx*far_dist,  ly*far_dist,  2.0);
+		glVertex3f(lx*far_dist,  ly*far_dist, height);
 	}
 	//g_print("ri=%d, nr=%d, bw=%f\n", _ri, sweep->h.nrays, sweep->h.beam_width);
 	glEnd();

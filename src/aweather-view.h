@@ -38,6 +38,7 @@ struct _AWeatherView {
 	gchar   *time;
 	gchar   *site;
 	gdouble  location[3];
+	gdouble  rotation[3];
 	gboolean offline;
 };
 
@@ -59,6 +60,10 @@ void aweather_view_set_location(AWeatherView *view, gdouble  x, gdouble  y, gdou
 void aweather_view_get_location(AWeatherView *view, gdouble *x, gdouble *y, gdouble *z);
 void aweather_view_pan         (AWeatherView *view, gdouble  x, gdouble  y, gdouble  z);
 void aweather_view_zoom        (AWeatherView *view, gdouble  scale);
+
+void aweather_view_set_rotation(AWeatherView *view, gdouble  x, gdouble  y, gdouble  z);
+void aweather_view_get_rotation(AWeatherView *view, gdouble *x, gdouble *y, gdouble *z);
+void aweather_view_rotate      (AWeatherView *view, gdouble  x, gdouble  y, gdouble  z);
 
 void aweather_view_refresh(AWeatherView *view);
 

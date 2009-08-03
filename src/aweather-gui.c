@@ -23,6 +23,7 @@
 #include <GL/glu.h>
 #include <math.h>
 
+#include "misc.h"
 #include "aweather-gui.h"
 #include "aweather-view.h"
 #include "aweather-plugin.h"
@@ -97,18 +98,22 @@ gboolean on_drawing_button_press(GtkWidget *widget, GdkEventButton *event, AWeat
 }
 gboolean on_drawing_key_press(GtkWidget *widget, GdkEventKey *event, AWeatherGui *gui)
 {
-	g_debug("AWeatherGui: on_drawing_key_press - key=%x, state=%x",
-			event->keyval, event->state);
+	g_debug("AWeatherGui: on_drawing_key_press - key=%x, state=%x, plus=%x",
+			event->keyval, event->state, GDK_plus);
 	AWeatherView *view = aweather_gui_get_view(gui);
 	double x,y,z;
 	aweather_view_get_location(view, &x, &y, &z);
 	guint kv = event->keyval;
-	if      (kv == GDK_Right || kv == GDK_l) aweather_view_pan(view,  z/10, 0, 0);
-	else if (kv == GDK_Left  || kv == GDK_h) aweather_view_pan(view, -z/10, 0, 0);
-	else if (kv == GDK_Up    || kv == GDK_k) aweather_view_pan(view, 0,  z/10, 0);
+	if      (kv == GDK_Left  || kv == GDK_h) aweather_view_pan(view, -z/10, 0, 0);
 	else if (kv == GDK_Down  || kv == GDK_j) aweather_view_pan(view, 0, -z/10, 0);
+	else if (kv == GDK_Up    || kv == GDK_k) aweather_view_pan(view, 0,  z/10, 0);
+	else if (kv == GDK_Right || kv == GDK_l) aweather_view_pan(view,  z/10, 0, 0);
 	else if (kv == GDK_minus || kv == GDK_o) aweather_view_zoom(view, 10./9);
 	else if (kv == GDK_plus  || kv == GDK_i) aweather_view_zoom(view, 9./10);
+	else if (kv == GDK_H                   ) aweather_view_rotate(view,  0, -10, 0);
+	else if (kv == GDK_J                   ) aweather_view_rotate(view,  10,  0, 0);
+	else if (kv == GDK_K                   ) aweather_view_rotate(view, -10,  0, 0);
+	else if (kv == GDK_L                   ) aweather_view_rotate(view,  0,  10, 0);
 	return TRUE;
 }
 
@@ -246,11 +251,10 @@ gboolean on_configure(GtkWidget *da, GdkEventConfigure *event, AWeatherGui *gui)
 	/* Perspective */
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	double rad  = atan((height/2)/500);
-	double deg  = (rad*180)/M_PI;
+	double ang = atan((height/2)/500);
 
-	gluPerspective(deg*2, width/height, -z-20, -z+20);
-	//gluPerspective(deg*2, width/height, 1, 500*1000);
+	//gluPerspective(r2d(ang)*2, width/height, -z-20, -z+20);
+	gluPerspective(r2d(ang)*2, width/height, 1, 500*1000);
 
 	aweather_gui_gl_end(gui);
 	return FALSE;
@@ -261,15 +265,18 @@ gboolean on_expose(GtkWidget *da, GdkEventExpose *event, AWeatherGui *gui)
 	g_debug("AWeatherGui: on_expose - begin");
 	aweather_gui_gl_begin(gui);
 
-	double x, y, z;
+	double lx, ly, lz;
+	double rx, ry, rz;
 	AWeatherView *view = aweather_gui_get_view(gui);
-	aweather_view_get_location(view, &x, &y, &z);
+	aweather_view_get_location(view, &lx, &ly, &lz);
+	aweather_view_get_rotation(view, &rx, &ry, &rz);
 
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
-	glTranslatef(x, y, z);
-
-	//glRotatef(-45, 1, 0, 0);
+	glTranslatef(lx, ly, lz);
+	glRotatef(rx, 1, 0, 0);
+	glRotatef(ry, 0, 1, 0);
+	glRotatef(rz, 0, 0, 1);
 
 	/* Expose plugins */
 	for (GList *cur = gui->plugins; cur; cur = cur->next) {
@@ -283,7 +290,7 @@ gboolean on_expose(GtkWidget *da, GdkEventExpose *event, AWeatherGui *gui)
 	return FALSE;
 }
 
-void on_location_changed(AWeatherView *view,
+void on_state_changed(AWeatherView *view,
 		gdouble x, gdouble y, gdouble z, AWeatherGui *gui)
 {
 	/* Reset clipping area and redraw */
@@ -436,7 +443,9 @@ AWeatherGui *aweather_gui_new()
 	g_signal_connect(self, "key-press-event",
 			G_CALLBACK(on_gui_key_press), self);
 	g_signal_connect(self->view, "location-changed",
-			G_CALLBACK(on_location_changed), self);
+			G_CALLBACK(on_state_changed), self);
+	g_signal_connect(self->view, "rotation-changed",
+			G_CALLBACK(on_state_changed), self);
 	g_signal_connect_swapped(self->view, "offline",
 			G_CALLBACK(gtk_toggle_action_set_active),
 			aweather_gui_get_object(self, "offline"));

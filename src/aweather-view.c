@@ -33,6 +33,7 @@ enum {
 	SIG_TIME_CHANGED,
 	SIG_SITE_CHANGED,
 	SIG_LOCATION_CHANGED,
+	SIG_ROTATION_CHANGED,
 	SIG_REFRESH,
 	SIG_OFFLINE,
 	NUM_SIGNALS,
@@ -50,6 +51,9 @@ static void aweather_view_init(AWeatherView *self)
 	self->location[0] = 0;
 	self->location[1] = 0;
 	self->location[2] = -300*1000;
+	self->rotation[0] = 0;
+	self->rotation[1] = 0;
+	self->rotation[2] = 0;
 	self->offline = FALSE;
 }
 static void aweather_view_dispose(GObject *gobject)
@@ -143,6 +147,19 @@ static void aweather_view_class_init(AWeatherViewClass *klass)
 			G_TYPE_DOUBLE,
 			G_TYPE_DOUBLE,
 			G_TYPE_DOUBLE);
+	signals[SIG_ROTATION_CHANGED] = g_signal_new(
+			"rotation-changed",
+			G_TYPE_FROM_CLASS(gobject_class),
+			G_SIGNAL_RUN_LAST,
+			0,
+			NULL,
+			NULL,
+			aweather_cclosure_marshal_VOID__DOUBLE_DOUBLE_DOUBLE,
+			G_TYPE_NONE,
+			3,
+			G_TYPE_DOUBLE,
+			G_TYPE_DOUBLE,
+			G_TYPE_DOUBLE);
 	signals[SIG_REFRESH] = g_signal_new(
 			"refresh",
 			G_TYPE_FROM_CLASS(gobject_class),
@@ -173,6 +190,13 @@ static void _aweather_view_emit_location_changed(AWeatherView *view)
 			view->location[0],
 			view->location[1],
 			view->location[2]);
+}
+static void _aweather_view_emit_rotation_changed(AWeatherView *view)
+{
+	g_signal_emit(view, signals[SIG_ROTATION_CHANGED], 0, 
+			view->rotation[0],
+			view->rotation[1],
+			view->rotation[2]);
 }
 static void _aweather_view_emit_time_changed(AWeatherView *view)
 {
@@ -255,6 +279,35 @@ void aweather_view_zoom(AWeatherView *view, gdouble scale)
 	g_debug("AWeatherView: zoom");
 	view->location[2] *= scale;
 	_aweather_view_emit_location_changed(view);
+}
+
+void aweather_view_set_rotation(AWeatherView *view, gdouble x, gdouble y, gdouble z)
+{
+	g_assert(AWEATHER_IS_VIEW(view));
+	g_debug("AWeatherView: set_rotation");
+	view->rotation[0] = x;
+	view->rotation[1] = y;
+	view->rotation[2] = z;
+	_aweather_view_emit_rotation_changed(view);
+}
+
+void aweather_view_get_rotation(AWeatherView *view, gdouble *x, gdouble *y, gdouble *z)
+{
+	g_assert(AWEATHER_IS_VIEW(view));
+	g_debug("AWeatherView: get_rotation");
+	*x = view->rotation[0];
+	*y = view->rotation[1];
+	*z = view->rotation[2];
+}
+
+void aweather_view_rotate(AWeatherView *view, gdouble x, gdouble y, gdouble z)
+{
+	g_assert(AWEATHER_IS_VIEW(view));
+	g_debug("AWeatherView: rotate - x=%.0f, y=%.0f, z=%.0f", x, y, z);
+	view->rotation[0] += x;
+	view->rotation[1] += y;
+	view->rotation[2] += z;
+	_aweather_view_emit_rotation_changed(view);
 }
 
 void aweather_view_refresh(AWeatherView *view)
