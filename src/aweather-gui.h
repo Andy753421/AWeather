@@ -20,7 +20,9 @@
 
 #include <gtk/gtk.h>
 #include <glib-object.h>
-#include "aweather-view.h"
+#include "gis-opengl.h"
+#include "gis-world.h"
+#include "gis-view.h"
 #include "aweather-plugin.h"
 
 /* Type macros */
@@ -38,9 +40,11 @@ struct _AWeatherGui {
 	GtkWindow parent_instance;
 
 	/* instance members */
-	AWeatherView   *view;
-	GtkBuilder     *builder;
-	GList          *plugins;
+	GisWorld   *world;
+	GisView    *view;
+	GisOpenGL  *opengl;
+	GtkBuilder *builder;
+	GList      *plugins;
 };
 
 struct _AWeatherGuiClass {
@@ -53,13 +57,14 @@ GType aweather_gui_get_type(void);
 
 /* Methods */
 AWeatherGui    *aweather_gui_new();
-AWeatherView   *aweather_gui_get_view(AWeatherGui *gui);
+
+GisWorld       *aweather_gui_get_world(AWeatherGui *gui);
+GisOpenGL      *aweather_gui_get_opengl(AWeatherGui *gui);
+GisView        *aweather_gui_get_view(AWeatherGui *gui);
+
 GtkWidget      *aweather_gui_get_widget(AWeatherGui *gui, const gchar *name);
 GObject        *aweather_gui_get_object(AWeatherGui *gui, const gchar *name);
+
 void            aweather_gui_register_plugin(AWeatherGui *gui, AWeatherPlugin *plugin);
-void            aweather_gui_gl_redraw(AWeatherGui *gui);
-void            aweather_gui_gl_begin(AWeatherGui *gui);
-void            aweather_gui_gl_end(AWeatherGui *gui);
-void            aweather_gui_gl_flush(AWeatherGui *gui);
 
 #endif

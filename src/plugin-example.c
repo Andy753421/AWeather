@@ -73,12 +73,12 @@ static void aweather_example_class_init(AWeatherExampleClass *klass)
 /***********
  * Helpers *
  ***********/
-static gboolean rotate(gpointer _example)
+static gboolean rotate(gpointer _self)
 {
-	AWeatherExample *example = _example;
-	if (gtk_toggle_button_get_active(example->button)) {
-		example->rotation += 1.0;
-		aweather_gui_gl_redraw(example->gui);
+	AWeatherExample *self = _self;
+	if (gtk_toggle_button_get_active(self->button)) {
+		self->rotation += 1.0;
+		gis_opengl_redraw(aweather_gui_get_opengl(self->gui));
 	}
 	return TRUE;
 }

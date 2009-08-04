@@ -110,7 +110,8 @@ static layer_t layers[] = {
  */
 void load_texture(AWeatherRidge *self, layer_t *layer, gchar *filename)
 {
-	aweather_gui_gl_begin(self->gui);
+	GisOpenGL *opengl = aweather_gui_get_opengl(self->gui);
+	gis_opengl_begin(opengl);
 
 	/* Load image */
 	GError *error = NULL;
@@ -142,12 +143,12 @@ void load_texture(AWeatherRidge *self, layer_t *layer, gchar *filename)
 		base);
 	g_free(base);
 
-	aweather_gui_gl_end(self->gui);
+	gis_opengl_end(opengl);
 
 	g_object_unref(pixbuf);
 
 	/* Redraw */
-	aweather_gui_gl_redraw(self->gui);
+	gis_opengl_redraw(opengl);
 }
 
 
@@ -168,7 +169,7 @@ void cached_cb(gchar *filename, gboolean updated, gpointer _udata)
 /*************
  * callbacks *
  *************/
-static void on_site_changed(AWeatherView *view, gchar *site, AWeatherRidge *self)
+static void on_site_changed(GisView *view, gchar *site, AWeatherRidge *self)
 {
 	g_debug("AWeatherRidge: on_site_changed - site=%s", site);
 	for (int i = 0; i < LAYER_COUNT; i++) {
@@ -183,11 +184,11 @@ static void on_site_changed(AWeatherView *view, gchar *site, AWeatherRidge *self
 	}
 }
 
-void toggle_layer(GtkToggleButton *check, AWeatherGui *gui)
+void toggle_layer(GtkToggleButton *check, AWeatherRidge *self)
 {
 	layer_t *layer = g_object_get_data(G_OBJECT(check), "layer");
 	layer->enabled = gtk_toggle_button_get_active(check);
-	aweather_gui_gl_redraw(gui);
+	gis_opengl_redraw(aweather_gui_get_opengl(self->gui));
 }
 
 /***********
@@ -195,10 +196,10 @@ void toggle_layer(GtkToggleButton *check, AWeatherGui *gui)
  ***********/
 AWeatherRidge *aweather_ridge_new(AWeatherGui *gui)
 {
-	AWeatherRidge *ridge = g_object_new(AWEATHER_TYPE_RIDGE, NULL);
-	ridge->gui = gui;
+	AWeatherRidge *self = g_object_new(AWEATHER_TYPE_RIDGE, NULL);
+	self->gui = gui;
 
-	AWeatherView *view    = aweather_gui_get_view(gui);
+	GisView *view    = aweather_gui_get_view(gui);
 	GtkWidget    *drawing = aweather_gui_get_widget(gui, "drawing");
 	GtkWidget    *config  = aweather_gui_get_widget(gui, "tabs");
 
@@ -211,14 +212,14 @@ AWeatherRidge *aweather_ridge_new(AWeatherGui *gui)
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(check), layers[i].enabled);
 		gtk_box_pack_start(GTK_BOX(hbox), check, FALSE, TRUE, 0);
 		g_object_set_data(G_OBJECT(check), "layer", &layers[i]);
-		g_signal_connect(check, "toggled", G_CALLBACK(toggle_layer), gui);
+		g_signal_connect(check, "toggled", G_CALLBACK(toggle_layer), self);
 	}
 	gtk_container_add(GTK_CONTAINER(body), hbox);
 	gtk_notebook_append_page(GTK_NOTEBOOK(config), body, tab);
 
-	g_signal_connect(view, "site-changed", G_CALLBACK(on_site_changed),  ridge);
+	g_signal_connect(view, "site-changed", G_CALLBACK(on_site_changed), self);
 
-	return ridge;
+	return self;
 }
 
 static void aweather_ridge_expose(AWeatherPlugin *_ridge)

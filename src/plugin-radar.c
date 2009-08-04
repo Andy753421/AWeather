@@ -122,7 +122,8 @@ static void bscan_sweep(AWeatherRadar *self, Sweep *sweep, colormap_t *colormap,
 /* Load a sweep as the active texture */
 static void load_sweep(AWeatherRadar *self, Sweep *sweep)
 {
-	aweather_gui_gl_begin(self->gui);
+	GisOpenGL *opengl = aweather_gui_get_opengl(self->gui);
+	gis_opengl_begin(opengl);
 	self->cur_sweep = sweep;
 	int height, width;
 	guint8 *data;
@@ -137,8 +138,8 @@ static void load_sweep(AWeatherRadar *self, Sweep *sweep)
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0,
 			GL_RGBA, GL_UNSIGNED_BYTE, data);
 	g_free(data);
-	aweather_gui_gl_redraw(self->gui);
-	aweather_gui_gl_end(self->gui);
+	gis_opengl_redraw(opengl);
+	gis_opengl_end(opengl);
 }
 
 static void load_colormap(AWeatherRadar *self, gchar *table)
@@ -385,8 +386,8 @@ static void update_times_gtk(AWeatherRadar *self, GList *times)
 		}
 	}
 
-	AWeatherView *view = aweather_gui_get_view(self->gui);
-	aweather_view_set_time(view, last_time);
+	GisView *view = aweather_gui_get_view(self->gui);
+	gis_view_set_time(view, last_time);
 
 	g_regex_unref(regex);
 	g_list_foreach(times, (GFunc)g_free, NULL);
@@ -409,9 +410,10 @@ static void update_times_online_cb(char *path, gboolean updated, gpointer _self)
 
 	update_times_gtk(_self, times);
 }
-static void update_times(AWeatherRadar *self, AWeatherView *view, char *site)
+static void update_times(AWeatherRadar *self, GisView *view, char *site)
 {
-	if (aweather_view_get_offline(view)) {
+	GisWorld *world = aweather_gui_get_world(self->gui);
+	if (gis_world_get_offline(world)) {
 		GList *times = NULL;
 		gchar *path = g_build_filename(g_get_user_cache_dir(), PACKAGE, "nexrd2", "raw", site, NULL);
 		GDir *dir = g_dir_open(path, 0, NULL);
@@ -514,12 +516,12 @@ static void on_sweep_clicked(GtkRadioButton *button, gpointer _self)
 	load_sweep   (self, g_object_get_data(G_OBJECT(button), "sweep"));
 }
 
-static void on_time_changed(AWeatherView *view, const char *time, gpointer _self)
+static void on_time_changed(GisView *view, const char *time, gpointer _self)
 {
 	AWeatherRadar *self = AWEATHER_RADAR(_self);
 	g_debug("AWeatherRadar: on_time_changed - setting time=%s", time);
 	// format: http://mesonet.agron.iastate.edu/data/nexrd2/raw/KABR/KABR_20090510_0323
-	char *site = aweather_view_get_site(view);
+	char *site = gis_view_get_site(view);
 	char *path = g_strdup_printf("nexrd2/raw/%s/%s_%s", site, site, time);
 
 	/* Set up progress bar */
@@ -540,14 +542,14 @@ static void on_time_changed(AWeatherView *view, const char *time, gpointer _self
 		RSL_free_radar(self->cur_radar);
 	self->cur_radar = NULL;
 	self->cur_sweep = NULL;
-	aweather_gui_gl_redraw(self->gui);
+	gis_opengl_redraw(aweather_gui_get_opengl(self->gui));
 
 	/* Start loading the new radar */
 	if (self->soup) {
 		soup_session_abort(self->soup);
 		self->soup = NULL;
 	}
-	if (aweather_view_get_offline(view)) 
+	if (gis_world_get_offline(aweather_gui_get_world(self->gui))) 
 		self->soup = cache_file(nexrad_base, path, AWEATHER_ONCE,
 				cache_chunk_cb, cache_done_cb, self);
 	else 
@@ -556,17 +558,18 @@ static void on_time_changed(AWeatherView *view, const char *time, gpointer _self
 	g_free(path);
 }
 
-static void on_site_changed(AWeatherView *view, char *site, gpointer _self)
+static void on_site_changed(GisView *view, char *site, gpointer _self)
 {
 	AWeatherRadar *self = AWEATHER_RADAR(_self);
 	g_debug("AWeatherRadar: on_site_changed - Loading wsr88d list for %s", site);
-	update_times(self, view, site), &time;
+	update_times(self, view, site);
 }
 
-static void on_refresh(AWeatherView *view, gpointer _self)
+static void on_refresh(GisWorld *world, gpointer _self)
 {
 	AWeatherRadar *self = AWEATHER_RADAR(_self);
-	char *site = aweather_view_get_site(view);
+	GisView *view = aweather_gui_get_view(AWEATHER_RADAR(_self)->gui);
+	char *site = gis_view_get_site(view);
 	update_times(self, view, site);
 }
 
@@ -577,10 +580,9 @@ AWeatherRadar *aweather_radar_new(AWeatherGui *gui)
 {
 	g_debug("AWeatherRadar: new");
 	AWeatherRadar *self = g_object_new(AWEATHER_TYPE_RADAR, NULL);
-	self->gui = gui;
+	self->gui  = gui;
 
 	GtkWidget    *config  = aweather_gui_get_widget(gui, "tabs");
-	AWeatherView *view    = aweather_gui_get_view(gui);
 
 	/* Add configuration tab */
 	self->config_body = gtk_alignment_new(0, 0, 1, 1);
@@ -589,9 +591,11 @@ AWeatherRadar *aweather_radar_new(AWeatherGui *gui)
 	gtk_notebook_prepend_page(GTK_NOTEBOOK(config), self->config_body, gtk_label_new("Radar"));
 
 	/* Set up OpenGL Stuff */
-	g_signal_connect(view,    "site-changed", G_CALLBACK(on_site_changed), self);
-	g_signal_connect(view,    "time-changed", G_CALLBACK(on_time_changed), self);
-	g_signal_connect(view,    "refresh",      G_CALLBACK(on_refresh),      self);
+	GisView  *view  = aweather_gui_get_view(gui);
+	GisWorld *world = aweather_gui_get_world(gui);
+	g_signal_connect(view,  "site-changed", G_CALLBACK(on_site_changed), self);
+	g_signal_connect(view,  "time-changed", G_CALLBACK(on_time_changed), self);
+	g_signal_connect(world, "refresh",      G_CALLBACK(on_refresh),      self);
 
 	return self;
 }

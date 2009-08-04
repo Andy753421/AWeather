@@ -6,8 +6,10 @@ BUILT_SOURCES = marshal.c marshal.h
 aweather_SOURCES  = main.c \
 	marshal.c         marshal.h         \
 	aweather-gui.c    aweather-gui.h    \
-	aweather-view.c   aweather-view.h   \
 	aweather-plugin.c aweather-plugin.h \
+	gis-opengl.c      gis-opengl.h      \
+	gis-view.c        gis-view.h        \
+	gis-world.c       gis-world.h       \
 	data.c            data.h            \
 	location.c        location.h        \
 	marching.c        marching.h        \
