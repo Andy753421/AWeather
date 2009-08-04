@@ -202,9 +202,6 @@
                     <property name="has_default">True</property>
                     <property name="receives_default">True</property>
                     <property name="events">GDK_POINTER_MOTION_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK | GDK_KEY_PRESS_MASK | GDK_KEY_RELEASE_MASK | GDK_ENTER_NOTIFY_MASK | GDK_STRUCTURE_MASK</property>
-                    <signal name="button_press_event" handler="on_drawing_button_press"/>
-                    <signal name="key_press_event" handler="on_drawing_key_press"/>
-                    <signal name="enter_notify_event" handler="on_drawing_button_press"/>
                   </object>
                   <packing>
                     <property name="resize">True</property>
