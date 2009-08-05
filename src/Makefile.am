@@ -1,3 +1,5 @@
+SUBDIRS = plugins
+
 AM_CFLAGS     = -Wall -Werror -Wno-unused --std=gnu99 
 bin_PROGRAMS  = aweather wsr88ddec
 
@@ -12,12 +14,10 @@ aweather_SOURCES  = main.c \
 	gis-world.c       gis-world.h       \
 	data.c            data.h            \
 	location.c        location.h        \
-	marching.c        marching.h        \
-	plugin-radar.c    plugin-radar.h    \
-	plugin-radar-colormap.c             \
-	plugin-ridge.c    plugin-ridge.h    \
-	plugin-example.c  plugin-example.h
-aweather_CPPFLAGS = -DDATADIR="\"$(datadir)\"" \
+	marching.c        marching.h
+aweather_CPPFLAGS = \
+	-DDATADIR="\"$(datadir)\"" \
+	-DPLUGINDIR="\"$(libdir)/aweather\"" \
 	$(RSL_CFLAGS) $(SOUP_CFLAGS) $(GLIB_CFLAGS) $(GTK_CFLAGS)
 aweather_LDADD    = $(RSL_LIBS) $(SOUP_LIBS) $(GLIB_LIBS) $(GTK_LIBS)
 

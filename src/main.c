@@ -20,11 +20,9 @@
 #include <gtk/gtkgl.h>
 
 #include "aweather-gui.h"
+#include "aweather-plugin.h"
 #include "gis-view.h"
 #include "gis-world.h"
-#include "plugin-radar.h"
-#include "plugin-ridge.h"
-#include "plugin-example.h"
 
 static gint log_levels = 0;
 
@@ -33,6 +31,12 @@ static void log_func(const gchar *log_domain, GLogLevelFlags log_level,
 {
 	if (log_level & log_levels)
 		g_log_default_handler(log_domain, log_level, message, udata);
+}
+
+static void on_log_level_changed(GtkSpinButton *spinner, AWeatherGui *self)
+{
+	gint value = gtk_spin_button_get_value_as_int(spinner);
+	log_levels = (1 << (value+1))-1;
 }
 
 static gulong on_map_id = 0;
@@ -73,27 +77,23 @@ int main(int argc, char *argv[])
 	}
 	gtk_gl_init(&argc, &argv);
 
-	/* Finish arguments */
-	log_levels = (1 << (opt_debug+1))-1;
-
 	/* Logging */
+	log_levels = (1 << (opt_debug+1))-1;
 	g_log_set_handler(NULL, G_LOG_LEVEL_MASK, log_func, NULL);
 
 	/* Set up AWeather */
 	/* TODO: Figure out a better way to do plugins
 	 *    AWeatherPlugin interface for tabs?
 	 *    GisPlugin      interface for expose? */
-	AWeatherGui  *gui  = aweather_gui_new();
-	GisWorld  *world  = aweather_gui_get_world(gui);
-	GisOpenGL *opengl = aweather_gui_get_opengl(gui);
+	AWeatherGui *gui    = aweather_gui_new();
+	GisWorld    *world  = aweather_gui_get_world(gui);
+	GisOpenGL   *opengl = aweather_gui_get_opengl(gui);
+
 	gis_world_set_offline(world, opt_offline);
 	on_map_id = g_signal_connect(gui, "map-event", G_CALLBACK(on_map), opt_site);
 
-	/* Load plugins */
-	aweather_gui_register_plugin(gui, AWEATHER_PLUGIN(aweather_example_new(gui)));
-	aweather_gui_register_plugin(gui, AWEATHER_PLUGIN(aweather_ridge_new(gui)));
-	aweather_gui_register_plugin(gui, AWEATHER_PLUGIN(aweather_radar_new(gui)));
-	opengl->plugins = gui->plugins;
+	GObject *action = aweather_gui_get_object(gui, "log_level");
+	g_signal_connect(action, "changed", G_CALLBACK(on_log_level_changed), NULL);
 
 	gtk_widget_show_all(GTK_WIDGET(gui));
 	gtk_main();

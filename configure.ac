@@ -5,6 +5,7 @@ AC_CONFIG_HEADERS([config.h])
 
 # Check for required programs
 AC_PROG_CC
+AC_PROG_LIBTOOL
 PKG_PROG_PKG_CONFIG
 GTK_DOC_CHECK(1.9)
 
@@ -23,6 +24,7 @@ AC_SUBST(RSL_LIBS,   "-lrsl")
 AC_CONFIG_FILES([
 	Makefile
 	src/Makefile
+	src/plugins/Makefile
 	data/Makefile
 	docs/Makefile
 	docs/api/Makefile

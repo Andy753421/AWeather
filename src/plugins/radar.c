@@ -25,7 +25,7 @@
 
 #include "misc.h"
 #include "aweather-gui.h"
-#include "plugin-radar.h"
+#include "radar.h"
 #include "data.h"
 #include "marching.h"
 
@@ -191,7 +191,7 @@ static void load_radar_gui(AWeatherRadar *self, Radar *radar)
 					g_snprintf(col_label_str, 64, "<b>%.2f°</b>", elev);
 					col_label = gtk_label_new(col_label_str);
 					gtk_label_set_use_markup(GTK_LABEL(col_label), TRUE);
-					gtk_widget_set_size_request(col_label, 70, -1);
+					gtk_widget_set_size_request(col_label, 50, -1);
 					gtk_table_attach(GTK_TABLE(table), col_label,
 							cols-1,cols, 0,1, GTK_FILL,GTK_FILL, 0,0);
 				}
@@ -596,6 +596,8 @@ AWeatherRadar *aweather_radar_new(AWeatherGui *gui)
 	g_signal_connect(view,  "site-changed", G_CALLBACK(on_site_changed), self);
 	g_signal_connect(view,  "time-changed", G_CALLBACK(on_time_changed), self);
 	g_signal_connect(world, "refresh",      G_CALLBACK(on_refresh),      self);
+
+	on_site_changed(view, gis_view_get_site(view), self);
 
 	return self;
 }

@@ -24,6 +24,10 @@
  * GObject code *
  ****************/
 /* Constants */
+double WGS884_SEMI_MAJOR = 6378137.0;      // a
+double WGS884_SEMI_MINOR = 6356752.314245; // b
+double WGS884_INV_FLAT   = 298.257223563;  // 1/f
+
 enum {
 	SIG_REFRESH,
 	SIG_OFFLINE,

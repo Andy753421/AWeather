@@ -21,14 +21,14 @@
 #include <GL/gl.h>
 
 #include "aweather-gui.h"
-#include "plugin-example.h"
+#include "example.h"
 
 /****************
  * GObject code *
  ****************/
 /* Plugin init */
 static void aweather_example_plugin_init(AWeatherPluginInterface *iface);
-static void aweather_example_expose(AWeatherPlugin *_example);
+static void aweather_example_expose(AWeatherPlugin *_self);
 G_DEFINE_TYPE_WITH_CODE(AWeatherExample, aweather_example, G_TYPE_OBJECT,
 		G_IMPLEMENT_INTERFACE(AWEATHER_TYPE_PLUGIN,
 			aweather_example_plugin_init));
@@ -39,13 +39,13 @@ static void aweather_example_plugin_init(AWeatherPluginInterface *iface)
 	iface->expose = aweather_example_expose;
 }
 /* Class/Object init */
-static void aweather_example_init(AWeatherExample *example)
+static void aweather_example_init(AWeatherExample *self)
 {
 	g_debug("AWeatherExample: init");
 	/* Set defaults */
-	example->gui      = NULL;
-	example->button   = NULL;
-	example->rotation = 30.0;
+	self->gui      = NULL;
+	self->button   = NULL;
+	self->rotation = 30.0;
 }
 static void aweather_example_dispose(GObject *gobject)
 {
@@ -89,27 +89,27 @@ static gboolean rotate(gpointer _self)
 AWeatherExample *aweather_example_new(AWeatherGui *gui)
 {
 	g_debug("AWeatherExample: new");
-	AWeatherExample *example = g_object_new(AWEATHER_TYPE_EXAMPLE, NULL);
-	example->gui = gui;
+	AWeatherExample *self = g_object_new(AWEATHER_TYPE_EXAMPLE, NULL);
+	self->gui = gui;
 
 	GtkWidget *drawing = aweather_gui_get_widget(gui, "drawing");
 	GtkWidget *config  = aweather_gui_get_widget(gui, "tabs");
 
 	/* Add configuration tab */
 	GtkWidget *label = gtk_label_new("Example");
-	example->button = GTK_TOGGLE_BUTTON(gtk_toggle_button_new_with_label("Rotate"));
-	gtk_notebook_append_page(GTK_NOTEBOOK(config), GTK_WIDGET(example->button), label);
+	self->button = GTK_TOGGLE_BUTTON(gtk_toggle_button_new_with_label("Rotate"));
+	gtk_notebook_append_page(GTK_NOTEBOOK(config), GTK_WIDGET(self->button), label);
 
 	/* Set up OpenGL Stuff */
 	//g_signal_connect(drawing, "expose-event", G_CALLBACK(expose), NULL);
-	g_timeout_add(1000/60, rotate, example);
+	g_timeout_add(1000/60, rotate, self);
 
-	return example;
+	return self;
 }
 
-static void aweather_example_expose(AWeatherPlugin *_example)
+static void aweather_example_expose(AWeatherPlugin *_self)
 {
-	AWeatherExample *example = AWEATHER_EXAMPLE(_example);
+	AWeatherExample *self = AWEATHER_EXAMPLE(_self);
 	g_debug("AWeatherExample: expose");
 	glDisable(GL_TEXTURE_2D);
 	glMatrixMode(GL_PROJECTION); glPushMatrix(); glLoadIdentity();
@@ -127,7 +127,7 @@ static void aweather_example_expose(AWeatherPlugin *_example)
 	glEnable(GL_COLOR_MATERIAL);
 
 	glTranslatef(0.5, -0.5, -2);
-	glRotatef(example->rotation, 1, 0, 1);
+	glRotatef(self->rotation, 1, 0, 1);
 	glColor4f(0.9, 0.9, 0.7, 1.0);
 	gdk_gl_draw_teapot(TRUE, 0.25);
 	gdk_gl_draw_cube(TRUE, 0.25);

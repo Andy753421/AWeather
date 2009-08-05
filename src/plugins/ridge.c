@@ -23,7 +23,7 @@
 #include <stdio.h>
 
 #include "aweather-gui.h"
-#include "plugin-ridge.h"
+#include "ridge.h"
 #include "data.h"
 
 /****************
@@ -199,9 +199,10 @@ AWeatherRidge *aweather_ridge_new(AWeatherGui *gui)
 	AWeatherRidge *self = g_object_new(AWEATHER_TYPE_RIDGE, NULL);
 	self->gui = gui;
 
-	GisView *view    = aweather_gui_get_view(gui);
-	GtkWidget    *drawing = aweather_gui_get_widget(gui, "drawing");
-	GtkWidget    *config  = aweather_gui_get_widget(gui, "tabs");
+	GisView   *view    = aweather_gui_get_view(gui);
+	GtkWidget *drawing = aweather_gui_get_widget(gui, "drawing");
+	GtkWidget *config  = aweather_gui_get_widget(gui, "tabs");
+	g_debug("config = %p", aweather_gui_get_widget(gui, "tabs"));
 
 	/* Add configuration tab */
 	GtkWidget *tab  = gtk_label_new("Ridge");
@@ -218,6 +219,7 @@ AWeatherRidge *aweather_ridge_new(AWeatherGui *gui)
 	gtk_notebook_append_page(GTK_NOTEBOOK(config), body, tab);
 
 	g_signal_connect(view, "site-changed", G_CALLBACK(on_site_changed), self);
+	on_site_changed(view, gis_view_get_site(view), self);
 
 	return self;
 }

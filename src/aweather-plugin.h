@@ -39,6 +39,7 @@ struct _AWeatherPluginInterface
 
 GType aweather_plugin_get_type();
 
+/* Methods */
 void aweather_plugin_expose(AWeatherPlugin *self);
 
 #endif

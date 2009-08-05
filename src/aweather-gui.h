@@ -40,11 +40,13 @@ struct _AWeatherGui {
 	GtkWindow parent_instance;
 
 	/* instance members */
+	GtkBuilder *builder;
 	GisWorld   *world;
 	GisView    *view;
 	GisOpenGL  *opengl;
-	GtkBuilder *builder;
 	GList      *plugins;
+	GKeyFile   *prefs;
+	GtkListStore *gtk_plugins;
 };
 
 struct _AWeatherGuiClass {
@@ -56,15 +58,16 @@ struct _AWeatherGuiClass {
 GType aweather_gui_get_type(void);
 
 /* Methods */
-AWeatherGui    *aweather_gui_new();
+AWeatherGui *aweather_gui_new();
 
-GisWorld       *aweather_gui_get_world(AWeatherGui *gui);
-GisOpenGL      *aweather_gui_get_opengl(AWeatherGui *gui);
-GisView        *aweather_gui_get_view(AWeatherGui *gui);
+GisWorld    *aweather_gui_get_world(AWeatherGui *gui);
+GisOpenGL   *aweather_gui_get_opengl(AWeatherGui *gui);
+GisView     *aweather_gui_get_view(AWeatherGui *gui);
 
-GtkWidget      *aweather_gui_get_widget(AWeatherGui *gui, const gchar *name);
-GObject        *aweather_gui_get_object(AWeatherGui *gui, const gchar *name);
+GtkWidget   *aweather_gui_get_widget(AWeatherGui *gui, const gchar *name);
+GObject     *aweather_gui_get_object(AWeatherGui *gui, const gchar *name);
 
-void            aweather_gui_register_plugin(AWeatherGui *gui, AWeatherPlugin *plugin);
+gboolean     aweather_gui_load_plugin(AWeatherGui *gui, const gchar *name);
+gboolean     aweather_gui_unload_plugin(AWeatherGui *gui, const gchar *name);
 
 #endif
