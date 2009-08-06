@@ -34,9 +34,10 @@ struct _GisPluginExample {
 	GObject parent_instance;
 
 	/* instance members */
-	GisOpenGL       *opengl;
 	GtkToggleButton *button;
+	guint            rotate_id;
 	float            rotation;
+	GisOpenGL       *opengl;
 };
 
 struct _GisPluginExampleClass {

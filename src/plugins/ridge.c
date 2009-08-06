@@ -179,8 +179,7 @@ static void on_site_changed(GisView *view, gchar *site, GisPluginRidge *self)
 		cached_t *udata = g_malloc(sizeof(cached_t));
 		udata->self  = self;
 		udata->layer = &layers[i];
-		cache_file(base, path, AWEATHER_ONCE, NULL, cached_cb, udata);
-		//cache_file(base, path, AWEATHER_UPDATE, cached_cb, udata);
+		cache_file(base, path, GIS_ONCE, NULL, cached_cb, udata);
 		g_free(path);
 	}
 }

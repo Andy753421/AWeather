@@ -137,8 +137,8 @@ gboolean on_configure(GtkWidget *drawing, GdkEventConfigure *event, GisOpenGL *s
 	gis_view_get_location(self->view, &x, &y, &z);
 
 	/* Window is at 500 m from camera */
-	double width  = drawing->allocation.width;
-	double height = drawing->allocation.height;
+	double width  = GTK_WIDGET(self->drawing)->allocation.width;
+	double height = GTK_WIDGET(self->drawing)->allocation.height;
 
 	glViewport(0, 0, width, height);
 
@@ -198,7 +198,6 @@ GisOpenGL *gis_opengl_new(GisWorld *world, GisView *view, GtkDrawingArea *drawin
 	self->world   = world;
 	self->view    = view;
 	self->drawing = drawing;
-	g_message("drawing = %p", drawing);
 	g_object_ref(world);
 	g_object_ref(view);
 	g_object_ref(drawing);
@@ -235,7 +234,6 @@ void gis_opengl_begin(GisOpenGL *self)
 {
 	g_assert(GIS_IS_OPENGL(self));
 
-	g_message("drawing = %p", self->drawing);
 	GdkGLContext   *glcontext  = gtk_widget_get_gl_context(GTK_WIDGET(self->drawing));
 	GdkGLDrawable  *gldrawable = gtk_widget_get_gl_drawable(GTK_WIDGET(self->drawing));
 

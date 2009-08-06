@@ -2,7 +2,7 @@ AM_CFLAGS   = -Wall -Werror -Wno-unused --std=gnu99  -I../
 AM_CPPFLAGS = $(GLIB_CFLAGS) $(GTK_CFLAGS)
 AM_LDFLAGS  = -module $(GLIB_LIBS) $(GTK_LIBS)
 
-plugindir = $(libdir)/aweather
+plugindir = $(libdir)/gis
 
 plugin_LTLIBRARIES = \
 	example.la \

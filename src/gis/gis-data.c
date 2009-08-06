@@ -26,8 +26,8 @@ typedef struct {
 	gchar *uri;
 	gchar *local;
 	FILE  *fp;
-	AWeatherCacheDoneCallback  user_done_cb;
-	AWeatherCacheChunkCallback user_chunk_cb;
+	GisDataCacheDoneCallback  user_done_cb;
+	GisDataCacheChunkCallback user_chunk_cb;
 	gpointer user_data;
 } cache_file_end_t;
 
@@ -111,12 +111,20 @@ static SoupSession *do_cache(cache_file_end_t *info, gboolean truncate, gchar *r
  * \param  path  Path to the Ridge file, starting after /ridge/
  * \return The local path to the cached image
  */
-SoupSession *cache_file(char *base, char *path, AWeatherCacheType update,
-		AWeatherCacheChunkCallback user_chunk_cb,
-		AWeatherCacheDoneCallback user_done_cb,
+SoupSession *cache_file(char *base, char *path, GisDataCacheType update,
+		GisDataCacheChunkCallback user_chunk_cb,
+		GisDataCacheDoneCallback user_done_cb,
 		gpointer user_data)
 {
-
+	g_debug("GisData: cache_file - base=%s, path=%s", base, path);
+	if (base == NULL) {
+		g_warning("GisData: cache_file - base is null");
+		return NULL;
+	}
+	if (path == NULL) {
+		g_warning("GisData: cache_file - base is null");
+		return NULL;
+	}
 	cache_file_end_t *info = g_malloc0(sizeof(cache_file_end_t));
 	info->uri           = g_strconcat(base, path, NULL);
 	info->local         = g_build_filename(g_get_user_cache_dir(), PACKAGE, path, NULL);
@@ -125,13 +133,13 @@ SoupSession *cache_file(char *base, char *path, AWeatherCacheType update,
 	info->user_done_cb  = user_done_cb;
 	info->user_data     = user_data;
 
-	if (update == AWEATHER_REFRESH)
+	if (update == GIS_REFRESH)
 		return do_cache(info, TRUE, "cache forced");
 
-	if (update == AWEATHER_UPDATE)
+	if (update == GIS_UPDATE)
 		return do_cache(info, FALSE, "attempting updating");
 
-	if (update == AWEATHER_ONCE && !g_file_test(info->local, G_FILE_TEST_EXISTS))
+	if (update == GIS_ONCE && !g_file_test(info->local, G_FILE_TEST_EXISTS))
 		return do_cache(info, TRUE, "local does not exist");
 
 	/* No nead to cache, run the callback now and clean up */

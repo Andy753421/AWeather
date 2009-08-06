@@ -82,6 +82,8 @@ void gis_plugins_free(GisPlugins *self)
 GList *gis_plugins_available()
 {
 	GDir *dir = g_dir_open(PLUGINDIR, 0, NULL);
+	if (dir == NULL)
+		return NULL;
 	GList *list = NULL;
 	const gchar *name;
 	while ((name = g_dir_read_name(dir))) {

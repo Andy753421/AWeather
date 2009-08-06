@@ -28,6 +28,7 @@
  * GObject code *
  ****************/
 /* Plugin init */
+static gboolean rotate(gpointer _self);
 static void gis_plugin_example_plugin_init(GisPluginInterface *iface);
 static void gis_plugin_example_expose(GisPlugin *_self);
 static GtkWidget *gis_plugin_example_get_config(GisPlugin *_self);
@@ -46,14 +47,16 @@ static void gis_plugin_example_init(GisPluginExample *self)
 {
 	g_debug("GisPluginExample: init");
 	/* Set defaults */
-	self->opengl   = NULL;
-	self->button   = NULL;
-	self->rotation = 30.0;
+	self->button    = GTK_TOGGLE_BUTTON(gtk_toggle_button_new_with_label("Rotate"));
+	self->rotate_id = g_timeout_add(1000/60, rotate, self);
+	self->rotation  = 30.0;
+	self->opengl    = NULL;
 }
 static void gis_plugin_example_dispose(GObject *gobject)
 {
 	g_debug("GisPluginExample: dispose");
 	GisPluginExample *self = GIS_PLUGIN_EXAMPLE(gobject);
+	g_source_remove(self->rotate_id);
 	/* Drop references */
 	G_OBJECT_CLASS(gis_plugin_example_parent_class)->dispose(gobject);
 }
@@ -94,10 +97,6 @@ GisPluginExample *gis_plugin_example_new(GisWorld *world, GisView *view, GisOpen
 	g_debug("GisPluginExample: new");
 	GisPluginExample *self = g_object_new(GIS_TYPE_PLUGIN_EXAMPLE, NULL);
 	self->opengl = opengl;
-	self->button = GTK_TOGGLE_BUTTON(gtk_toggle_button_new_with_label("Rotate"));
-
-	/* Set up OpenGL Stuff */
-	g_timeout_add(1000/60, rotate, self);
 
 	return self;
 }

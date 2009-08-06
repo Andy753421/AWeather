@@ -47,18 +47,23 @@ static void gis_plugin_radar_plugin_init(GisPluginInterface *iface)
 	iface->get_config = gis_plugin_radar_get_config;
 }
 /* Class/Object init */
-static void gis_plugin_radar_init(GisPluginRadar *radar)
+static void gis_plugin_radar_init(GisPluginRadar *self)
 {
 	g_debug("GisPluginRadar: class_init");
 	/* Set defaults */
-	radar->soup          = NULL;
-	radar->cur_triangles = NULL;
-	radar->cur_num_triangles = 0;
+	self->soup          = NULL;
+	self->cur_triangles = NULL;
+	self->cur_num_triangles = 0;
+
+	self->config_body = gtk_alignment_new(0, 0, 1, 1);
+	gtk_container_set_border_width(GTK_CONTAINER(self->config_body), 5);
+	gtk_container_add(GTK_CONTAINER(self->config_body), gtk_label_new("No radar loaded"));
 }
 static void gis_plugin_radar_dispose(GObject *gobject)
 {
 	g_debug("GisPluginRadar: dispose");
 	GisPluginRadar *self = GIS_PLUGIN_RADAR(gobject);
+	g_signal_handler_disconnect(self->view, self->time_changed_id);
 	/* Drop references */
 	G_OBJECT_CLASS(gis_plugin_radar_parent_class)->dispose(gobject);
 }
@@ -389,8 +394,8 @@ static void cache_chunk_cb(char *path, goffset cur, goffset total, gpointer _sel
 	GisPluginRadar *self = GIS_PLUGIN_RADAR(_self);
 	double percent = (double)cur/total;
 
-	g_message("GisPluginRadar: cache_chunk_cb - %lld/%lld = %.2f%%",
-			cur, total, percent*100);
+	//g_message("GisPluginRadar: cache_chunk_cb - %lld/%lld = %.2f%%",
+	//		cur, total, percent*100);
 
 	gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(self->progress_bar), MIN(percent, 1.0));
 
@@ -480,12 +485,12 @@ static void on_time_changed(GisView *view, const char *time, gpointer _self)
 		soup_session_abort(self->soup);
 		self->soup = NULL;
 	}
-	gchar *base = gis_prefs_get_string(self->prefs, "general/nexrad_url");
+	gchar *base = gis_prefs_get_string(self->prefs, "aweather/nexrad_url");
 	if (gis_world_get_offline(self->world)) 
-		self->soup = cache_file(base, path, AWEATHER_ONCE,
+		self->soup = cache_file(base, path, GIS_ONCE,
 				cache_chunk_cb, cache_done_cb, self);
 	else 
-		self->soup = cache_file(base, path, AWEATHER_UPDATE,
+		self->soup = cache_file(base, path, GIS_UPDATE,
 				cache_chunk_cb, cache_done_cb, self);
 	g_free(path);
 }
@@ -502,14 +507,8 @@ GisPluginRadar *gis_plugin_radar_new(GisWorld *world, GisView *view, GisOpenGL *
 	self->view   = view;
 	self->opengl = opengl;
 	self->prefs  = prefs;
-
-	self->config_body = gtk_alignment_new(0, 0, 1, 1);
-	gtk_container_set_border_width(GTK_CONTAINER(self->config_body), 5);
-	gtk_container_add(GTK_CONTAINER(self->config_body), gtk_label_new("No radar loaded"));
-
-	/* Set up OpenGL Stuff */
-	g_signal_connect(view,  "time-changed", G_CALLBACK(on_time_changed), self);
-
+	self->time_changed_id = g_signal_connect(view, "time-changed",
+			G_CALLBACK(on_time_changed), self);
 	return self;
 }
 

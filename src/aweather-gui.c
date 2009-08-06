@@ -55,7 +55,6 @@ static void aweather_gui_init(AWeatherGui *self)
 
 	/* GIS things */
 	GtkWidget *drawing = aweather_gui_get_widget(self, "drawing");
-	g_message("drawing = %p", drawing);
 	self->opengl = gis_opengl_new(self->world, self->view, GTK_DRAWING_AREA(drawing));
 	self->opengl->plugins = self->plugins;
 	//gtk_widget_show_all(GTK_WIDGET(self));
@@ -425,10 +424,8 @@ static void update_times_gtk(AWeatherGui *self, GList *times)
 	GtkTreeIter iter;
 	times = g_list_reverse(times);
 	for (GList *cur = times; cur; cur = cur->next) {
-		g_message("trying time %s", (gchar*)cur->data);
 		if (g_regex_match(regex, cur->data, 0, &info)) {
 			gchar *time = g_match_info_fetch(info, 1);
-			g_message("adding time %s", (gchar*)cur->data);
 			gtk_list_store_insert(lstore, &iter, 0);
 			gtk_list_store_set(lstore, &iter, 0, time, -1);
 			last_time = time;
@@ -460,6 +457,7 @@ static void update_times_online_cb(char *path, gboolean updated, gpointer _self)
 }
 static void update_times(AWeatherGui *self, GisView *view, char *site)
 {
+	g_debug("AWeatherGui: update_times - site=%s", site);
 	if (gis_world_get_offline(self->world)) {
 		GList *times = NULL;
 		gchar *path = g_build_filename(g_get_user_cache_dir(), PACKAGE, "nexrd2", "raw", site, NULL);
@@ -475,15 +473,15 @@ static void update_times(AWeatherGui *self, GisView *view, char *site)
 		update_times_gtk(self, times);
 	} else {
 		gchar *path = g_strdup_printf("nexrd2/raw/%s/dir.list", site);
-		char *base = gis_prefs_get_string(self->prefs, "general/nexrad_url");
-		cache_file(base, path, AWEATHER_REFRESH, NULL, update_times_online_cb, self);
+		char *base = gis_prefs_get_string(self->prefs, "aweather/nexrad_url");
+		cache_file(base, path, GIS_REFRESH, NULL, update_times_online_cb, self);
 		/* update_times_gtk from update_times_online_cb */
 	}
 }
 static void on_gis_site_changed(GisView *view, char *site, gpointer _self)
 {
 	AWeatherGui *self = AWEATHER_GUI(_self);
-	g_debug("GisPluginRadar: on_site_changed - Loading wsr88d list for %s", site);
+	g_debug("AWeatherGui: on_site_changed - Loading wsr88d list for %s", site);
 	update_times(self, view, site);
 }
 static void on_gis_refresh(GisWorld *world, gpointer _self)
@@ -549,5 +547,14 @@ void aweather_gui_attach_plugin(AWeatherGui *self, const gchar *name)
 }
 void aweather_gui_deattach_plugin(AWeatherGui *self, const gchar *name)
 {
+	GtkWidget *config = aweather_gui_get_widget(self, "tabs");
+	guint n_pages = gtk_notebook_get_n_pages(GTK_NOTEBOOK(config));
+	for (int i = 0; i < n_pages; i++) {
+		GtkWidget *body = gtk_notebook_get_nth_page(GTK_NOTEBOOK(config), i);
+		GtkWidget *tab = gtk_notebook_get_tab_label(GTK_NOTEBOOK(config), body);
+		const gchar *tab_name = gtk_label_get_text(GTK_LABEL(tab));
+		if (tab_name && g_str_equal(name, tab_name))
+			gtk_notebook_remove_page(GTK_NOTEBOOK(config), i);
+	}
 	gis_plugins_unload(self->plugins, name);
 }

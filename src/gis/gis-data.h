@@ -21,20 +21,20 @@
 #include <libsoup/soup.h>
 
 typedef enum {
-	AWEATHER_ONCE,    // Cache the file if it does not exist
-	AWEATHER_UPDATE,  // Append additional data to cached copy (resume)
-	AWEATHER_REFRESH, // Delete existing file and cache a new copy
-} AWeatherCacheType;
+	GIS_ONCE,    // Cache the file if it does not exist
+	GIS_UPDATE,  // Append additional data to cached copy (resume)
+	GIS_REFRESH, // Delete existing file and cache a new copy
+} GisDataCacheType;
 
-typedef void (*AWeatherCacheDoneCallback)(gchar *file, gboolean updated,
+typedef void (*GisDataCacheDoneCallback)(gchar *file, gboolean updated,
 		gpointer user_data);
 
-typedef void (*AWeatherCacheChunkCallback)(gchar *file, goffset cur,
+typedef void (*GisDataCacheChunkCallback)(gchar *file, goffset cur,
 		goffset total, gpointer user_data);
 
-SoupSession *cache_file(char *base, char *path, AWeatherCacheType update,
-		AWeatherCacheChunkCallback user_chunk_cb,
-		AWeatherCacheDoneCallback user_done_cb,
+SoupSession *cache_file(char *base, char *path, GisDataCacheType update,
+		GisDataCacheChunkCallback user_chunk_cb,
+		GisDataCacheDoneCallback user_done_cb,
 		gpointer user_data);
 
 #endif

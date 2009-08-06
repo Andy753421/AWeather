@@ -19,10 +19,10 @@ test: all
 	./aweather -o -d 7 -s KVNX
 
 gdb: all
-	gdb ./aweather
+	gdb .libs/aweather
 
 ddd: all
-	ddd ./aweather
+	ddd .libs/aweather
 
 memcheck:
 	G_SLICE=always-malloc                   \
@@ -31,5 +31,5 @@ memcheck:
 	         --leak-resolution=high         \
 	         --num-callers=100              \
 	         --suppressions=gtk.suppression \
-	         ./aweather                     \
+	         .libs/aweather                 \
 	2> valgrind.out

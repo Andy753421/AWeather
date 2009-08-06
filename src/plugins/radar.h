@@ -55,6 +55,7 @@ struct _GisPluginRadar {
 	GtkWidget   *progress_bar;
 	GtkWidget   *progress_label;
 	SoupSession *soup;
+	guint        time_changed_id;
 
 	/* Private data for loading radars */
 	Radar       *cur_radar;
