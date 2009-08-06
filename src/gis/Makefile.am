@@ -2,10 +2,19 @@ AM_CFLAGS = -Wall -Werror -Wno-unused --std=gnu99
 
 BUILT_SOURCES = gis-marshal.c gis-marshal.h
 lib_LTLIBRARIES  = libgis.la
+gis_includedir = $(includedir)/gis
+gis_include_HEADERS = \
+	gis.h         \
+	gis-world.h   \
+	gis-view.h    \
+	gis-prefs.h   \
+	gis-opengl.h  \
+	gis-plugin.h  \
+	gis-data.h
 libgis_la_SOURCES = \
-	gis-prefs.c   gis-prefs.h  \
 	gis-world.c   gis-world.h  \
 	gis-view.c    gis-view.h   \
+	gis-prefs.c   gis-prefs.h  \
 	gis-opengl.c  gis-opengl.h \
 	gis-plugin.c  gis-plugin.h \
 	gis-data.c    gis-data.h   \

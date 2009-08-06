@@ -3,6 +3,8 @@ SUBDIRS = src data docs
 MAINTAINERCLEANFILES = aclocal.m4 compile config.guess config.h.in gtk-doc.make \
                        configure depcomp install-sh Makefile.in missing
 
+ACLOCAL_AMFLAGS=-I m4
+
 test: all
 	(cd src && make test)
 
