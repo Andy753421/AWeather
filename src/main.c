@@ -19,10 +19,9 @@
 #include <gtk/gtk.h>
 #include <gtk/gtkgl.h>
 
+#include <gis/gis.h>
+
 #include "aweather-gui.h"
-#include "aweather-plugin.h"
-#include "gis-view.h"
-#include "gis-world.h"
 
 static gint log_levels = 0;
 
@@ -82,9 +81,6 @@ int main(int argc, char *argv[])
 	g_log_set_handler(NULL, G_LOG_LEVEL_MASK, log_func, NULL);
 
 	/* Set up AWeather */
-	/* TODO: Figure out a better way to do plugins
-	 *    AWeatherPlugin interface for tabs?
-	 *    GisPlugin      interface for expose? */
 	AWeatherGui *gui    = aweather_gui_new();
 	GisWorld    *world  = aweather_gui_get_world(gui);
 	GisOpenGL   *opengl = aweather_gui_get_opengl(gui);

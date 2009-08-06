@@ -23,9 +23,6 @@
 #include <gtk/gtkgl.h>
 #include <glib-object.h>
 
-#include "gis-view.h"
-#include "gis-world.h"
-
 /* Type macros */
 #define GIS_TYPE_OPENGL            (gis_opengl_get_type())
 #define GIS_OPENGL(obj)            (G_TYPE_CHECK_INSTANCE_CAST((obj),   GIS_TYPE_OPENGL, GisOpenGL))
@@ -37,14 +34,21 @@
 typedef struct _GisOpenGL      GisOpenGL;
 typedef struct _GisOpenGLClass GisOpenGLClass;
 
+#include "gis-view.h"
+#include "gis-world.h"
+#include "gis-plugin.h"
+
+#define d2r(deg) (((deg)*M_PI)/180.0)
+#define r2d(rad) (((rad)*180.0)/M_PI)
+
 struct _GisOpenGL {
 	GObject parent_instance;
 
 	/* instance members */
 	GisWorld       *world;
 	GisView        *view;
+	GisPlugins     *plugins;
 	GtkDrawingArea *drawing;
-	GList          *plugins;
 };
 
 struct _GisOpenGLClass {

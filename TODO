@@ -3,7 +3,6 @@ Road plan
 0.x - Misc
   * Fix all memory leaks
   * Pre-load textures and polys in OpenGL
-  * Fetch radar list aysnc
   * Configuration file
     * Default site
     * Keybindings?

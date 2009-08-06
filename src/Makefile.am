@@ -1,36 +1,19 @@
-SUBDIRS = plugins
+SUBDIRS = gis plugins
 
-AM_CFLAGS     = -Wall -Werror -Wno-unused --std=gnu99 
-bin_PROGRAMS  = aweather wsr88ddec
+AM_CFLAGS = -Wall -Werror -Wno-unused --std=gnu99 
 
-BUILT_SOURCES = marshal.c marshal.h
-
+bin_PROGRAMS = aweather wsr88ddec
 aweather_SOURCES  = main.c \
-	marshal.c         marshal.h         \
-	aweather-gui.c    aweather-gui.h    \
-	aweather-plugin.c aweather-plugin.h \
-	gis-opengl.c      gis-opengl.h      \
-	gis-view.c        gis-view.h        \
-	gis-world.c       gis-world.h       \
-	data.c            data.h            \
-	location.c        location.h        \
-	marching.c        marching.h
-aweather_CPPFLAGS = \
-	-DDATADIR="\"$(datadir)\"" \
-	-DPLUGINDIR="\"$(libdir)/aweather\"" \
-	$(RSL_CFLAGS) $(SOUP_CFLAGS) $(GLIB_CFLAGS) $(GTK_CFLAGS)
-aweather_LDADD    = $(RSL_LIBS) $(SOUP_LIBS) $(GLIB_LIBS) $(GTK_LIBS)
+	aweather-gui.c      aweather-gui.h \
+	aweather-location.c aweather-location.h
+aweather_CPPFLAGS = -DDATADIR="\"$(datadir)\"" $(SOUP_CFLAGS) $(GLIB_CFLAGS) $(GTK_CFLAGS)
+aweather_LDADD    = gis/libgis.la $(SOUP_LIBS) $(GLIB_LIBS) $(GTK_LIBS)
 
 wsr88ddec         = wsr88ddec.c
-wsr88ddec_LDADD   = -lbz2
+wsr88ddec_LDFLAGS = -lbz2
 
 CLEANFILES = gmon.out valgrind.out
 MAINTAINERCLEANFILES = Makefile.in
-
-.list.c:
-	glib-genmarshal --prefix=aweather_cclosure_marshal --body   $< > $@
-.list.h:
-	glib-genmarshal --prefix=aweather_cclosure_marshal --header $< > $@
 
 test: all
 	./aweather -o -d 7 -s KVNX

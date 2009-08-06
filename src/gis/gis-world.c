@@ -17,7 +17,7 @@
 
 #include <glib.h>
 
-#include "marshal.h"
+#include "gis-marshal.h"
 #include "gis-world.h"
 
 /****************
@@ -125,3 +125,5 @@ gboolean gis_world_get_offline(GisWorld *world)
 	g_debug("GisWorld: get_offline - %d", world->offline);
 	return world->offline;
 }
+
+

@@ -22,6 +22,8 @@
 #include <libsoup/soup.h>
 #include <rsl.h>
 
+#include <gis/gis.h>
+
 #include "marching.h"
 
 /* TODO: convert */
@@ -31,21 +33,24 @@ typedef struct {
 } colormap_t;
 extern colormap_t colormaps[];
 
-#define AWEATHER_TYPE_RADAR            (aweather_radar_get_type ())
-#define AWEATHER_RADAR(obj)            (G_TYPE_CHECK_INSTANCE_CAST((obj),   AWEATHER_TYPE_RADAR, AWeatherRadar))
-#define AWEATHER_IS_RADAR(obj)         (G_TYPE_CHECK_INSTANCE_TYPE((obj),   AWEATHER_TYPE_RADAR))
-#define AWEATHER_RADAR_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST   ((klass), AWEATHER_TYPE_RADAR, AWeatherRadarClass))
-#define AWEATHER_IS_RADAR_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE   ((klass), AWEATHER_TYPE_RADAR))
-#define AWEATHER_RADAR_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj),   AWEATHER_TYPE_RADAR, AWeatherRadarClass))
+#define GIS_TYPE_PLUGIN_RADAR            (gis_plugin_radar_get_type ())
+#define GIS_PLUGIN_RADAR(obj)            (G_TYPE_CHECK_INSTANCE_CAST((obj),   GIS_TYPE_PLUGIN_RADAR, GisPluginRadar))
+#define GIS_IS_PLUGIN_RADAR(obj)         (G_TYPE_CHECK_INSTANCE_TYPE((obj),   GIS_TYPE_PLUGIN_RADAR))
+#define GIS_PLUGIN_RADAR_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST   ((klass), GIS_TYPE_PLUGIN_RADAR, GisPluginRadarClass))
+#define GIS_IS_PLUGIN_RADAR_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE   ((klass), GIS_TYPE_PLUGIN_RADAR))
+#define GIS_PLUGIN_RADAR_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj),   GIS_TYPE_PLUGIN_RADAR, GisPluginRadarClass))
 
-typedef struct _AWeatherRadar        AWeatherRadar;
-typedef struct _AWeatherRadarClass   AWeatherRadarClass;
+typedef struct _GisPluginRadar        GisPluginRadar;
+typedef struct _GisPluginRadarClass   GisPluginRadarClass;
 
-struct _AWeatherRadar {
+struct _GisPluginRadar {
 	GObject parent_instance;
 
 	/* instance members */
-	AWeatherGui *gui;
+	GisWorld    *world;
+	GisView     *view;
+	GisOpenGL   *opengl;
+	GisPrefs    *prefs;
 	GtkWidget   *config_body;
 	GtkWidget   *progress_bar;
 	GtkWidget   *progress_label;
@@ -60,13 +65,13 @@ struct _AWeatherRadar {
 	guint        cur_num_triangles;
 };
 
-struct _AWeatherRadarClass {
+struct _GisPluginRadarClass {
 	GObjectClass parent_class;
 };
 
-GType aweather_radar_get_type();
+GType gis_plugin_radar_get_type();
 
 /* Methods */
-AWeatherRadar *aweather_radar_new(AWeatherGui *gui);
+GisPluginRadar *gis_plugin_radar_new(GisWorld *world, GisView *view, GisOpenGL *opengl, GisPrefs *prefs);
 
 #endif

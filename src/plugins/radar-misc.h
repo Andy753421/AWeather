@@ -1,6 +1,3 @@
-#define d2r(deg) (((deg)*M_PI)/180.0)
-#define r2d(rad) (((rad)*180.0)/M_PI)
-
 #define RSL_FOREACH_VOL(radar, volume, count, index) \
 	guint count = 0; \
 	for (guint index = 0; index < radar->h.nvolumes; index++) { \

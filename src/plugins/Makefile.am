@@ -1,7 +1,6 @@
-AM_CFLAGS = -Wall -Werror -Wno-unused --std=gnu99  -I../ \
-	$(RSL_CFLAGS) $(SOUP_CFLAGS) $(GLIB_CFLAGS) $(GTK_CFLAGS)
-AM_LDFLAGS = -module \
-	$(RSL_LIBS) $(SOUP_LIBS) $(GLIB_LIBS) $(GTK_LIBS)
+AM_CFLAGS   = -Wall -Werror -Wno-unused --std=gnu99  -I../
+AM_CPPFLAGS = $(GLIB_CFLAGS) $(GTK_CFLAGS)
+AM_LDFLAGS  = -module $(GLIB_LIBS) $(GTK_LIBS)
 
 plugindir = $(libdir)/aweather
 
@@ -13,15 +12,18 @@ plugin_LTLIBRARIES = \
 example_la_SOURCES = \
 	example.c \
 	example.h
+example_la_CPPFLAGS = $(AM_CPPFLAGS) $(SOUP_CFLAGS)
 
 ridge_la_SOURCES = \
 	ridge.c \
 	ridge.h
+ridge_la_CPPFLAGS = $(AM_CPPFLAGS) $(SOUP_CFLAGS)
 
 radar_la_SOURCES = \
 	radar.c \
 	radar.h \
 	radar-colormap.c
-
+radar_la_CPPFLAGS = $(AM_CPPFLAGS) $(SOUP_CFLAGS) $(RSL_CFLAGS)
+radar_la_LIBADD = $(SOUP_LIBS) $(RSL_LIBS)
 
 MAINTAINERCLEANFILES = Makefile.in

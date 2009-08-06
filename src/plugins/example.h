@@ -20,32 +20,32 @@
 
 #include <glib-object.h>
 
-#define AWEATHER_TYPE_EXAMPLE            (aweather_example_get_type ())
-#define AWEATHER_EXAMPLE(obj)            (G_TYPE_CHECK_INSTANCE_CAST((obj),   AWEATHER_TYPE_EXAMPLE, AWeatherExample))
-#define AWEATHER_IS_EXAMPLE(obj)         (G_TYPE_CHECK_INSTANCE_TYPE((obj),   AWEATHER_TYPE_EXAMPLE))
-#define AWEATHER_EXAMPLE_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST   ((klass), AWEATHER_TYPE_EXAMPLE, AWeatherExampleClass))
-#define AWEATHER_IS_EXAMPLE_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE   ((klass), AWEATHER_TYPE_EXAMPLE))
-#define AWEATHER_EXAMPLE_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj),   AWEATHER_TYPE_EXAMPLE, AWeatherExampleClass))
+#define GIS_TYPE_PLUGIN_EXAMPLE            (gis_plugin_example_get_type ())
+#define GIS_PLUGIN_EXAMPLE(obj)            (G_TYPE_CHECK_INSTANCE_CAST((obj),   GIS_TYPE_PLUGIN_EXAMPLE, GisPluginExample))
+#define GIS_IS_PLUGIN_EXAMPLE(obj)         (G_TYPE_CHECK_INSTANCE_TYPE((obj),   GIS_TYPE_PLUGIN_EXAMPLE))
+#define GIS_PLUGIN_EXAMPLE_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST   ((klass), GIS_TYPE_PLUGIN_EXAMPLE, GisPluginExampleClass))
+#define GIS_IS_PLUGIN_EXAMPLE_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE   ((klass), GIS_TYPE_PLUGIN_EXAMPLE))
+#define GIS_PLUGIN_EXAMPLE_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj),   GIS_TYPE_PLUGIN_EXAMPLE, GisPluginExampleClass))
 
-typedef struct _AWeatherExample        AWeatherExample;
-typedef struct _AWeatherExampleClass   AWeatherExampleClass;
+typedef struct _GisPluginExample        GisPluginExample;
+typedef struct _GisPluginExampleClass   GisPluginExampleClass;
 
-struct _AWeatherExample {
+struct _GisPluginExample {
 	GObject parent_instance;
 
 	/* instance members */
-	AWeatherGui     *gui;
+	GisOpenGL       *opengl;
 	GtkToggleButton *button;
 	float            rotation;
 };
 
-struct _AWeatherExampleClass {
+struct _GisPluginExampleClass {
 	GObjectClass parent_class;
 };
 
-GType aweather_example_get_type();
+GType gis_plugin_example_get_type();
 
 /* Methods */
-AWeatherExample *aweather_example_new(AWeatherGui *gui);
+GisPluginExample *gis_plugin_example_new(GisWorld *world, GisView *view, GisOpenGL *opengl);
 
 #endif

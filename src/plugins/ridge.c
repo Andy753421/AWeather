@@ -16,59 +16,59 @@
  */
 
 #include <config.h>
+#include <stdio.h>
 #include <gtk/gtk.h>
 #include <curl/curl.h>
 #include <GL/gl.h>
 
-#include <stdio.h>
+#include <gis/gis.h>
 
-#include "aweather-gui.h"
 #include "ridge.h"
-#include "data.h"
 
 /****************
  * GObject code *
  ****************/
 /* Plugin init */
-static void aweather_ridge_plugin_init(AWeatherPluginInterface *iface);
-static void aweather_ridge_expose(AWeatherPlugin *_ridge);
-G_DEFINE_TYPE_WITH_CODE(AWeatherRidge, aweather_ridge, G_TYPE_OBJECT,
-		G_IMPLEMENT_INTERFACE(AWEATHER_TYPE_PLUGIN,
-			aweather_ridge_plugin_init));
-static void aweather_ridge_plugin_init(AWeatherPluginInterface *iface)
+static void gis_plugin_ridge_plugin_init(GisPluginInterface *iface);
+static void gis_plugin_ridge_expose(GisPlugin *_self);
+static GtkWidget *gis_plugin_ridge_get_config(GisPlugin *_self);
+G_DEFINE_TYPE_WITH_CODE(GisPluginRidge, gis_plugin_ridge, G_TYPE_OBJECT,
+		G_IMPLEMENT_INTERFACE(GIS_TYPE_PLUGIN,
+			gis_plugin_ridge_plugin_init));
+static void gis_plugin_ridge_plugin_init(GisPluginInterface *iface)
 {
-	g_debug("AWeatherRidge: plugin_init");
+	g_debug("GisPluginRidge: plugin_init");
 	/* Add methods to the interface */
-	iface->expose = aweather_ridge_expose;
+	iface->expose     = gis_plugin_ridge_expose;
+	iface->get_config = gis_plugin_ridge_get_config;
 }
 /* Class/Object init */
-static void aweather_ridge_init(AWeatherRidge *ridge)
+static void gis_plugin_ridge_init(GisPluginRidge *self)
 {
-	g_debug("AWeatherRidge: init");
+	g_debug("GisPluginRidge: init");
 	/* Set defaults */
-	ridge->gui = NULL;
 }
-static void aweather_ridge_dispose(GObject *gobject)
+static void gis_plugin_ridge_dispose(GObject *gobject)
 {
-	g_debug("AWeatherRidge: dispose");
-	AWeatherRidge *self = AWEATHER_RIDGE(gobject);
+	g_debug("GisPluginRidge: dispose");
+	GisPluginRidge *self = GIS_PLUGIN_RIDGE(gobject);
 	/* Drop references */
-	G_OBJECT_CLASS(aweather_ridge_parent_class)->dispose(gobject);
+	G_OBJECT_CLASS(gis_plugin_ridge_parent_class)->dispose(gobject);
 }
-static void aweather_ridge_finalize(GObject *gobject)
+static void gis_plugin_ridge_finalize(GObject *gobject)
 {
-	g_debug("AWeatherRidge: finalize");
-	AWeatherRidge *self = AWEATHER_RIDGE(gobject);
+	g_debug("GisPluginRidge: finalize");
+	GisPluginRidge *self = GIS_PLUGIN_RIDGE(gobject);
 	/* Free data */
-	G_OBJECT_CLASS(aweather_ridge_parent_class)->finalize(gobject);
+	G_OBJECT_CLASS(gis_plugin_ridge_parent_class)->finalize(gobject);
 
 }
-static void aweather_ridge_class_init(AWeatherRidgeClass *klass)
+static void gis_plugin_ridge_class_init(GisPluginRidgeClass *klass)
 {
-	g_debug("AWeatherRidge: class_init");
+	g_debug("GisPluginRidge: class_init");
 	GObjectClass *gobject_class = (GObjectClass*)klass;
-	gobject_class->dispose  = aweather_ridge_dispose;
-	gobject_class->finalize = aweather_ridge_finalize;
+	gobject_class->dispose  = gis_plugin_ridge_dispose;
+	gobject_class->finalize = gis_plugin_ridge_finalize;
 }
 
 /*********************
@@ -108,10 +108,9 @@ static layer_t layers[] = {
  * \param  filename  Path to the image file
  * \return The OpenGL identifier for the texture
  */
-void load_texture(AWeatherRidge *self, layer_t *layer, gchar *filename)
+void load_texture(GisPluginRidge *self, layer_t *layer, gchar *filename)
 {
-	GisOpenGL *opengl = aweather_gui_get_opengl(self->gui);
-	gis_opengl_begin(opengl);
+	gis_opengl_begin(self->opengl);
 
 	/* Load image */
 	GError *error = NULL;
@@ -137,18 +136,18 @@ void load_texture(AWeatherRidge *self, layer_t *layer, gchar *filename)
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
 	char *base = g_path_get_basename(filename);
-	g_debug("AWeatherRidge: load_texture - "
+	g_debug("GisPluginRidge: load_texture - "
 		"w=%-3d  h=%-3d  fmt=%x  px=(%02x,%02x,%02x,%02x)  img=%s",
 		width, height, format, pixels[0], pixels[1], pixels[2], pixels[3],
 		base);
 	g_free(base);
 
-	gis_opengl_end(opengl);
+	gis_opengl_end(self->opengl);
 
 	g_object_unref(pixbuf);
 
 	/* Redraw */
-	gis_opengl_redraw(opengl);
+	gis_opengl_redraw(self->opengl);
 }
 
 
@@ -156,7 +155,7 @@ void load_texture(AWeatherRidge *self, layer_t *layer, gchar *filename)
  * ASync helpers *
  *****************/
 typedef struct {
-	AWeatherRidge *self;
+	GisPluginRidge *self;
 	layer_t *layer;
 } cached_t;
 void cached_cb(gchar *filename, gboolean updated, gpointer _udata)
@@ -169,9 +168,11 @@ void cached_cb(gchar *filename, gboolean updated, gpointer _udata)
 /*************
  * callbacks *
  *************/
-static void on_site_changed(GisView *view, gchar *site, AWeatherRidge *self)
+static void on_site_changed(GisView *view, gchar *site, GisPluginRidge *self)
 {
-	g_debug("AWeatherRidge: on_site_changed - site=%s", site);
+	g_debug("GisPluginRidge: on_site_changed - site=%s", site);
+	if (site == NULL || site[0] == '\0')
+		return;
 	for (int i = 0; i < LAYER_COUNT; i++) {
 		gchar *base = "http://radar.weather.gov/ridge/";
 		gchar *path  = g_strdup_printf(layers[i].fmt, site+1);
@@ -184,28 +185,32 @@ static void on_site_changed(GisView *view, gchar *site, AWeatherRidge *self)
 	}
 }
 
-void toggle_layer(GtkToggleButton *check, AWeatherRidge *self)
+void toggle_layer(GtkToggleButton *check, GisPluginRidge *self)
 {
 	layer_t *layer = g_object_get_data(G_OBJECT(check), "layer");
 	layer->enabled = gtk_toggle_button_get_active(check);
-	gis_opengl_redraw(aweather_gui_get_opengl(self->gui));
+	gis_opengl_redraw(self->opengl);
 }
 
 /***********
  * Methods *
  ***********/
-AWeatherRidge *aweather_ridge_new(AWeatherGui *gui)
+GisPluginRidge *gis_plugin_ridge_new(GisWorld *world, GisView *view, GisOpenGL *opengl)
 {
-	AWeatherRidge *self = g_object_new(AWEATHER_TYPE_RIDGE, NULL);
-	self->gui = gui;
+	GisPluginRidge *self = g_object_new(GIS_TYPE_PLUGIN_RIDGE, NULL);
+	self->world  = world;
+	self->view   = view;
+	self->opengl = opengl;
 
-	GisView   *view    = aweather_gui_get_view(gui);
-	GtkWidget *drawing = aweather_gui_get_widget(gui, "drawing");
-	GtkWidget *config  = aweather_gui_get_widget(gui, "tabs");
-	g_debug("config = %p", aweather_gui_get_widget(gui, "tabs"));
+	g_signal_connect(view, "site-changed", G_CALLBACK(on_site_changed), self);
+	on_site_changed(view, gis_view_get_site(view), self);
 
-	/* Add configuration tab */
-	GtkWidget *tab  = gtk_label_new("Ridge");
+	return self;
+}
+
+static GtkWidget *gis_plugin_ridge_get_config(GisPlugin *_self)
+{
+	GisPluginRidge *self = GIS_PLUGIN_RIDGE(_self);
 	GtkWidget *body = gtk_alignment_new(0.5, 0, 0, 0);
 	GtkWidget *hbox = gtk_hbox_new(FALSE, 10);
 	for (int i = 0; i < LAYER_COUNT; i++) {
@@ -216,19 +221,14 @@ AWeatherRidge *aweather_ridge_new(AWeatherGui *gui)
 		g_signal_connect(check, "toggled", G_CALLBACK(toggle_layer), self);
 	}
 	gtk_container_add(GTK_CONTAINER(body), hbox);
-	gtk_notebook_append_page(GTK_NOTEBOOK(config), body, tab);
-
-	g_signal_connect(view, "site-changed", G_CALLBACK(on_site_changed), self);
-	on_site_changed(view, gis_view_get_site(view), self);
-
-	return self;
+	return body;
 }
 
-static void aweather_ridge_expose(AWeatherPlugin *_ridge)
+static void gis_plugin_ridge_expose(GisPlugin *_self)
 {
-	AWeatherRidge *ridge = AWEATHER_RIDGE(_ridge);
+	GisPluginRidge *self = GIS_PLUGIN_RIDGE(_self);
 
-	g_debug("AWeatherRidge: expose");
+	g_debug("GisPluginRidge: expose");
 	glPushMatrix();
 	glEnable(GL_TEXTURE_2D);
 	glColor4f(1,1,1,1);

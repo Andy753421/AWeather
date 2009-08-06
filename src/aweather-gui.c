@@ -20,14 +20,15 @@
 #include <gdk/gdkkeysyms.h>
 #include <math.h>
 
-#include "misc.h"
+#include <gis/gis.h>
+
 #include "aweather-gui.h"
-#include "aweather-plugin.h"
-#include "gis-opengl.h"
-#include "location.h"
+#include "aweather-location.h"
 
 /* Needed prototpes */
 gboolean on_gui_key_press(GtkWidget *widget, GdkEventKey *event, AWeatherGui *self);
+static void on_gis_refresh(GisWorld *world, gpointer _self);
+static void on_gis_site_changed(GisView *view, char *site, gpointer _self);
 static void site_setup(AWeatherGui *self);
 static void time_setup(AWeatherGui *self);
 
@@ -39,6 +40,12 @@ static void aweather_gui_init(AWeatherGui *self)
 {
 	g_debug("AWeatherGui: init");
 
+	/* Simple things */
+	self->prefs   = gis_prefs_new("aweather");
+	self->plugins = gis_plugins_new();
+	self->world   = gis_world_new();
+	self->view    = gis_view_new();
+
 	/* Setup window */
 	self->builder = gtk_builder_new();
 	GError *error = NULL;
@@ -48,30 +55,26 @@ static void aweather_gui_init(AWeatherGui *self)
 
 	/* GIS things */
 	GtkWidget *drawing = aweather_gui_get_widget(self, "drawing");
-	self->world   = gis_world_new();
-	self->view    = gis_view_new();
-	self->opengl  = gis_opengl_new(self->world, self->view, GTK_DRAWING_AREA(drawing));
-
-	/* Plugins */
-	self->plugins     = NULL;
-	// TODO: set/load these with prefereces
-	aweather_gui_load_plugin(self, "example");
-	//aweather_gui_load_plugin(self, "radar");
-	//aweather_gui_load_plugin(self, "ridge");
-	self->gtk_plugins = GTK_LIST_STORE(aweather_gui_get_object(self, "plugins"));
-	GDir *dir = g_dir_open(PLUGINDIR, 0, NULL);
-	const gchar *name;
-	GtkTreeIter iter;
-	while ((name = g_dir_read_name(dir))) {
-		if (g_pattern_match_simple("*.so", name)) {
-			gtk_list_store_append(self->gtk_plugins, &iter);
-			gtk_list_store_set(self->gtk_plugins, &iter, 0, name, 1, FALSE, -1);
-		}
-	}
+	g_message("drawing = %p", drawing);
+	self->opengl = gis_opengl_new(self->world, self->view, GTK_DRAWING_AREA(drawing));
+	self->opengl->plugins = self->plugins;
+	//gtk_widget_show_all(GTK_WIDGET(self));
 
 	/* Misc, helpers */
 	site_setup(self);
 	time_setup(self);
+
+	/* Plugins */
+	GtkTreeIter iter;
+	self->gtk_plugins = GTK_LIST_STORE(aweather_gui_get_object(self, "plugins"));
+	for (GList *cur = gis_plugins_available(); cur; cur = cur->next) {
+		gchar *name = cur->data;
+		gboolean enabled = gis_prefs_get_boolean_v(self->prefs, cur->data, "enabled");
+		gtk_list_store_append(self->gtk_plugins, &iter);
+		gtk_list_store_set(self->gtk_plugins, &iter, 0, name, 1, enabled, -1);
+		if (enabled)
+			aweather_gui_attach_plugin(self, name);
+	}
 
 	/* Connect signals */
 	gtk_builder_connect_signals(self->builder, self);
@@ -81,11 +84,9 @@ static void aweather_gui_init(AWeatherGui *self)
 			G_CALLBACK(gtk_toggle_action_set_active),
 			aweather_gui_get_object(self, "offline"));
 
-	/* Preferences */
-	gchar *filename = g_build_filename(g_get_user_config_dir(),
-			"aweather", "config.ini", NULL);
-	self->prefs = g_key_file_new();
-	g_key_file_load_from_file(self->prefs, filename, G_KEY_FILE_KEEP_COMMENTS, &error);
+	/* deprecated site stuff */
+	g_signal_connect(self->view,  "site-changed", G_CALLBACK(on_gis_site_changed), self);
+	g_signal_connect(self->world, "refresh",      G_CALLBACK(on_gis_refresh),      self);
 }
 static GObject *aweather_gui_constructor(GType gtype, guint n_properties,
 		GObjectConstructParam *properties)
@@ -119,18 +120,11 @@ static void aweather_gui_dispose(GObject *_self)
 		self->opengl = NULL;
 	}
 	if (self->plugins) {
-		g_list_foreach(self->plugins, (GFunc)g_object_unref, NULL);
-		g_list_free(self->plugins);
+		gis_plugins_free(self->plugins);
 		self->plugins = NULL;
 	}
 	if (self->prefs) {
-		gchar *filename = g_build_filename(g_get_user_config_dir(),
-				"aweather", "config.ini", NULL);
-		gsize length;
-		g_mkdir_with_parents(g_path_get_dirname(filename), 0755);
-		gchar *data = g_key_file_to_data(self->prefs, &length, NULL);
-		g_file_set_contents(filename, data, length, NULL);
-		g_key_file_free(self->prefs);
+		g_object_unref(self->prefs);
 		self->prefs = NULL;
 	}
 	G_OBJECT_CLASS(aweather_gui_parent_class)->dispose(_self);
@@ -218,26 +212,25 @@ void on_plugin_toggled(GtkCellRendererToggle *cell, gchar *path_str, AWeatherGui
 	GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(tview));
 	g_message("model=%p", model);
 	gboolean state;
-	gchar *so;
+	gchar *name;
 	GtkTreeIter iter;
 	gtk_tree_model_get_iter_from_string(model, &iter, path_str);
-	gtk_tree_model_get(model, &iter, 0, &so, 1, &state, -1);
+	gtk_tree_model_get(model, &iter, 0, &name, 1, &state, -1);
 	state = !state;
 	gtk_list_store_set(GTK_LIST_STORE(model), &iter, 1, state, -1);
-	g_strdelimit(so, ".", '\0');
 	if (state)
-		aweather_gui_load_plugin(self, so);
+		aweather_gui_attach_plugin(self, name);
 	else
-		aweather_gui_unload_plugin(self, so);
-	g_free(so);
-	gtk_widget_show_all(aweather_gui_get_widget(self, "tabs"));
+		aweather_gui_deattach_plugin(self, name);
+	gis_prefs_set_boolean_v(self->prefs, name, "enabled", state);
+	g_free(name);
 }
 void on_prefs(GtkAction *action, AWeatherGui *self)
 {
 	/* get prefs */
-	gchar *is = g_key_file_get_string(self->prefs,  "general", "initial_site", NULL);
-	gchar *nu = g_key_file_get_string(self->prefs,  "general", "nexrad_url",   NULL);
-	gint   ll = g_key_file_get_integer(self->prefs, "general", "log_level",    NULL);
+	gchar *is = gis_prefs_get_string (self->prefs, "aweather/initial_site");
+	gchar *nu = gis_prefs_get_string (self->prefs, "aweather/nexrad_url");
+	gint   ll = gis_prefs_get_integer(self->prefs, "aweather/log_level");
 	load_window("prefs_window", self);
 	/* set prefs */
 	GtkWidget *isw = aweather_gui_get_widget(self, "initial_site");
@@ -342,27 +335,26 @@ void on_offline(GtkToggleAction *action, AWeatherGui *self)
 {
 	gboolean value = gtk_toggle_action_get_active(action);
 	g_debug("AWeatherGui: on_offline - offline=%d", value);
-	g_key_file_set_boolean(self->prefs, "general", "offline", value);
+	gis_prefs_set_boolean(self->prefs, "gis/offline", value);
 	gis_world_set_offline(self->world, value);
 }
 void on_initial_site_changed(GtkEntry *entry, AWeatherGui *self)
 {
 	const gchar *text = gtk_entry_get_text(entry);
 	g_debug("AWeatherGui: on_initial_site_changed - site=%s", text);
-	g_key_file_set_string(self->prefs, "general", "initial_site", text);
+	gis_prefs_set_string(self->prefs, "aweather/initial_site", text);
 }
 void on_nexrad_url_changed(GtkEntry *entry, AWeatherGui *self)
 {
 	const gchar *text = gtk_entry_get_text(entry);
 	g_debug("AWeatherGui: on_nexrad_url_changed - url=%s", text);
-	g_key_file_set_string(self->prefs, "general", "nexrad_url", text);
+	gis_prefs_set_string(self->prefs, "aweather/nexrad_url", text);
 }
 int on_log_level_changed(GtkSpinButton *spinner, AWeatherGui *self)
 {
 	gint value = gtk_spin_button_get_value_as_int(spinner);
 	g_debug("AWeatherGui: on_log_level_changed - %p, level=%d", self, value);
-	g_key_file_set_integer(self->prefs, "general", "log_level", value);
-	g_debug("test");
+	gis_prefs_set_integer(self->prefs, "aweather/log_level", value);
 	return TRUE;
 }
 // plugins
@@ -417,6 +409,90 @@ static void time_setup(AWeatherGui *self)
 }
 
 
+/*************************
+ * Deprecated site stuff *
+ *************************/
+/* TODO: These update times functions are getting ugly... */
+static void update_times_gtk(AWeatherGui *self, GList *times)
+{
+	gchar *last_time = NULL;
+	GRegex *regex = g_regex_new("^[A-Z]{4}_([0-9]{8}_[0-9]{4})$", 0, 0, NULL); // KLSX_20090622_2113
+	GMatchInfo *info;
+
+	GtkTreeView  *tview  = GTK_TREE_VIEW(aweather_gui_get_widget(self, "time"));
+	GtkListStore *lstore = GTK_LIST_STORE(gtk_tree_view_get_model(tview));
+	gtk_list_store_clear(lstore);
+	GtkTreeIter iter;
+	times = g_list_reverse(times);
+	for (GList *cur = times; cur; cur = cur->next) {
+		g_message("trying time %s", (gchar*)cur->data);
+		if (g_regex_match(regex, cur->data, 0, &info)) {
+			gchar *time = g_match_info_fetch(info, 1);
+			g_message("adding time %s", (gchar*)cur->data);
+			gtk_list_store_insert(lstore, &iter, 0);
+			gtk_list_store_set(lstore, &iter, 0, time, -1);
+			last_time = time;
+		}
+	}
+
+	gis_view_set_time(self->view, last_time);
+
+	g_regex_unref(regex);
+	g_list_foreach(times, (GFunc)g_free, NULL);
+	g_list_free(times);
+}
+static void update_times_online_cb(char *path, gboolean updated, gpointer _self)
+{
+	GList *times = NULL;
+	gchar *data;
+	gsize length;
+	g_file_get_contents(path, &data, &length, NULL);
+	gchar **lines = g_strsplit(data, "\n", -1);
+	for (int i = 0; lines[i] && lines[i][0]; i++) {
+		char **parts = g_strsplit(lines[i], " ", 2);
+		times = g_list_prepend(times, g_strdup(parts[1]));
+		g_strfreev(parts);
+	}
+	g_strfreev(lines);
+	g_free(data);
+
+	update_times_gtk(_self, times);
+}
+static void update_times(AWeatherGui *self, GisView *view, char *site)
+{
+	if (gis_world_get_offline(self->world)) {
+		GList *times = NULL;
+		gchar *path = g_build_filename(g_get_user_cache_dir(), PACKAGE, "nexrd2", "raw", site, NULL);
+		GDir *dir = g_dir_open(path, 0, NULL);
+		if (dir) {
+			const gchar *name;
+			while ((name = g_dir_read_name(dir))) {
+				times = g_list_prepend(times, g_strdup(name));
+			}
+			g_dir_close(dir);
+		}
+		g_free(path);
+		update_times_gtk(self, times);
+	} else {
+		gchar *path = g_strdup_printf("nexrd2/raw/%s/dir.list", site);
+		char *base = gis_prefs_get_string(self->prefs, "general/nexrad_url");
+		cache_file(base, path, AWEATHER_REFRESH, NULL, update_times_online_cb, self);
+		/* update_times_gtk from update_times_online_cb */
+	}
+}
+static void on_gis_site_changed(GisView *view, char *site, gpointer _self)
+{
+	AWeatherGui *self = AWEATHER_GUI(_self);
+	g_debug("GisPluginRadar: on_site_changed - Loading wsr88d list for %s", site);
+	update_times(self, view, site);
+}
+static void on_gis_refresh(GisWorld *world, gpointer _self)
+{
+	AWeatherGui *self = AWEATHER_GUI(_self);
+	char *site = gis_view_get_site(self->view);
+	update_times(self, self->view, site);
+}
+
 /***********
  * Methods *
  ***********/
@@ -461,32 +537,17 @@ GObject *aweather_gui_get_object(AWeatherGui *self, const gchar *name)
 	g_assert(AWEATHER_IS_GUI(self));
 	return gtk_builder_get_object(self->builder, name);
 }
-gboolean aweather_gui_load_plugin(AWeatherGui *self, const char *name)
+void aweather_gui_attach_plugin(AWeatherGui *self, const gchar *name)
 {
-	gchar *path = g_strdup_printf("%s/%s.%s", PLUGINDIR, name, G_MODULE_SUFFIX);
-	GModule *module = g_module_open(path, 0);
-	g_free(path);
-	if (module == NULL) {
-		g_warning("Unable to load module %s: %s", name, g_module_error());
-		return FALSE;
-	}
-
-	AWeatherPlugin *(*constructor)();
-	gchar *constructor_str = g_strconcat("aweather_", name, "_new", NULL);
-	if (!g_module_symbol(module, constructor_str, (gpointer*)&constructor)) {
-		g_warning("Unable to load symbol %s from %s: %s",
-				constructor_str, name, g_module_error());
-		g_module_close(module);
-		g_free(constructor_str);
-		return FALSE;
-	}
-	g_free(constructor_str);
-
-	self->plugins = g_list_append(self->plugins, constructor(self));
-	self->opengl->plugins = self->plugins;
-	return TRUE;
+	GisPlugin *plugin = gis_plugins_load(self->plugins, name,
+			self->world, self->view, self->opengl, self->prefs);
+	GtkWidget *config = aweather_gui_get_widget(self, "tabs");
+	GtkWidget *tab    = gtk_label_new(name);
+	GtkWidget *body   = gis_plugin_get_config(plugin);
+	gtk_notebook_append_page(GTK_NOTEBOOK(config), body, tab);
+	gtk_widget_show_all(config);
 }
-gboolean aweather_gui_unload_plugin(AWeatherGui *self, const char *name)
+void aweather_gui_deattach_plugin(AWeatherGui *self, const gchar *name)
 {
-	return FALSE;
+	gis_plugins_unload(self->plugins, name);
 }

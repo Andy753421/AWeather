@@ -24,6 +24,7 @@ AC_SUBST(RSL_LIBS,   "-lrsl")
 AC_CONFIG_FILES([
 	Makefile
 	src/Makefile
+	src/gis/Makefile
 	src/plugins/Makefile
 	data/Makefile
 	docs/Makefile

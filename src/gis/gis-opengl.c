@@ -23,10 +23,6 @@
 #include <GL/gl.h>
 #include <GL/glu.h>
 
-#include "misc.h"
-#include "aweather-gui.h"
-#include "gis-world.h"
-#include "gis-view.h"
 #include "gis-opengl.h"
 
 /****************
@@ -40,7 +36,7 @@ static void gis_opengl_init(GisOpenGL *self)
 static GObject *gis_opengl_constructor(GType gtype, guint n_properties,
 		GObjectConstructParam *properties)
 {
-	g_debug("gis_opengl: constructor");
+	g_debug("GisOpengl: constructor");
 	GObjectClass *parent_class = G_OBJECT_CLASS(gis_opengl_parent_class);
 	return  parent_class->constructor(gtype, n_properties, properties);
 }
@@ -141,8 +137,8 @@ gboolean on_configure(GtkWidget *drawing, GdkEventConfigure *event, GisOpenGL *s
 	gis_view_get_location(self->view, &x, &y, &z);
 
 	/* Window is at 500 m from camera */
-	double width  = GTK_WIDGET(self->drawing)->allocation.width;
-	double height = GTK_WIDGET(self->drawing)->allocation.height;
+	double width  = drawing->allocation.width;
+	double height = drawing->allocation.height;
 
 	glViewport(0, 0, width, height);
 
@@ -176,13 +172,7 @@ gboolean on_expose(GtkWidget *drawing, GdkEventExpose *event, GisOpenGL *self)
 	glRotatef(rz, 0, 0, 1);
 
 	/* Expose plugins */
-	/* TODO: Figure out how to handle plugins:
-	 *   - Do they belong to AWeatherGui, GisOpenGL, etc?
-	 */
-	for (GList *cur = self->plugins; cur; cur = cur->next) {
-		AWeatherPlugin *plugin = AWEATHER_PLUGIN(cur->data);
-		aweather_plugin_expose(plugin);
-	}
+	gis_plugins_foreach(self->plugins, G_CALLBACK(gis_plugin_expose), NULL);
 
 	gis_opengl_end(self);
 	gis_opengl_flush(self);
@@ -208,6 +198,7 @@ GisOpenGL *gis_opengl_new(GisWorld *world, GisView *view, GtkDrawingArea *drawin
 	self->world   = world;
 	self->view    = view;
 	self->drawing = drawing;
+	g_message("drawing = %p", drawing);
 	g_object_ref(world);
 	g_object_ref(view);
 	g_object_ref(drawing);
@@ -244,6 +235,7 @@ void gis_opengl_begin(GisOpenGL *self)
 {
 	g_assert(GIS_IS_OPENGL(self));
 
+	g_message("drawing = %p", self->drawing);
 	GdkGLContext   *glcontext  = gtk_widget_get_gl_context(GTK_WIDGET(self->drawing));
 	GdkGLDrawable  *gldrawable = gtk_widget_get_gl_drawable(GTK_WIDGET(self->drawing));
 

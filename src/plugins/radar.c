@@ -23,67 +23,66 @@
 #include <math.h>
 #include <rsl.h>
 
-#include "misc.h"
-#include "aweather-gui.h"
-#include "radar.h"
-#include "data.h"
-#include "marching.h"
+#include <gis/gis.h>
 
-static char *nexrad_base = "http://mesonet.agron.iastate.edu/data/";
+#include "marching.h"
+#include "radar.h"
+#include "radar-misc.h"
 
 /****************
  * GObject code *
  ****************/
 /* Plugin init */
-static void aweather_radar_plugin_init(AWeatherPluginInterface *iface);
-static void _aweather_radar_expose(AWeatherPlugin *_radar);
-G_DEFINE_TYPE_WITH_CODE(AWeatherRadar, aweather_radar, G_TYPE_OBJECT,
-		G_IMPLEMENT_INTERFACE(AWEATHER_TYPE_PLUGIN,
-			aweather_radar_plugin_init));
-static void aweather_radar_plugin_init(AWeatherPluginInterface *iface)
+static void gis_plugin_radar_plugin_init(GisPluginInterface *iface);
+static void gis_plugin_radar_expose(GisPlugin *_radar);
+static GtkWidget *gis_plugin_radar_get_config(GisPlugin *_self);
+G_DEFINE_TYPE_WITH_CODE(GisPluginRadar, gis_plugin_radar, G_TYPE_OBJECT,
+		G_IMPLEMENT_INTERFACE(GIS_TYPE_PLUGIN,
+			gis_plugin_radar_plugin_init));
+static void gis_plugin_radar_plugin_init(GisPluginInterface *iface)
 {
-	g_debug("AWeatherRadar: plugin_init");
+	g_debug("GisPluginRadar: plugin_init");
 	/* Add methods to the interface */
-	iface->expose = _aweather_radar_expose;
+	iface->expose     = gis_plugin_radar_expose;
+	iface->get_config = gis_plugin_radar_get_config;
 }
 /* Class/Object init */
-static void aweather_radar_init(AWeatherRadar *radar)
+static void gis_plugin_radar_init(GisPluginRadar *radar)
 {
-	g_debug("AWeatherRadar: class_init");
+	g_debug("GisPluginRadar: class_init");
 	/* Set defaults */
-	radar->gui           = NULL;
 	radar->soup          = NULL;
 	radar->cur_triangles = NULL;
 	radar->cur_num_triangles = 0;
 }
-static void aweather_radar_dispose(GObject *gobject)
+static void gis_plugin_radar_dispose(GObject *gobject)
 {
-	g_debug("AWeatherRadar: dispose");
-	AWeatherRadar *self = AWEATHER_RADAR(gobject);
+	g_debug("GisPluginRadar: dispose");
+	GisPluginRadar *self = GIS_PLUGIN_RADAR(gobject);
 	/* Drop references */
-	G_OBJECT_CLASS(aweather_radar_parent_class)->dispose(gobject);
+	G_OBJECT_CLASS(gis_plugin_radar_parent_class)->dispose(gobject);
 }
-static void aweather_radar_finalize(GObject *gobject)
+static void gis_plugin_radar_finalize(GObject *gobject)
 {
-	g_debug("AWeatherRadar: finalize");
-	AWeatherRadar *self = AWEATHER_RADAR(gobject);
+	g_debug("GisPluginRadar: finalize");
+	GisPluginRadar *self = GIS_PLUGIN_RADAR(gobject);
 	/* Free data */
-	G_OBJECT_CLASS(aweather_radar_parent_class)->finalize(gobject);
+	G_OBJECT_CLASS(gis_plugin_radar_parent_class)->finalize(gobject);
 
 }
-static void aweather_radar_class_init(AWeatherRadarClass *klass)
+static void gis_plugin_radar_class_init(GisPluginRadarClass *klass)
 {
-	g_debug("AWeatherRadar: class_init");
+	g_debug("GisPluginRadar: class_init");
 	GObjectClass *gobject_class = (GObjectClass*)klass;
-	gobject_class->dispose  = aweather_radar_dispose;
-	gobject_class->finalize = aweather_radar_finalize;
+	gobject_class->dispose  = gis_plugin_radar_dispose;
+	gobject_class->finalize = gis_plugin_radar_finalize;
 }
 
 /**************************
  * Data loading functions *
  **************************/
 /* Convert a sweep to an 2d array of data points */
-static void bscan_sweep(AWeatherRadar *self, Sweep *sweep, colormap_t *colormap,
+static void bscan_sweep(GisPluginRadar *self, Sweep *sweep, colormap_t *colormap,
 		guint8 **data, int *width, int *height)
 {
 	/* Calculate max number of bins */
@@ -120,9 +119,9 @@ static void bscan_sweep(AWeatherRadar *self, Sweep *sweep, colormap_t *colormap,
 }
 
 /* Load a sweep as the active texture */
-static void load_sweep(AWeatherRadar *self, Sweep *sweep)
+static void load_sweep(GisPluginRadar *self, Sweep *sweep)
 {
-	GisOpenGL *opengl = aweather_gui_get_opengl(self->gui);
+	GisOpenGL *opengl = self->opengl;
 	gis_opengl_begin(opengl);
 	self->cur_sweep = sweep;
 	int height, width;
@@ -142,7 +141,7 @@ static void load_sweep(AWeatherRadar *self, Sweep *sweep)
 	gis_opengl_end(opengl);
 }
 
-static void load_colormap(AWeatherRadar *self, gchar *table)
+static void load_colormap(GisPluginRadar *self, gchar *table)
 {
 	/* Set colormap so we can draw it on expose */
 	for (int i = 0; colormaps[i].name; i++)
@@ -152,7 +151,7 @@ static void load_colormap(AWeatherRadar *self, gchar *table)
 
 /* Add selectors to the config area for the sweeps */
 static void on_sweep_clicked(GtkRadioButton *button, gpointer _self);
-static void load_radar_gui(AWeatherRadar *self, Radar *radar)
+static void load_radar_gui(GisPluginRadar *self, Radar *radar)
 {
 	/* Clear existing items */
 	GtkWidget *child = gtk_bin_get_child(GTK_BIN(self->config_body));
@@ -221,7 +220,7 @@ static void load_radar_gui(AWeatherRadar *self, Radar *radar)
 	gtk_widget_show_all(table);
 }
 
-static void _aweather_radar_grid_set(GRIDCELL *grid, int gi, Ray *ray, int bi)
+static void _gis_plugin_radar_grid_set(GRIDCELL *grid, int gi, Ray *ray, int bi)
 {
 	Range range = ray->range[bi];
 
@@ -253,12 +252,12 @@ static void _aweather_radar_grid_set(GRIDCELL *grid, int gi, Ray *ray, int bi)
 }
 
 /* Load a radar from a decompressed file */
-static void load_radar(AWeatherRadar *self, gchar *radar_file)
+static void load_radar(GisPluginRadar *self, gchar *radar_file)
 {
 	char *dir  = g_path_get_dirname(radar_file);
 	char *site = g_path_get_basename(dir);
 	g_free(dir);
-	g_debug("AWeatherRadar: load_radar - Loading new radar");
+	g_debug("GisPluginRadar: load_radar - Loading new radar");
 	RSL_read_these_sweeps("all", NULL);
 	Radar *radar = self->cur_radar = RSL_wsr88d_to_radar(radar_file, site);
 	if (radar == NULL) {
@@ -283,7 +282,7 @@ static void load_radar(AWeatherRadar *self, gchar *radar_file)
 			Sweep *sweep0 = radar->v[vi]->sweep[si+0];
 			Sweep *sweep1 = radar->v[vi]->sweep[si+1];
 
-			//g_debug("_aweather_radar_expose: sweep[%3d-%3d] -- nrays = %d, %d",
+			//g_debug("_gis_plugin_radar_expose: sweep[%3d-%3d] -- nrays = %d, %d",
 			//	si, si+1,sweep0->h.nrays, sweep1->h.nrays);
 
 			/* Skip super->regular resolution switch for now */
@@ -304,7 +303,7 @@ static void load_radar(AWeatherRadar *self, gchar *radar_file)
 					sweep1->ray[ri];
 
 			for (guint ri = 0; ri+x < sweep0->h.nrays; ri+=x) {
-				//g_debug("_aweather_radar_expose: ray[%3d-%3d] -- nbins = %d, %d, %d, %d",
+				//g_debug("_gis_plugin_radar_expose: ray[%3d-%3d] -- nbins = %d, %d, %d, %d",
 				//	ri, ri+x,
 				//	rays0[ri  ]->h.nbins, 
 				//	rays0[ri+1]->h.nbins, 
@@ -313,14 +312,14 @@ static void load_radar(AWeatherRadar *self, gchar *radar_file)
 
 				for (guint bi = 0; bi+x < rays1[ri]->h.nbins; bi+=x) {
 					GRIDCELL grid = {};
-					_aweather_radar_grid_set(&grid, 7, rays0[(ri  )%sweep0->h.nrays], bi+x);
-					_aweather_radar_grid_set(&grid, 6, rays0[(ri+x)%sweep0->h.nrays], bi+x);
-					_aweather_radar_grid_set(&grid, 5, rays0[(ri+x)%sweep0->h.nrays], bi  );
-					_aweather_radar_grid_set(&grid, 4, rays0[(ri  )%sweep0->h.nrays], bi  );
-					_aweather_radar_grid_set(&grid, 3, rays1[(ri  )%sweep0->h.nrays], bi+x);
-					_aweather_radar_grid_set(&grid, 2, rays1[(ri+x)%sweep0->h.nrays], bi+x);
-					_aweather_radar_grid_set(&grid, 1, rays1[(ri+x)%sweep0->h.nrays], bi  );
-					_aweather_radar_grid_set(&grid, 0, rays1[(ri  )%sweep0->h.nrays], bi  );
+					_gis_plugin_radar_grid_set(&grid, 7, rays0[(ri  )%sweep0->h.nrays], bi+x);
+					_gis_plugin_radar_grid_set(&grid, 6, rays0[(ri+x)%sweep0->h.nrays], bi+x);
+					_gis_plugin_radar_grid_set(&grid, 5, rays0[(ri+x)%sweep0->h.nrays], bi  );
+					_gis_plugin_radar_grid_set(&grid, 4, rays0[(ri  )%sweep0->h.nrays], bi  );
+					_gis_plugin_radar_grid_set(&grid, 3, rays1[(ri  )%sweep0->h.nrays], bi+x);
+					_gis_plugin_radar_grid_set(&grid, 2, rays1[(ri+x)%sweep0->h.nrays], bi+x);
+					_gis_plugin_radar_grid_set(&grid, 1, rays1[(ri+x)%sweep0->h.nrays], bi  );
+					_gis_plugin_radar_grid_set(&grid, 0, rays1[(ri  )%sweep0->h.nrays], bi  );
 					
 					TRIANGLE tris[10];
 					int n = march_one_cube(grid, 40, tris);
@@ -363,86 +362,17 @@ static void load_radar(AWeatherRadar *self, gchar *radar_file)
 	load_radar_gui(self, radar);
 }
 
-/* TODO: These update times functions are getting ugly... */
-static void update_times_gtk(AWeatherRadar *self, GList *times)
-{
-	gchar *last_time = NULL;
-	GRegex *regex = g_regex_new("^[A-Z]{4}_([0-9]{8}_[0-9]{4})$", 0, 0, NULL); // KLSX_20090622_2113
-	GMatchInfo *info;
-
-	GtkTreeView  *tview  = GTK_TREE_VIEW(aweather_gui_get_widget(self->gui, "time"));
-	GtkListStore *lstore = GTK_LIST_STORE(gtk_tree_view_get_model(tview));
-	gtk_list_store_clear(lstore);
-	GtkTreeIter iter;
-	times = g_list_reverse(times);
-	for (GList *cur = times; cur; cur = cur->next) {
-		g_message("trying time %s", (gchar*)cur->data);
-		if (g_regex_match(regex, cur->data, 0, &info)) {
-			gchar *time = g_match_info_fetch(info, 1);
-			g_message("adding time %s", (gchar*)cur->data);
-			gtk_list_store_insert(lstore, &iter, 0);
-			gtk_list_store_set(lstore, &iter, 0, time, -1);
-			last_time = time;
-		}
-	}
-
-	GisView *view = aweather_gui_get_view(self->gui);
-	gis_view_set_time(view, last_time);
-
-	g_regex_unref(regex);
-	g_list_foreach(times, (GFunc)g_free, NULL);
-	g_list_free(times);
-}
-static void update_times_online_cb(char *path, gboolean updated, gpointer _self)
-{
-	GList *times = NULL;
-	gchar *data;
-	gsize length;
-	g_file_get_contents(path, &data, &length, NULL);
-	gchar **lines = g_strsplit(data, "\n", -1);
-	for (int i = 0; lines[i] && lines[i][0]; i++) {
-		char **parts = g_strsplit(lines[i], " ", 2);
-		times = g_list_prepend(times, g_strdup(parts[1]));
-		g_strfreev(parts);
-	}
-	g_strfreev(lines);
-	g_free(data);
-
-	update_times_gtk(_self, times);
-}
-static void update_times(AWeatherRadar *self, GisView *view, char *site)
-{
-	GisWorld *world = aweather_gui_get_world(self->gui);
-	if (gis_world_get_offline(world)) {
-		GList *times = NULL;
-		gchar *path = g_build_filename(g_get_user_cache_dir(), PACKAGE, "nexrd2", "raw", site, NULL);
-		GDir *dir = g_dir_open(path, 0, NULL);
-		if (dir) {
-			const gchar *name;
-			while ((name = g_dir_read_name(dir))) {
-				times = g_list_prepend(times, g_strdup(name));
-			}
-			g_dir_close(dir);
-		}
-		g_free(path);
-		update_times_gtk(self, times);
-	} else {
-		gchar *path = g_strdup_printf("nexrd2/raw/%s/dir.list", site);
-		cache_file(nexrad_base, path, AWEATHER_REFRESH, NULL, update_times_online_cb, self);
-		/* update_times_gtk from update_times_online_cb */
-	}
-}
-
 /*****************
  * ASync helpers *
  *****************/
 typedef struct {
-	AWeatherRadar *self;
+	GisPluginRadar *self;
 	gchar *radar_file;
 } decompressed_t;
 
 static void decompressed_cb(GPid pid, gint status, gpointer _udata)
 {
+	g_debug("GisPluginRadar: decompressed_cb");
 	decompressed_t *udata = _udata;
 	if (status != 0) {
 		g_warning("wsr88ddec exited with status %d", status);
@@ -456,10 +386,10 @@ static void decompressed_cb(GPid pid, gint status, gpointer _udata)
 
 static void cache_chunk_cb(char *path, goffset cur, goffset total, gpointer _self)
 {
-	AWeatherRadar *self = AWEATHER_RADAR(_self);
+	GisPluginRadar *self = GIS_PLUGIN_RADAR(_self);
 	double percent = (double)cur/total;
 
-	g_message("AWeatherRadar: cache_chunk_cb - %lld/%lld = %.2f%%",
+	g_message("GisPluginRadar: cache_chunk_cb - %lld/%lld = %.2f%%",
 			cur, total, percent*100);
 
 	gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(self->progress_bar), MIN(percent, 1.0));
@@ -472,9 +402,10 @@ static void cache_chunk_cb(char *path, goffset cur, goffset total, gpointer _sel
 
 static void cache_done_cb(char *path, gboolean updated, gpointer _self)
 {
-	AWeatherRadar *self = AWEATHER_RADAR(_self);
+	g_debug("GisPluginRadar: cache_done_cb - updated = %d", updated);
+	GisPluginRadar *self = GIS_PLUGIN_RADAR(_self);
 	char *decompressed = g_strconcat(path, ".raw", NULL);
-	if (!updated) {
+	if (!updated && g_file_test(decompressed, G_FILE_TEST_EXISTS)) {
 		load_radar(self, decompressed);
 		return;
 	}
@@ -482,7 +413,7 @@ static void cache_done_cb(char *path, gboolean updated, gpointer _self)
 	decompressed_t *udata = g_malloc(sizeof(decompressed_t));
 	udata->self       = self;
 	udata->radar_file = decompressed;
-	g_debug("AWeatherRadar: cache_done_cb - File updated, decompressing..");
+	g_debug("GisPluginRadar: cache_done_cb - File updated, decompressing..");
 	char *argv[] = {"wsr88ddec", path, decompressed, NULL};
 	GPid pid;
 	GError *error = NULL;
@@ -511,15 +442,15 @@ static void cache_done_cb(char *path, gboolean updated, gpointer _self)
  *************/
 static void on_sweep_clicked(GtkRadioButton *button, gpointer _self)
 {
-	AWeatherRadar *self = AWEATHER_RADAR(_self);
+	GisPluginRadar *self = GIS_PLUGIN_RADAR(_self);
 	load_colormap(self, g_object_get_data(G_OBJECT(button), "type" ));
 	load_sweep   (self, g_object_get_data(G_OBJECT(button), "sweep"));
 }
 
 static void on_time_changed(GisView *view, const char *time, gpointer _self)
 {
-	AWeatherRadar *self = AWEATHER_RADAR(_self);
-	g_debug("AWeatherRadar: on_time_changed - setting time=%s", time);
+	GisPluginRadar *self = GIS_PLUGIN_RADAR(_self);
+	g_debug("GisPluginRadar: on_time_changed - setting time=%s", time);
 	// format: http://mesonet.agron.iastate.edu/data/nexrd2/raw/KABR/KABR_20090510_0323
 	char *site = gis_view_get_site(view);
 	char *path = g_strdup_printf("nexrd2/raw/%s/%s_%s", site, site, time);
@@ -542,70 +473,56 @@ static void on_time_changed(GisView *view, const char *time, gpointer _self)
 		RSL_free_radar(self->cur_radar);
 	self->cur_radar = NULL;
 	self->cur_sweep = NULL;
-	gis_opengl_redraw(aweather_gui_get_opengl(self->gui));
+	gis_opengl_redraw(self->opengl);
 
 	/* Start loading the new radar */
 	if (self->soup) {
 		soup_session_abort(self->soup);
 		self->soup = NULL;
 	}
-	if (gis_world_get_offline(aweather_gui_get_world(self->gui))) 
-		self->soup = cache_file(nexrad_base, path, AWEATHER_ONCE,
+	gchar *base = gis_prefs_get_string(self->prefs, "general/nexrad_url");
+	if (gis_world_get_offline(self->world)) 
+		self->soup = cache_file(base, path, AWEATHER_ONCE,
 				cache_chunk_cb, cache_done_cb, self);
 	else 
-		self->soup = cache_file(nexrad_base, path, AWEATHER_UPDATE,
+		self->soup = cache_file(base, path, AWEATHER_UPDATE,
 				cache_chunk_cb, cache_done_cb, self);
 	g_free(path);
-}
-
-static void on_site_changed(GisView *view, char *site, gpointer _self)
-{
-	AWeatherRadar *self = AWEATHER_RADAR(_self);
-	g_debug("AWeatherRadar: on_site_changed - Loading wsr88d list for %s", site);
-	update_times(self, view, site);
-}
-
-static void on_refresh(GisWorld *world, gpointer _self)
-{
-	AWeatherRadar *self = AWEATHER_RADAR(_self);
-	GisView *view = aweather_gui_get_view(AWEATHER_RADAR(_self)->gui);
-	char *site = gis_view_get_site(view);
-	update_times(self, view, site);
 }
 
 /***********
  * Methods *
  ***********/
-AWeatherRadar *aweather_radar_new(AWeatherGui *gui)
+GisPluginRadar *gis_plugin_radar_new(GisWorld *world, GisView *view, GisOpenGL *opengl, GisPrefs *prefs)
 {
-	g_debug("AWeatherRadar: new");
-	AWeatherRadar *self = g_object_new(AWEATHER_TYPE_RADAR, NULL);
-	self->gui  = gui;
+	/* TODO: move to constructor if possible */
+	g_debug("GisPluginRadar: new");
+	GisPluginRadar *self = g_object_new(GIS_TYPE_PLUGIN_RADAR, NULL);
+	self->world  = world;
+	self->view   = view;
+	self->opengl = opengl;
+	self->prefs  = prefs;
 
-	GtkWidget    *config  = aweather_gui_get_widget(gui, "tabs");
-
-	/* Add configuration tab */
 	self->config_body = gtk_alignment_new(0, 0, 1, 1);
 	gtk_container_set_border_width(GTK_CONTAINER(self->config_body), 5);
 	gtk_container_add(GTK_CONTAINER(self->config_body), gtk_label_new("No radar loaded"));
-	gtk_notebook_prepend_page(GTK_NOTEBOOK(config), self->config_body, gtk_label_new("Radar"));
 
 	/* Set up OpenGL Stuff */
-	GisView  *view  = aweather_gui_get_view(gui);
-	GisWorld *world = aweather_gui_get_world(gui);
-	g_signal_connect(view,  "site-changed", G_CALLBACK(on_site_changed), self);
 	g_signal_connect(view,  "time-changed", G_CALLBACK(on_time_changed), self);
-	g_signal_connect(world, "refresh",      G_CALLBACK(on_refresh),      self);
-
-	on_site_changed(view, gis_view_get_site(view), self);
 
 	return self;
 }
 
-static void _aweather_radar_expose(AWeatherPlugin *_self)
+static GtkWidget *gis_plugin_radar_get_config(GisPlugin *_self)
 {
-	AWeatherRadar *self = AWEATHER_RADAR(_self);
-	g_debug("AWeatherRadar: expose");
+	GisPluginRadar *self = GIS_PLUGIN_RADAR(_self);
+	return self->config_body;
+}
+
+static void gis_plugin_radar_expose(GisPlugin *_self)
+{
+	GisPluginRadar *self = GIS_PLUGIN_RADAR(_self);
+	g_debug("GisPluginRadar: expose");
 	if (self->cur_sweep == NULL)
 		return;
 	Sweep *sweep = self->cur_sweep;

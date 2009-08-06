@@ -18,7 +18,7 @@
 #include <config.h>
 #include <gtk/gtk.h>
 
-#include "location.h"
+#include "aweather-location.h"
 
 city_t cities[] = {
 	{LOCATION_STATE, NULL,   "Alabama",           {0, 0, 0, 0, 0, 0, 0, 0}},

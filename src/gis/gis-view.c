@@ -17,7 +17,7 @@
 
 #include <glib.h>
 
-#include "marshal.h"
+#include "gis-marshal.h"
 #include "gis-view.h"
 
 /****************
@@ -138,7 +138,7 @@ static void gis_view_class_init(GisViewClass *klass)
 			0,
 			NULL,
 			NULL,
-			aweather_cclosure_marshal_VOID__DOUBLE_DOUBLE_DOUBLE,
+			gis_cclosure_marshal_VOID__DOUBLE_DOUBLE_DOUBLE,
 			G_TYPE_NONE,
 			3,
 			G_TYPE_DOUBLE,
@@ -151,7 +151,7 @@ static void gis_view_class_init(GisViewClass *klass)
 			0,
 			NULL,
 			NULL,
-			aweather_cclosure_marshal_VOID__DOUBLE_DOUBLE_DOUBLE,
+			gis_cclosure_marshal_VOID__DOUBLE_DOUBLE_DOUBLE,
 			G_TYPE_NONE,
 			3,
 			G_TYPE_DOUBLE,
@@ -290,6 +290,6 @@ void gis_view_set_site(GisView *view, const gchar *site)
 gchar *gis_view_get_site(GisView *view)
 {
 	g_assert(GIS_IS_VIEW(view));
-	g_debug("GisView: get_site");
+	g_debug("GisView: get_site - %s", view->site);
 	return view->site;
 }

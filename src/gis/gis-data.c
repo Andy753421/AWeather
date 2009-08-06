@@ -20,7 +20,7 @@
 #include <glib.h>
 #include <libsoup/soup.h>
 
-#include "data.h"
+#include "gis-data.h"
 
 typedef struct {
 	gchar *uri;

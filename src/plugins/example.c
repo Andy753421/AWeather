@@ -20,54 +20,57 @@
 #include <gtk/gtkgl.h>
 #include <GL/gl.h>
 
-#include "aweather-gui.h"
+#include <gis/gis.h>
+
 #include "example.h"
 
 /****************
  * GObject code *
  ****************/
 /* Plugin init */
-static void aweather_example_plugin_init(AWeatherPluginInterface *iface);
-static void aweather_example_expose(AWeatherPlugin *_self);
-G_DEFINE_TYPE_WITH_CODE(AWeatherExample, aweather_example, G_TYPE_OBJECT,
-		G_IMPLEMENT_INTERFACE(AWEATHER_TYPE_PLUGIN,
-			aweather_example_plugin_init));
-static void aweather_example_plugin_init(AWeatherPluginInterface *iface)
+static void gis_plugin_example_plugin_init(GisPluginInterface *iface);
+static void gis_plugin_example_expose(GisPlugin *_self);
+static GtkWidget *gis_plugin_example_get_config(GisPlugin *_self);
+G_DEFINE_TYPE_WITH_CODE(GisPluginExample, gis_plugin_example, G_TYPE_OBJECT,
+		G_IMPLEMENT_INTERFACE(GIS_TYPE_PLUGIN,
+			gis_plugin_example_plugin_init));
+static void gis_plugin_example_plugin_init(GisPluginInterface *iface)
 {
-	g_debug("AWeatherExample: plugin_init");
+	g_debug("GisPluginExample: plugin_init");
 	/* Add methods to the interface */
-	iface->expose = aweather_example_expose;
+	iface->expose     = gis_plugin_example_expose;
+	iface->get_config = gis_plugin_example_get_config;
 }
 /* Class/Object init */
-static void aweather_example_init(AWeatherExample *self)
+static void gis_plugin_example_init(GisPluginExample *self)
 {
-	g_debug("AWeatherExample: init");
+	g_debug("GisPluginExample: init");
 	/* Set defaults */
-	self->gui      = NULL;
+	self->opengl   = NULL;
 	self->button   = NULL;
 	self->rotation = 30.0;
 }
-static void aweather_example_dispose(GObject *gobject)
+static void gis_plugin_example_dispose(GObject *gobject)
 {
-	g_debug("AWeatherExample: dispose");
-	AWeatherExample *self = AWEATHER_EXAMPLE(gobject);
+	g_debug("GisPluginExample: dispose");
+	GisPluginExample *self = GIS_PLUGIN_EXAMPLE(gobject);
 	/* Drop references */
-	G_OBJECT_CLASS(aweather_example_parent_class)->dispose(gobject);
+	G_OBJECT_CLASS(gis_plugin_example_parent_class)->dispose(gobject);
 }
-static void aweather_example_finalize(GObject *gobject)
+static void gis_plugin_example_finalize(GObject *gobject)
 {
-	g_debug("AWeatherExample: finalize");
-	AWeatherExample *self = AWEATHER_EXAMPLE(gobject);
+	g_debug("GisPluginExample: finalize");
+	GisPluginExample *self = GIS_PLUGIN_EXAMPLE(gobject);
 	/* Free data */
-	G_OBJECT_CLASS(aweather_example_parent_class)->finalize(gobject);
+	G_OBJECT_CLASS(gis_plugin_example_parent_class)->finalize(gobject);
 
 }
-static void aweather_example_class_init(AWeatherExampleClass *klass)
+static void gis_plugin_example_class_init(GisPluginExampleClass *klass)
 {
-	g_debug("AWeatherExample: class_init");
+	g_debug("GisPluginExample: class_init");
 	GObjectClass *gobject_class = (GObjectClass*)klass;
-	gobject_class->dispose  = aweather_example_dispose;
-	gobject_class->finalize = aweather_example_finalize;
+	gobject_class->dispose  = gis_plugin_example_dispose;
+	gobject_class->finalize = gis_plugin_example_finalize;
 }
 
 /***********
@@ -75,10 +78,10 @@ static void aweather_example_class_init(AWeatherExampleClass *klass)
  ***********/
 static gboolean rotate(gpointer _self)
 {
-	AWeatherExample *self = _self;
+	GisPluginExample *self = _self;
 	if (gtk_toggle_button_get_active(self->button)) {
 		self->rotation += 1.0;
-		gis_opengl_redraw(aweather_gui_get_opengl(self->gui));
+		gis_opengl_redraw(self->opengl);
 	}
 	return TRUE;
 }
@@ -86,31 +89,29 @@ static gboolean rotate(gpointer _self)
 /***********
  * Methods *
  ***********/
-AWeatherExample *aweather_example_new(AWeatherGui *gui)
+GisPluginExample *gis_plugin_example_new(GisWorld *world, GisView *view, GisOpenGL *opengl)
 {
-	g_debug("AWeatherExample: new");
-	AWeatherExample *self = g_object_new(AWEATHER_TYPE_EXAMPLE, NULL);
-	self->gui = gui;
-
-	GtkWidget *drawing = aweather_gui_get_widget(gui, "drawing");
-	GtkWidget *config  = aweather_gui_get_widget(gui, "tabs");
-
-	/* Add configuration tab */
-	GtkWidget *label = gtk_label_new("Example");
+	g_debug("GisPluginExample: new");
+	GisPluginExample *self = g_object_new(GIS_TYPE_PLUGIN_EXAMPLE, NULL);
+	self->opengl = opengl;
 	self->button = GTK_TOGGLE_BUTTON(gtk_toggle_button_new_with_label("Rotate"));
-	gtk_notebook_append_page(GTK_NOTEBOOK(config), GTK_WIDGET(self->button), label);
 
 	/* Set up OpenGL Stuff */
-	//g_signal_connect(drawing, "expose-event", G_CALLBACK(expose), NULL);
 	g_timeout_add(1000/60, rotate, self);
 
 	return self;
 }
 
-static void aweather_example_expose(AWeatherPlugin *_self)
+static GtkWidget *gis_plugin_example_get_config(GisPlugin *_self)
 {
-	AWeatherExample *self = AWEATHER_EXAMPLE(_self);
-	g_debug("AWeatherExample: expose");
+	GisPluginExample *self = GIS_PLUGIN_EXAMPLE(_self);
+	return GTK_WIDGET(self->button);
+}
+
+static void gis_plugin_example_expose(GisPlugin *_self)
+{
+	GisPluginExample *self = GIS_PLUGIN_EXAMPLE(_self);
+	g_debug("GisPluginExample: expose");
 	glDisable(GL_TEXTURE_2D);
 	glMatrixMode(GL_PROJECTION); glPushMatrix(); glLoadIdentity();
 	glOrtho(-1,1,-1,1,-10,10);
@@ -130,7 +131,6 @@ static void aweather_example_expose(AWeatherPlugin *_self)
 	glRotatef(self->rotation, 1, 0, 1);
 	glColor4f(0.9, 0.9, 0.7, 1.0);
 	gdk_gl_draw_teapot(TRUE, 0.25);
-	gdk_gl_draw_cube(TRUE, 0.25);
 	glColor4f(1.0, 1.0, 1.0, 1.0);
 
 	glDisable(GL_LIGHT0);

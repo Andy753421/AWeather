@@ -20,30 +20,34 @@
 
 #include <glib-object.h>
 
-#define AWEATHER_TYPE_RIDGE            (aweather_ridge_get_type ())
-#define AWEATHER_RIDGE(obj)            (G_TYPE_CHECK_INSTANCE_CAST((obj),   AWEATHER_TYPE_RIDGE, AWeatherRidge))
-#define AWEATHER_IS_RIDGE(obj)         (G_TYPE_CHECK_INSTANCE_TYPE((obj),   AWEATHER_TYPE_RIDGE))
-#define AWEATHER_RIDGE_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST   ((klass), AWEATHER_TYPE_RIDGE, AWeatherRidgeClass))
-#define AWEATHER_IS_RIDGE_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE   ((klass), AWEATHER_TYPE_RIDGE))
-#define AWEATHER_RIDGE_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj),   AWEATHER_TYPE_RIDGE, AWeatherRidgeClass))
+#include <gis/gis.h>
 
-typedef struct _AWeatherRidge      AWeatherRidge;
-typedef struct _AWeatherRidgeClass AWeatherRidgeClass;
+#define GIS_TYPE_PLUGIN_RIDGE            (gis_plugin_ridge_get_type ())
+#define GIS_PLUGIN_RIDGE(obj)            (G_TYPE_CHECK_INSTANCE_CAST((obj),   GIS_TYPE_PLUGIN_RIDGE, GisPluginRidge))
+#define GIS_IS_PLUGIN_RIDGE(obj)         (G_TYPE_CHECK_INSTANCE_TYPE((obj),   GIS_TYPE_PLUGIN_RIDGE))
+#define GIS_PLUGIN_RIDGE_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST   ((klass), GIS_TYPE_PLUGIN_RIDGE, GisPluginRidgeClass))
+#define GIS_IS_PLUGIN_RIDGE_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE   ((klass), GIS_TYPE_PLUGIN_RIDGE))
+#define GIS_PLUGIN_RIDGE_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj),   GIS_TYPE_PLUGIN_RIDGE, GisPluginRidgeClass))
 
-struct _AWeatherRidge {
+typedef struct _GisPluginRidge      GisPluginRidge;
+typedef struct _GisPluginRidgeClass GisPluginRidgeClass;
+
+struct _GisPluginRidge {
 	GObject parent_instance;
 
 	/* instance members */
-	AWeatherGui *gui;
+	GisWorld    *world;
+	GisView     *view;
+	GisOpenGL   *opengl;
 };
 
-struct _AWeatherRidgeClass {
+struct _GisPluginRidgeClass {
 	GObjectClass parent_class;
 };
 
-GType aweather_ridge_get_type();
+GType gis_plugin_ridge_get_type();
 
 /* Methods */
-AWeatherRidge *aweather_ridge_new(AWeatherGui *gui);
+GisPluginRidge *gis_plugin_ridge_new(GisWorld *world, GisView *view, GisOpenGL *opengl);
 
 #endif

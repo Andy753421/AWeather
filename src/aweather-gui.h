@@ -20,10 +20,8 @@
 
 #include <gtk/gtk.h>
 #include <glib-object.h>
-#include "gis-opengl.h"
-#include "gis-world.h"
-#include "gis-view.h"
-#include "aweather-plugin.h"
+
+#include <gis/gis.h>
 
 /* Type macros */
 #define AWEATHER_TYPE_GUI            (aweather_gui_get_type())
@@ -40,12 +38,12 @@ struct _AWeatherGui {
 	GtkWindow parent_instance;
 
 	/* instance members */
-	GtkBuilder *builder;
-	GisWorld   *world;
-	GisView    *view;
-	GisOpenGL  *opengl;
-	GList      *plugins;
-	GKeyFile   *prefs;
+	GtkBuilder   *builder;
+	GisWorld     *world;
+	GisView      *view;
+	GisOpenGL    *opengl;
+	GisPlugins   *plugins;
+	GisPrefs     *prefs;
 	GtkListStore *gtk_plugins;
 };
 
@@ -67,7 +65,7 @@ GisView     *aweather_gui_get_view(AWeatherGui *gui);
 GtkWidget   *aweather_gui_get_widget(AWeatherGui *gui, const gchar *name);
 GObject     *aweather_gui_get_object(AWeatherGui *gui, const gchar *name);
 
-gboolean     aweather_gui_load_plugin(AWeatherGui *gui, const gchar *name);
-gboolean     aweather_gui_unload_plugin(AWeatherGui *gui, const gchar *name);
+void         aweather_gui_attach_plugin(AWeatherGui *self, const gchar *name);
+void         aweather_gui_deattach_plugin(AWeatherGui *self, const gchar *name);
 
 #endif
