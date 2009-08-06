@@ -536,6 +536,7 @@ void aweather_gui_attach_plugin(AWeatherGui *self, const gchar *name)
 	GtkWidget *body   = gis_plugin_get_config(plugin);
 	gtk_notebook_append_page(GTK_NOTEBOOK(config), body, tab);
 	gtk_widget_show_all(config);
+	gis_opengl_redraw(self->opengl);
 }
 void aweather_gui_deattach_plugin(AWeatherGui *self, const gchar *name)
 {
@@ -552,4 +553,5 @@ void aweather_gui_deattach_plugin(AWeatherGui *self, const gchar *name)
 			gtk_notebook_remove_page(GTK_NOTEBOOK(config), i);
 	}
 	gis_plugins_unload(self->plugins, name);
+	gis_opengl_redraw(self->opengl);
 }

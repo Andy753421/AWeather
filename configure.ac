@@ -26,6 +26,7 @@ AC_CONFIG_FILES([
 	Makefile
 	src/Makefile
 	src/gis/Makefile
+	src/gis/libgis.pc
 	src/plugins/Makefile
 	data/Makefile
 	docs/Makefile

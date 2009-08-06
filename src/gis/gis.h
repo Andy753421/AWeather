@@ -26,7 +26,6 @@
 
 /* GIS helprs */
 #include "gis-data.h"
-#include "gis-marshal.h"
 
 /* Plugins */
 #include "gis-plugin.h"

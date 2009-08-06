@@ -18,7 +18,6 @@
 #ifndef __GIS_OPENGL_H__
 #define __GIS_OPENGL_H__
 
-#include <config.h>
 #include <gtk/gtk.h>
 #include <gtk/gtkgl.h>
 #include <glib-object.h>

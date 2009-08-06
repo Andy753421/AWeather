@@ -22,6 +22,9 @@ libgis_la_SOURCES = \
 libgis_la_CPPFLAGS = -DPLUGINDIR="\"$(libdir)/gis\"" $(SOUP_CFLAGS) $(GLIB_CFLAGS) $(GTK_CFLAGS)
 libgis_la_LIBADD = $(SOUP_LIBS) $(GLIB_LIBS) $(GTK_LIBS)
 
+pkgconfigdir = $(libdir)/pkgconfig
+pkgconfig_DATA = libgis.pc
+
 MAINTAINERCLEANFILES = Makefile.in
 
 .list.c:
