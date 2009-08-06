@@ -400,6 +400,8 @@
     <property name="border_width">5</property>
     <property name="type_hint">normal</property>
     <property name="has_separator">False</property>
+    <signal name="response" handler="gtk_widget_hide" object="prefs_window"/>
+    <signal name="delete_event" handler="gtk_widget_hide_on_delete"/>
     <child internal-child="vbox">
       <object class="GtkVBox" id="dialog-vbox1">
         <property name="visible">True</property>
@@ -876,7 +878,8 @@ The hypothetical commands `show w' and `show c' should show the appropriate part
 </property>
     <property name="authors">Andy Spencer &lt;andy753421@gmail.com&gt;</property>
     <property name="wrap_license">True</property>
-    <signal name="response" handler="gtk_widget_destroy" object="about_window"/>
+    <signal name="response" handler="gtk_widget_hide"/>
+    <signal name="delete_event" handler="gtk_widget_hide_on_delete"/>
     <child internal-child="vbox">
       <object class="GtkVBox" id="dialog-vbox3">
         <property name="visible">True</property>

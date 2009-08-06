@@ -16,15 +16,16 @@ CLEANFILES = gmon.out valgrind.out
 MAINTAINERCLEANFILES = Makefile.in
 
 test: all
-	./aweather -o -d 7 -s KVNX
+	LD_LIBRARY_PATH=gis/.libs .libs/aweather -o -d 7 -s KVNX
 
 gdb: all
-	gdb .libs/aweather
+	LD_LIBRARY_PATH=gis/.libs gdb .libs/aweather
 
 ddd: all
-	ddd .libs/aweather
+	LD_LIBRARY_PATH=gis/.libs ddd .libs/aweather
 
 memcheck:
+	LD_LIBRARY_PATH=gis/.libs/               \
 	G_SLICE=always-malloc                   \
 	G_DEBUG=gc-friendly,resident-modules    \
 	valgrind --leak-check=full              \

@@ -29,6 +29,7 @@
 gboolean on_gui_key_press(GtkWidget *widget, GdkEventKey *event, AWeatherGui *self);
 static void on_gis_refresh(GisWorld *world, gpointer _self);
 static void on_gis_site_changed(GisView *view, char *site, gpointer _self);
+static void prefs_setup(AWeatherGui *self);
 static void site_setup(AWeatherGui *self);
 static void time_setup(AWeatherGui *self);
 
@@ -59,10 +60,6 @@ static void aweather_gui_init(AWeatherGui *self)
 	self->opengl->plugins = self->plugins;
 	//gtk_widget_show_all(GTK_WIDGET(self));
 
-	/* Misc, helpers */
-	site_setup(self);
-	time_setup(self);
-
 	/* Plugins */
 	GtkTreeIter iter;
 	self->gtk_plugins = GTK_LIST_STORE(aweather_gui_get_object(self, "plugins"));
@@ -74,6 +71,11 @@ static void aweather_gui_init(AWeatherGui *self)
 		if (enabled)
 			aweather_gui_attach_plugin(self, name);
 	}
+
+	/* Misc, helpers */
+	prefs_setup(self);
+	site_setup(self);
+	time_setup(self);
 
 	/* Connect signals */
 	gtk_builder_connect_signals(self->builder, self);
@@ -187,29 +189,11 @@ void on_refresh(GtkAction *action, AWeatherGui *self)
 	gis_world_refresh(self->world);
 }
 
-void load_window(gchar *name, AWeatherGui *self)
-{
-	// TODO: use gtk_widget_hide_on_delete()
-	char *objects[2] = {name, NULL};
-	gtk_builder_add_objects_from_file(self->builder,
-			DATADIR "/aweather/main.ui", objects, NULL);
-	gtk_builder_connect_signals(self->builder, self);
-	GtkWidget *main_win = aweather_gui_get_widget(self, "main_window");
-	GtkWidget *this_win = aweather_gui_get_widget(self, name);
-	gtk_window_set_transient_for(GTK_WINDOW(this_win), GTK_WINDOW(main_win));
-	gtk_widget_show_all(this_win);
-}
-
-void on_about(GtkAction *action, AWeatherGui *self)
-{
-	load_window("about_window", self);
-}
 
 void on_plugin_toggled(GtkCellRendererToggle *cell, gchar *path_str, AWeatherGui *self)
 {
 	GtkWidget    *tview = aweather_gui_get_widget(self, "plugins_view");
 	GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(tview));
-	g_message("model=%p", model);
 	gboolean state;
 	gchar *name;
 	GtkTreeIter iter;
@@ -226,31 +210,12 @@ void on_plugin_toggled(GtkCellRendererToggle *cell, gchar *path_str, AWeatherGui
 }
 void on_prefs(GtkAction *action, AWeatherGui *self)
 {
-	/* get prefs */
-	gchar *is = gis_prefs_get_string (self->prefs, "aweather/initial_site");
-	gchar *nu = gis_prefs_get_string (self->prefs, "aweather/nexrad_url");
-	gint   ll = gis_prefs_get_integer(self->prefs, "aweather/log_level");
-	load_window("prefs_window", self);
-	/* set prefs */
-	GtkWidget *isw = aweather_gui_get_widget(self, "initial_site");
-	GtkWidget *nuw = aweather_gui_get_widget(self, "nexrad_url");
-	GtkWidget *llw = aweather_gui_get_widget(self, "log_level");
-	if (is) gtk_entry_set_text(GTK_ENTRY(isw), is), g_free(is);
-	if (nu) gtk_entry_set_text(GTK_ENTRY(nuw), nu), g_free(nu);
-	if (ll) gtk_spin_button_set_value(GTK_SPIN_BUTTON(llw), ll);
+	gtk_window_present(GTK_WINDOW(aweather_gui_get_widget(self, "prefs_window")));
+}
 
-	/* Plugins */
-	GtkTreeView       *tview = GTK_TREE_VIEW(aweather_gui_get_widget(self, "plugins_view"));
-	GtkCellRenderer   *rend1 = gtk_cell_renderer_text_new();
-	GtkCellRenderer   *rend2 = gtk_cell_renderer_toggle_new();
-	GtkTreeViewColumn *col1  = gtk_tree_view_column_new_with_attributes(
-			"Plugin",  rend1, "text",   0, NULL);
-	GtkTreeViewColumn *col2  = gtk_tree_view_column_new_with_attributes(
-			"Enabled", rend2, "active", 1, NULL);
-	gtk_tree_view_append_column(tview, col1);
-	gtk_tree_view_append_column(tview, col2);
-	g_signal_connect(rend2, "toggled", G_CALLBACK(on_plugin_toggled), self);
-	gtk_tree_view_set_model(GTK_TREE_VIEW(tview), GTK_TREE_MODEL(self->gtk_plugins));
+void on_about(GtkAction *action, AWeatherGui *self)
+{
+	gtk_window_present(GTK_WINDOW(aweather_gui_get_widget(self, "about_window")));
 }
 
 void on_time_changed(GtkTreeView *view, GtkTreePath *path,
@@ -361,6 +326,33 @@ int on_log_level_changed(GtkSpinButton *spinner, AWeatherGui *self)
 /*****************
  * Setup helpers *
  *****************/
+static void prefs_setup(AWeatherGui *self)
+{
+	/* Set values */
+	gchar *is = gis_prefs_get_string (self->prefs, "aweather/initial_site");
+	gchar *nu = gis_prefs_get_string (self->prefs, "aweather/nexrad_url");
+	gint   ll = gis_prefs_get_integer(self->prefs, "aweather/log_level");
+	GtkWidget *isw = aweather_gui_get_widget(self, "initial_site");
+	GtkWidget *nuw = aweather_gui_get_widget(self, "nexrad_url");
+	GtkWidget *llw = aweather_gui_get_widget(self, "log_level");
+	if (is) gtk_entry_set_text(GTK_ENTRY(isw), is), g_free(is);
+	if (nu) gtk_entry_set_text(GTK_ENTRY(nuw), nu), g_free(nu);
+	if (ll) gtk_spin_button_set_value(GTK_SPIN_BUTTON(llw), ll);
+
+	/* Load Plugins */
+	GtkTreeView       *tview = GTK_TREE_VIEW(aweather_gui_get_widget(self, "plugins_view"));
+	GtkCellRenderer   *rend1 = gtk_cell_renderer_text_new();
+	GtkCellRenderer   *rend2 = gtk_cell_renderer_toggle_new();
+	GtkTreeViewColumn *col1  = gtk_tree_view_column_new_with_attributes(
+			"Plugin",  rend1, "text",   0, NULL);
+	GtkTreeViewColumn *col2  = gtk_tree_view_column_new_with_attributes(
+			"Enabled", rend2, "active", 1, NULL);
+	gtk_tree_view_append_column(tview, col1);
+	gtk_tree_view_append_column(tview, col2);
+	g_signal_connect(rend2, "toggled", G_CALLBACK(on_plugin_toggled), self);
+	gtk_tree_view_set_model(GTK_TREE_VIEW(tview), GTK_TREE_MODEL(self->gtk_plugins));
+}
+
 static void combo_sensitive(GtkCellLayout *cell_layout, GtkCellRenderer *cell,
 		GtkTreeModel *tree_model, GtkTreeIter *iter, gpointer data)
 {
@@ -550,8 +542,11 @@ void aweather_gui_deattach_plugin(AWeatherGui *self, const gchar *name)
 	GtkWidget *config = aweather_gui_get_widget(self, "tabs");
 	guint n_pages = gtk_notebook_get_n_pages(GTK_NOTEBOOK(config));
 	for (int i = 0; i < n_pages; i++) {
+		g_debug("testing tab %d", i);
 		GtkWidget *body = gtk_notebook_get_nth_page(GTK_NOTEBOOK(config), i);
+		if (!body) continue;
 		GtkWidget *tab = gtk_notebook_get_tab_label(GTK_NOTEBOOK(config), body);
+		if (!tab) continue;
 		const gchar *tab_name = gtk_label_get_text(GTK_LABEL(tab));
 		if (tab_name && g_str_equal(name, tab_name))
 			gtk_notebook_remove_page(GTK_NOTEBOOK(config), i);
