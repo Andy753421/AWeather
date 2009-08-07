@@ -25,6 +25,7 @@
     </columns>
   </object>
   <object class="GtkWindow" id="main_window">
+    <property name="title" translatable="yes">AWeather</property>
     <child>
       <object class="GtkVBox" id="body">
         <property name="visible">True</property>
@@ -398,7 +399,9 @@
   </object>
   <object class="GtkDialog" id="prefs_window">
     <property name="border_width">5</property>
+    <property name="title" translatable="yes">Preferences - AWeather</property>
     <property name="type_hint">normal</property>
+    <property name="transient_for">main_window</property>
     <property name="has_separator">False</property>
     <signal name="response" handler="gtk_widget_hide" object="prefs_window"/>
     <signal name="delete_event" handler="gtk_widget_hide_on_delete"/>
@@ -622,10 +625,11 @@
   </object>
   <object class="GtkAboutDialog" id="about_window">
     <property name="border_width">5</property>
-    <property name="title" translatable="yes">About AWeather</property>
+    <property name="title" translatable="yes">About - AWeather</property>
     <property name="resizable">False</property>
     <property name="window_position">center-on-parent</property>
     <property name="type_hint">dialog</property>
+    <property name="transient_for">main_window</property>
     <property name="has_separator">False</property>
     <property name="program_name">AWeather</property>
     <property name="version">0.1</property>
@@ -903,9 +907,9 @@ The hypothetical commands `show w' and `show c' should show the appropriate part
   </object>
   <object class="GtkSizeGroup" id="prefs_size">
     <widgets>
-      <widget name="site_label"/>
-      <widget name="nexrad_label"/>
       <widget name="log_label"/>
+      <widget name="nexrad_label"/>
+      <widget name="site_label"/>
     </widgets>
   </object>
   <object class="GtkAdjustment" id="adjustment">

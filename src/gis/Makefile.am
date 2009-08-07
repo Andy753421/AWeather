@@ -19,8 +19,11 @@ libgis_la_SOURCES = \
 	gis-plugin.c  gis-plugin.h \
 	gis-data.c    gis-data.h   \
 	gis-marshal.c gis-marshal.h
-libgis_la_CPPFLAGS = -DPLUGINDIR="\"$(libdir)/gis\"" $(SOUP_CFLAGS) $(GLIB_CFLAGS) $(GTK_CFLAGS)
-libgis_la_LIBADD = $(SOUP_LIBS) $(GLIB_LIBS) $(GTK_LIBS)
+libgis_la_CPPFLAGS = \
+	-DDATADIR="\"$(datadir)\"" -DPLUGINDIR="\"$(libdir)/gis\"" \
+	$(SOUP_CFLAGS) $(GLIB_CFLAGS) $(GTK_CFLAGS)
+libgis_la_LIBADD = \
+	$(SOUP_LIBS) $(GLIB_LIBS) $(GTK_LIBS)
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libgis.pc
