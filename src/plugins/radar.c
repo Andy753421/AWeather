@@ -25,9 +25,8 @@
 
 #include <gis/gis.h>
 
-#include "marching.h"
 #include "radar.h"
-#include "radar-misc.h"
+#include "marching.h"
 
 /****************
  * GObject code *

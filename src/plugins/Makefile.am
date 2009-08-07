@@ -9,19 +9,15 @@ plugin_LTLIBRARIES = \
 	radar.la   \
 	ridge.la
 
-example_la_SOURCES = \
-	example.c \
-	example.h
+example_la_SOURCES  = example.c example.h
 example_la_CPPFLAGS = $(AM_CPPFLAGS) $(SOUP_CFLAGS)
 
-ridge_la_SOURCES = \
-	ridge.c \
-	ridge.h
-ridge_la_CPPFLAGS = $(AM_CPPFLAGS) $(SOUP_CFLAGS)
+ridge_la_SOURCES    = ridge.c ridge.h
+ridge_la_CPPFLAGS   = $(AM_CPPFLAGS) $(SOUP_CFLAGS)
 
 radar_la_SOURCES = \
-	radar.c \
-	radar.h \
+	radar.c    radar.h \
+	marching.c marching.h \
 	radar-colormap.c
 radar_la_CPPFLAGS = $(AM_CPPFLAGS) $(SOUP_CFLAGS) $(RSL_CFLAGS)
 radar_la_LIBADD = $(SOUP_LIBS) $(RSL_LIBS)
