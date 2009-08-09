@@ -391,11 +391,11 @@
   <object class="GtkAction" id="about">
     <property name="label">About</property>
     <property name="stock_id">gtk-about</property>
-    <signal name="activate" handler="on_about"/>
+    <signal name="activate" handler="gtk_window_present" object="about_window"/>
   </object>
   <object class="GtkAction" id="prefs">
     <property name="stock_id">gtk-preferences</property>
-    <signal name="activate" handler="on_prefs"/>
+    <signal name="activate" handler="gtk_window_present" object="prefs_window"/>
   </object>
   <object class="GtkDialog" id="prefs_window">
     <property name="border_width">5</property>
@@ -461,11 +461,16 @@
                                   </packing>
                                 </child>
                                 <child>
-                                  <object class="GtkEntry" id="initial_site">
+                                  <object class="GtkComboBox" id="initial_site">
                                     <property name="visible">True</property>
-                                    <property name="can_focus">True</property>
-                                    <property name="invisible_char">&#x25CF;</property>
+                                    <property name="model">sites</property>
                                     <signal name="changed" handler="on_initial_site_changed"/>
+                                    <child>
+                                      <object class="GtkCellRendererText" id="site_rend"/>
+                                      <attributes>
+                                        <attribute name="text">0</attribute>
+                                      </attributes>
+                                    </child>
                                   </object>
                                   <packing>
                                     <property name="position">1</property>

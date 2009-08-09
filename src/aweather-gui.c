@@ -29,9 +29,9 @@
 gboolean on_gui_key_press(GtkWidget *widget, GdkEventKey *event, AWeatherGui *self);
 static void on_gis_refresh(GisWorld *world, gpointer _self);
 static void on_gis_site_changed(GisView *view, char *site, gpointer _self);
-static void prefs_setup(AWeatherGui *self);
 static void site_setup(AWeatherGui *self);
 static void time_setup(AWeatherGui *self);
+static void prefs_setup(AWeatherGui *self);
 
 /****************
  * GObject code *
@@ -73,9 +73,9 @@ static void aweather_gui_init(AWeatherGui *self)
 	}
 
 	/* Misc, helpers */
-	prefs_setup(self);
 	site_setup(self);
 	time_setup(self);
+	prefs_setup(self);
 
 	/* Connect signals */
 	gtk_builder_connect_signals(self->builder, self);
@@ -208,15 +208,6 @@ void on_plugin_toggled(GtkCellRendererToggle *cell, gchar *path_str, AWeatherGui
 	gis_prefs_set_boolean_v(self->prefs, name, "enabled", state);
 	g_free(name);
 }
-void on_prefs(GtkAction *action, AWeatherGui *self)
-{
-	gtk_window_present(GTK_WINDOW(aweather_gui_get_widget(self, "prefs_window")));
-}
-
-void on_about(GtkAction *action, AWeatherGui *self)
-{
-	gtk_window_present(GTK_WINDOW(aweather_gui_get_widget(self, "about_window")));
-}
 
 void on_time_changed(GtkTreeView *view, GtkTreePath *path,
 		GtkTreeViewColumn *column, AWeatherGui *self)
@@ -241,29 +232,42 @@ void on_site_changed(GtkComboBox *combo, AWeatherGui *self)
 	g_free(site);
 }
 
-/* TODO: replace the code in these with `gtk_tree_model_find' utility */
+static gboolean gtk_tree_model_find_string(GtkTreeModel *model,
+		GtkTreeIter *rval, GtkTreeIter *parent, gint field, const gchar *key)
+{
+	g_debug("AWeatherGui: gtk_tree_model_find - field=%d key=%s", field, key);
+	char *text;
+	GtkTreeIter cur;
+	gint num_children = gtk_tree_model_iter_n_children(model, parent);
+	for (int i = 0; i < num_children; i++) {
+		gtk_tree_model_iter_nth_child(model, &cur, parent, i);
+		gtk_tree_model_get(model, &cur, field, &text, -1);
+		if (text != NULL && g_str_equal(text, key)) {
+			*rval = cur;
+			g_free(text);
+			return TRUE;
+		}
+		g_free(text);
+		if (gtk_tree_model_iter_has_child(model, &cur))
+			if (gtk_tree_model_find_string(model, rval, &cur, field, key))
+				return TRUE;
+	}
+	return FALSE;
+}
 static void update_time_widget(GisView *view, const char *time, AWeatherGui *self)
 {
 	g_debug("AWeatherGui: update_time_widget - time=%s", time);
 	GtkTreeView  *tview = GTK_TREE_VIEW(aweather_gui_get_widget(self, "time"));
 	GtkTreeModel *model = GTK_TREE_MODEL(gtk_tree_view_get_model(tview));
-	for (int i = 0; i < gtk_tree_model_iter_n_children(model, NULL); i++) {
-		char *text;
-		GtkTreeIter iter;
-		gtk_tree_model_iter_nth_child(model, &iter, NULL, i);
-		gtk_tree_model_get(model, &iter, 0, &text, -1);
-		if (g_str_equal(text, time)) {
-			GtkTreePath *path = gtk_tree_model_get_path(model, &iter);
-			g_signal_handlers_block_by_func(tview,
-					G_CALLBACK(on_site_changed), self);
-			gtk_tree_view_set_cursor(tview, path, NULL, FALSE);
-			g_signal_handlers_unblock_by_func(tview,
-					G_CALLBACK(on_site_changed), self);
-			gtk_tree_path_free(path);
-			g_free(text);
-			return;
-		}
-		g_free(text);
+	GtkTreeIter iter;
+	if (gtk_tree_model_find_string(model, &iter, NULL, 0, time)) {
+		GtkTreePath *path = gtk_tree_model_get_path(model, &iter);
+		g_signal_handlers_block_by_func(tview,
+				G_CALLBACK(on_site_changed), self);
+		gtk_tree_view_set_cursor(tview, path, NULL, FALSE);
+		g_signal_handlers_unblock_by_func(tview,
+				G_CALLBACK(on_site_changed), self);
+		gtk_tree_path_free(path);
 	}
 }
 static void update_site_widget(GisView *view, char *site, AWeatherGui *self)
@@ -271,27 +275,13 @@ static void update_site_widget(GisView *view, char *site, AWeatherGui *self)
 	g_debug("AWeatherGui: update_site_widget - site=%s", site);
 	GtkComboBox  *combo = GTK_COMBO_BOX(aweather_gui_get_widget(self, "site"));
 	GtkTreeModel *model = GTK_TREE_MODEL(gtk_combo_box_get_model(combo));
-	for (int i = 0; i < gtk_tree_model_iter_n_children(model, NULL); i++) {
-		GtkTreeIter iter1;
-		gtk_tree_model_iter_nth_child(model, &iter1, NULL, i);
-		for (int i = 0; i < gtk_tree_model_iter_n_children(model, &iter1); i++) {
-			GtkTreeIter iter2;
-			gtk_tree_model_iter_nth_child(model, &iter2, &iter1, i);
-			char *text;
-			gtk_tree_model_get(model, &iter2, 1, &text, -1);
-			if (text == NULL)
-				continue;
-			if (g_str_equal(text, site)) {
-				g_signal_handlers_block_by_func(combo,
-						G_CALLBACK(on_site_changed), self);
-				gtk_combo_box_set_active_iter(combo, &iter2);
-				g_signal_handlers_unblock_by_func(combo,
-						G_CALLBACK(on_site_changed), self);
-				g_free(text);
-				return;
-			}
-			g_free(text);
-		}
+	GtkTreeIter iter;
+	if (gtk_tree_model_find_string(model, &iter, NULL, 1, site)) {
+		g_signal_handlers_block_by_func(combo,
+				G_CALLBACK(on_site_changed), self);
+		gtk_combo_box_set_active_iter(combo, &iter);
+		g_signal_handlers_unblock_by_func(combo,
+				G_CALLBACK(on_site_changed), self);
 	}
 }
 /* Prefs callbacks */
@@ -302,11 +292,16 @@ void on_offline(GtkToggleAction *action, AWeatherGui *self)
 	gis_prefs_set_boolean(self->prefs, "gis/offline", value);
 	gis_world_set_offline(self->world, value);
 }
-void on_initial_site_changed(GtkEntry *entry, AWeatherGui *self)
+void on_initial_site_changed(GtkComboBox *combo, AWeatherGui *self)
 {
-	const gchar *text = gtk_entry_get_text(entry);
-	g_debug("AWeatherGui: on_initial_site_changed - site=%s", text);
-	gis_prefs_set_string(self->prefs, "aweather/initial_site", text);
+	gchar *site;
+	GtkTreeIter iter;
+	GtkTreeModel *model = gtk_combo_box_get_model(combo);
+	gtk_combo_box_get_active_iter(combo, &iter);
+	gtk_tree_model_get(model, &iter, 1, &site, -1);
+	g_debug("AWeatherGui: on_initial_site_changed - site=%s", site);
+	gis_prefs_set_string(self->prefs, "aweather/initial_site", site);
+	g_free(site);
 }
 void on_nexrad_url_changed(GtkEntry *entry, AWeatherGui *self)
 {
@@ -329,15 +324,20 @@ int on_log_level_changed(GtkSpinButton *spinner, AWeatherGui *self)
 static void prefs_setup(AWeatherGui *self)
 {
 	/* Set values */
-	gchar *is = gis_prefs_get_string (self->prefs, "aweather/initial_site");
 	gchar *nu = gis_prefs_get_string (self->prefs, "aweather/nexrad_url");
 	gint   ll = gis_prefs_get_integer(self->prefs, "aweather/log_level");
-	GtkWidget *isw = aweather_gui_get_widget(self, "initial_site");
+	gchar *is = gis_prefs_get_string (self->prefs, "aweather/initial_site");
 	GtkWidget *nuw = aweather_gui_get_widget(self, "nexrad_url");
 	GtkWidget *llw = aweather_gui_get_widget(self, "log_level");
-	if (is) gtk_entry_set_text(GTK_ENTRY(isw), is), g_free(is);
+	GtkWidget *isw = aweather_gui_get_widget(self, "initial_site");
 	if (nu) gtk_entry_set_text(GTK_ENTRY(nuw), nu), g_free(nu);
 	if (ll) gtk_spin_button_set_value(GTK_SPIN_BUTTON(llw), ll);
+	if (is) {
+		GtkTreeModel *model = gtk_combo_box_get_model(GTK_COMBO_BOX(isw));
+		GtkTreeIter iter;
+		if (gtk_tree_model_find_string(model, &iter, NULL, 1, is))
+			gtk_combo_box_set_active_iter(GTK_COMBO_BOX(isw), &iter);
+	}
 
 	/* Load Plugins */
 	GtkTreeView       *tview = GTK_TREE_VIEW(aweather_gui_get_widget(self, "plugins_view"));

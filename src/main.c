@@ -34,27 +34,25 @@ static void log_func(const gchar *log_domain, GLogLevelFlags log_level,
 
 static void on_log_level_changed(GtkSpinButton *spinner, AWeatherGui *self)
 {
+	g_message("main: log_level_changed");
 	gint value = gtk_spin_button_get_value_as_int(spinner);
 	log_levels = (1 << (value+1))-1;
 }
 
-static gulong on_map_id = 0;
-static gboolean on_map(AWeatherGui *gui, GdkEvent *event, gchar *site)
-{
-	GisView *view = aweather_gui_get_view(gui);
-	gis_view_set_site(view, site);
-	g_signal_handler_disconnect(gui, on_map_id);
-	return FALSE;
-}
 
 /********
  * Main *
  ********/
 int main(int argc, char *argv[])
 {
+	/* Defaults */
+	gint     debug   = 6;
+	gchar   *site    = "KIND";
+	gboolean offline = FALSE;
+
 	/* Arguments */
-	gint     opt_debug   = 6;
-	gchar   *opt_site    = "KIND";
+	gint     opt_debug   = 0;
+	gchar   *opt_site    = NULL;
 	gboolean opt_auto    = FALSE;
 	gboolean opt_offline = FALSE;
 	GOptionEntry entries[] = {
@@ -76,23 +74,30 @@ int main(int argc, char *argv[])
 	}
 	gtk_gl_init(&argc, &argv);
 
-	/* Logging */
-	log_levels = (1 << (opt_debug+1))-1;
+	/* Do some logging here for aweather_gui_new */
+	if (opt_debug) log_levels = (1 << (opt_debug+1))-1;
+	else           log_levels = (1 << (6+1))-1;
 	g_log_set_handler(NULL, G_LOG_LEVEL_MASK, log_func, NULL);
 
 	/* Set up AWeather */
 	AWeatherGui *gui    = aweather_gui_new();
-	GisWorld    *world  = aweather_gui_get_world(gui);
-	GisOpenGL   *opengl = aweather_gui_get_opengl(gui);
 
-	gis_world_set_offline(world, opt_offline);
-	on_map_id = g_signal_connect(gui, "map-event", G_CALLBACK(on_map), opt_site);
+	gint     prefs_debug   = gis_prefs_get_integer(gui->prefs, "aweather/log_level");
+	gchar   *prefs_site    = gis_prefs_get_string(gui->prefs,  "aweather/initial_site");
+	gboolean prefs_offline = gis_prefs_get_boolean(gui->prefs, "gis/offline");
+
+	debug   = (opt_debug   ?: prefs_debug   ?: debug);
+	site    = (opt_site    ?: prefs_site    ?: site);
+	offline = (opt_offline ?: prefs_offline ?: offline);
+
+	gis_world_set_offline(gui->world, offline);
+	log_levels = (1 << (debug+1))-1;
 
 	GObject *action = aweather_gui_get_object(gui, "log_level");
 	g_signal_connect(action, "changed", G_CALLBACK(on_log_level_changed), NULL);
 
 	gtk_widget_show_all(GTK_WIDGET(gui));
+	gis_view_set_site(gui->view, site);
 	gtk_main();
-
 	return 0;
 }
