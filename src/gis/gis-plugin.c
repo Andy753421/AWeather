@@ -107,9 +107,9 @@ GisPlugin *gis_plugins_load(GisPlugins *self, const char *name,
 		return NULL;
 	}
 
-	GisPluginConstructor constructor;
+	gpointer constructor_ptr; // GCC 4.1 fix?
 	gchar *constructor_str = g_strconcat("gis_plugin_", name, "_new", NULL);
-	if (!g_module_symbol(module, constructor_str, (gpointer*)&constructor)) {
+	if (!g_module_symbol(module, constructor_str, &constructor_ptr)) {
 		g_warning("Unable to load symbol %s from %s: %s",
 				constructor_str, name, g_module_error());
 		g_module_close(module);
@@ -117,6 +117,7 @@ GisPlugin *gis_plugins_load(GisPlugins *self, const char *name,
 		return NULL;
 	}
 	g_free(constructor_str);
+	GisPluginConstructor constructor = constructor_ptr;
 
 	GisPluginStore *store = g_malloc(sizeof(GisPluginStore));
 	store->name = g_strdup(name);
