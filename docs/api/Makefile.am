@@ -10,4 +10,4 @@ MKDB_OPTIONS=--sgml-mode --output-format=xml
 include $(top_srcdir)/gtk-doc.make
 CLEANFILES += aweather-sections.txt
 MAINTAINERCLEANFILES=\
-	tmpl/* Makefile.in aweather-docs.sgml aweather-overrides.txt aweather.types 
+	tmpl/* Makefile.in aweather-docs.sgml aweather-overrides.txt aweather.types aweather-scan.*
