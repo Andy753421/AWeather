@@ -1,16 +1,18 @@
 SUBDIRS = gis plugins
 
-AM_CFLAGS = -Wall -Werror -Wno-unused --std=gnu99 
+AM_CFLAGS   = -Wall -Werror -Wno-unused --std=gnu99 
+AM_CPPFLAGS = $(GLIB_CFLAGS) $(GTK_CFLAGS) $(SOUP_CFLAGS)
+AM_LDADD    = $(GLIB_LIBS) $(GTK_LIBS) $(SOUP_LIBS)
 
 bin_PROGRAMS = aweather wsr88ddec
 aweather_SOURCES  = main.c \
 	aweather-gui.c      aweather-gui.h \
 	aweather-location.c aweather-location.h
-aweather_CPPFLAGS = -DDATADIR="\"$(datadir)\"" $(SOUP_CFLAGS) $(GLIB_CFLAGS) $(GTK_CFLAGS)
-aweather_LDADD    = gis/libgis.la $(SOUP_LIBS) $(GLIB_LIBS) $(GTK_LIBS)
+aweather_CPPFLAGS = $(AM_CPPFLAGS) -DDATADIR="\"$(datadir)\""
+aweather_LDADD    = $(AM_LDADD) gis/libgis.la
 
-wsr88ddec         = wsr88ddec.c
-wsr88ddec_LDFLAGS = -lbz2
+wsr88ddec       = wsr88ddec.c
+wsr88ddec_LDADD = -lbz2
 
 CLEANFILES = gmon.out valgrind.out
 MAINTAINERCLEANFILES = Makefile.in

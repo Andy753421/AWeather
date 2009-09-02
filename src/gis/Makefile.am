@@ -1,4 +1,6 @@
-AM_CFLAGS = -Wall -Werror -Wno-unused --std=gnu99 
+AM_CFLAGS   = -Wall -Werror -Wno-unused --std=gnu99 
+AM_CPPFLAGS = $(GLIB_CFLAGS) $(GTK_CFLAGS) $(SOUP_CFLAGS)
+AM_LDADD    = $(GLIB_LIBS) $(GTK_LIBS) $(SOUP_LIBS)
 
 # Library
 BUILT_SOURCES = gis-marshal.c gis-marshal.h
@@ -23,11 +25,9 @@ libgis_la_SOURCES = \
 	roam.c        roam.h        \
 	wms.c         wms.h         \
 	gpqueue.c     gpqueue.h
-libgis_la_CPPFLAGS = \
-	-DDATADIR="\"$(datadir)\"" -DPLUGINDIR="\"$(libdir)/gis\"" \
-	$(SOUP_CFLAGS) $(GLIB_CFLAGS) $(GTK_CFLAGS)
-libgis_la_LIBADD = \
-	$(SOUP_LIBS) $(GLIB_LIBS) $(GTK_LIBS)
+libgis_la_CPPFLAGS = $(AM_CPPFLAGS) \
+	-DDATADIR="\"$(datadir)\"" -DPLUGINDIR="\"$(libdir)/gis\""
+libgis_la_LIBADD = $(AM_LDADD)
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libgis.pc
@@ -36,12 +36,10 @@ pkgconfig_DATA = libgis.pc
 bin_PROGRAMS = gis_test wms_test
 
 gis_test_SOURCES  = gis_test.c gis.h
-gis_test_CPPFLAGS = $(SOUP_CFLAGS) $(GLIB_CFLAGS) $(GTK_CFLAGS)
-gis_test_LDADD    = libgis.la $(SOUP_LIBS) $(GLIB_LIBS) $(GTK_LIBS)
+gis_test_LDADD    = $(AM_LDADD) libgis.la
 
 wms_test_SOURCES  = wms_test.c gis-world.c gis-world.h wms.c wms.h
-wms_test_CPPFLAGS = $(SOUP_CFLAGS) $(GLIB_CFLAGS) $(GTK_CFLAGS)
-wms_test_LDADD    = $(SOUP_LIBS) $(GLIB_LIBS) $(GTK_LIBS)
+wms_test_LDADD    = $(AM_LDADD)
 
 MAINTAINERCLEANFILES = Makefile.in
 

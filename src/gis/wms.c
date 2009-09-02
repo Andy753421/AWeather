@@ -457,7 +457,8 @@ WmsInfo *wms_info_new_for_bmng(WmsLoader loader, WmsFreeer freeer)
 void srtm_bil_loader(WmsCacheNode *node, const gchar *path, gint width, gint height)
 {
 	WmsBil *bil = g_new0(WmsBil, 1);
-	g_file_get_contents(path, (gchar**)&bil->data, NULL, NULL);
+	gchar **char_data = (gchar**)&bil->data;
+	g_file_get_contents(path, char_data, NULL, NULL);
 	bil->width  = width;
 	bil->height = height;
 	node->data = bil;
@@ -476,8 +477,9 @@ void srtm_pixbuf_loader(WmsCacheNode *node, const gchar *path, gint width, gint 
 	guchar    *pixels = gdk_pixbuf_get_pixels(pixbuf);
 	gint       stride = gdk_pixbuf_get_rowstride(pixbuf);
 
-	gint16 *data;
-	g_file_get_contents(path, (gchar**)&data, NULL, NULL);
+	gint16 *data; 
+	gchar **char_data = (gchar**)char_data; 
+	g_file_get_contents(path, char_data, NULL, NULL);
 	for (int r = 0; r < height; r++) {
 		for (int c = 0; c < width; c++) {
 			gint16 value = data[r*width + c];
