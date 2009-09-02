@@ -478,7 +478,7 @@ void srtm_pixbuf_loader(WmsCacheNode *node, const gchar *path, gint width, gint 
 	gint       stride = gdk_pixbuf_get_rowstride(pixbuf);
 
 	gint16 *data; 
-	gchar **char_data = (gchar**)char_data; 
+	gchar **char_data = (gchar**)&data; 
 	g_file_get_contents(path, char_data, NULL, NULL);
 	for (int r = 0; r < height; r++) {
 		for (int c = 0; c < width; c++) {

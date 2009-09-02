@@ -1,6 +1,6 @@
 SUBDIRS = gis plugins
 
-AM_CFLAGS   = -Wall -Werror -Wno-unused --std=gnu99 
+AM_CFLAGS   = -Wall --std=gnu99 
 AM_CPPFLAGS = $(GLIB_CFLAGS) $(GTK_CFLAGS) $(SOUP_CFLAGS)
 AM_LDADD    = $(GLIB_LIBS) $(GTK_LIBS) $(SOUP_LIBS)
 
