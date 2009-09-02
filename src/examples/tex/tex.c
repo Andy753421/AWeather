@@ -133,9 +133,9 @@ int main(int argc, char **argv)
 	gdk_gl_drawable_gl_begin(gldrawable, glcontext);
 
 	/* Load texture */
-	texl = load_tex("tex_png/texls.png");
-	texr = load_tex("tex_png/texrs.png");
-	tex  = load_tex("tex_png/tex.png");
+	texl = load_tex("texls.png");
+	texr = load_tex("texrs.png");
+	tex  = load_tex("tex.png");
 
 	gtk_main();
 

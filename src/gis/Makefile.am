@@ -13,7 +13,10 @@ gis_include_HEADERS = \
 	gis-prefs.h   \
 	gis-opengl.h  \
 	gis-plugin.h  \
-	gis-data.h
+	gis-data.h    \
+	gpqueue.h     \
+	roam.h        \
+	wms.h
 libgis_la_SOURCES = \
 	gis-world.c   gis-world.h   \
 	gis-view.c    gis-view.h    \

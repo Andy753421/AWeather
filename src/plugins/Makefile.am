@@ -5,13 +5,7 @@ AM_LDFLAGS  = -module -avoid-version
 plugindir = $(libdir)/gis
 
 plugin_LTLIBRARIES = \
-	example.la \
-	radar.la   \
-	ridge.la
-
-example_la_SOURCES = example.c example.h
-
-ridge_la_SOURCES   = ridge.c   ridge.h
+	radar.la
 
 radar_la_SOURCES   = radar.c   radar.h \
 	marching.c marching.h \
