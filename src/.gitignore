@@ -1,0 +1,8 @@
+*.la
+*.lo
+*.o
+.deps
+.libs
+aweather
+level2
+wsr88ddec
