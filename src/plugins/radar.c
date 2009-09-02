@@ -28,59 +28,6 @@
 #include "radar.h"
 #include "marching.h"
 
-/****************
- * GObject code *
- ****************/
-/* Plugin init */
-static void gis_plugin_radar_plugin_init(GisPluginInterface *iface);
-static void gis_plugin_radar_expose(GisPlugin *_radar);
-static GtkWidget *gis_plugin_radar_get_config(GisPlugin *_self);
-G_DEFINE_TYPE_WITH_CODE(GisPluginRadar, gis_plugin_radar, G_TYPE_OBJECT,
-		G_IMPLEMENT_INTERFACE(GIS_TYPE_PLUGIN,
-			gis_plugin_radar_plugin_init));
-static void gis_plugin_radar_plugin_init(GisPluginInterface *iface)
-{
-	g_debug("GisPluginRadar: plugin_init");
-	/* Add methods to the interface */
-	iface->expose     = gis_plugin_radar_expose;
-	iface->get_config = gis_plugin_radar_get_config;
-}
-/* Class/Object init */
-static void gis_plugin_radar_init(GisPluginRadar *self)
-{
-	g_debug("GisPluginRadar: class_init");
-	/* Set defaults */
-	self->soup          = NULL;
-	self->cur_triangles = NULL;
-	self->cur_num_triangles = 0;
-
-	self->config_body = gtk_alignment_new(0, 0, 1, 1);
-	gtk_container_set_border_width(GTK_CONTAINER(self->config_body), 5);
-	gtk_container_add(GTK_CONTAINER(self->config_body), gtk_label_new("No radar loaded"));
-}
-static void gis_plugin_radar_dispose(GObject *gobject)
-{
-	g_debug("GisPluginRadar: dispose");
-	GisPluginRadar *self = GIS_PLUGIN_RADAR(gobject);
-	g_signal_handler_disconnect(self->view, self->time_changed_id);
-	/* Drop references */
-	G_OBJECT_CLASS(gis_plugin_radar_parent_class)->dispose(gobject);
-}
-static void gis_plugin_radar_finalize(GObject *gobject)
-{
-	g_debug("GisPluginRadar: finalize");
-	GisPluginRadar *self = GIS_PLUGIN_RADAR(gobject);
-	/* Free data */
-	G_OBJECT_CLASS(gis_plugin_radar_parent_class)->finalize(gobject);
-
-}
-static void gis_plugin_radar_class_init(GisPluginRadarClass *klass)
-{
-	g_debug("GisPluginRadar: class_init");
-	GObjectClass *gobject_class = (GObjectClass*)klass;
-	gobject_class->dispose  = gis_plugin_radar_dispose;
-	gobject_class->finalize = gis_plugin_radar_finalize;
-}
 
 /**************************
  * Data loading functions *
@@ -228,8 +175,8 @@ static void _gis_plugin_radar_grid_set(GRIDCELL *grid, int gi, Ray *ray, int bi)
 {
 	Range range = ray->range[bi];
 
-	double angle = d2r(ray->h.azimuth);
-	double tilt  = d2r(ray->h.elev);
+	double angle = deg2rad(ray->h.azimuth);
+	double tilt  = deg2rad(ray->h.elev);
 
 	double lx    = sin(angle);
 	double ly    = cos(angle);
@@ -366,6 +313,7 @@ static void load_radar(GisPluginRadar *self, gchar *radar_file)
 	load_radar_gui(self, radar);
 }
 
+
 /*****************
  * ASync helpers *
  *****************/
@@ -441,6 +389,7 @@ static void cache_done_cb(char *path, gboolean updated, gpointer _self)
 	self->soup = NULL;
 }
 
+
 /*************
  * Callbacks *
  *************/
@@ -493,6 +442,7 @@ static void on_time_changed(GisView *view, const char *time, gpointer _self)
 				cache_chunk_cb, cache_done_cb, self);
 	g_free(path);
 }
+
 
 /***********
  * Methods *
@@ -555,26 +505,33 @@ static void gis_plugin_radar_expose(GisPlugin *_self)
 	glPopMatrix();
 #endif
 
-	/* Draw the rays */
-	glDisable(GL_LIGHTING);
-	glDisable(GL_COLOR_MATERIAL);
-	glMatrixMode(GL_MODELVIEW);
-	glPushMatrix();
-	glBindTexture(GL_TEXTURE_2D, self->cur_sweep_tex);
-	glEnable(GL_TEXTURE_2D);
+	g_message("set camera");
+	Radar_header *h = &self->cur_radar->h;
+	gdouble lat  = (double)h->latd + (double)h->latm/60 + (double)h->lats/(60*60);
+	gdouble lon  = (double)h->lond + (double)h->lonm/60 + (double)h->lons/(60*60);
+	gdouble elev = h->height;
+	gis_opengl_center_position(self->opengl, lat, lon, elev);
+
 	glDisable(GL_ALPHA_TEST);
+	glDisable(GL_CULL_FACE);
+	glDisable(GL_DEPTH_TEST);
+	glDisable(GL_LIGHTING);
+	glEnable(GL_TEXTURE_2D);
 	glColor4f(1,1,1,1);
+
+	/* Draw the rays */
+	glBindTexture(GL_TEXTURE_2D, self->cur_sweep_tex);
 	glBegin(GL_QUAD_STRIP);
 	for (int ri = 0; ri <= sweep->h.nrays; ri++) {
 		Ray  *ray = NULL;
 		double angle = 0;
 		if (ri < sweep->h.nrays) {
 			ray = sweep->ray[ri];
-			angle = d2r(ray->h.azimuth - ((double)ray->h.beam_width/2.));
+			angle = deg2rad(ray->h.azimuth - ((double)ray->h.beam_width/2.));
 		} else {
 			/* Do the right side of the last sweep */
 			ray = sweep->ray[ri-1];
-			angle = d2r(ray->h.azimuth + ((double)ray->h.beam_width/2.));
+			angle = deg2rad(ray->h.azimuth + ((double)ray->h.beam_width/2.));
 		}
 
 		double lx = sin(angle);
@@ -590,13 +547,12 @@ static void gis_plugin_radar_expose(GisPlugin *_self)
 
 		// far  left
 		// todo: correct range-height function
-		double height = sin(d2r(ray->h.elev)) * far_dist;
+		double height = sin(deg2rad(ray->h.elev)) * far_dist;
 		glTexCoord2f(1.0, (double)ri/sweep->h.nrays-0.01);
 		glVertex3f(lx*far_dist,  ly*far_dist, height);
 	}
-	//g_print("ri=%d, nr=%d, bw=%f\n", _ri, sweep->h.nrays, sweep->h.beam_width);
 	glEnd();
-	glPopMatrix();
+	//g_print("ri=%d, nr=%d, bw=%f\n", _ri, sweep->h.nrays, sweep->h.beam_width);
 
 	/* Texture debug */
 	//glBegin(GL_QUADS);
@@ -607,25 +563,72 @@ static void gis_plugin_radar_expose(GisPlugin *_self)
 	//glEnd();
 
 	/* Print the color table */
+	glMatrixMode(GL_MODELVIEW ); glLoadIdentity();
+	glMatrixMode(GL_PROJECTION); glLoadIdentity();
 	glDisable(GL_TEXTURE_2D);
-	glDisable(GL_DEPTH_TEST);
-	glMatrixMode(GL_MODELVIEW ); glPushMatrix(); glLoadIdentity();
-	glMatrixMode(GL_PROJECTION); glPushMatrix(); glLoadIdentity();
+	glEnable(GL_COLOR_MATERIAL);
 	glBegin(GL_QUADS);
 	int i;
 	for (i = 0; i < 256; i++) {
-		glColor4ub(self->cur_colormap->data[i][0],
-		           self->cur_colormap->data[i][1],
-		           self->cur_colormap->data[i][2],
-		           self->cur_colormap->data[i][3]);
+		glColor4ubv(self->cur_colormap->data[i]);
 		glVertex3f(-1.0, (float)((i  ) - 256/2)/(256/2), 0.0); // bot left
 		glVertex3f(-1.0, (float)((i+1) - 256/2)/(256/2), 0.0); // top left
 		glVertex3f(-0.9, (float)((i+1) - 256/2)/(256/2), 0.0); // top right
 		glVertex3f(-0.9, (float)((i  ) - 256/2)/(256/2), 0.0); // bot right
 	}
 	glEnd();
-	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_ALPHA_TEST);
-        glMatrixMode(GL_PROJECTION); glPopMatrix(); 
-	glMatrixMode(GL_MODELVIEW ); glPopMatrix();
 }
+
+
+/****************
+ * GObject code *
+ ****************/
+/* Plugin init */
+static void gis_plugin_radar_plugin_init(GisPluginInterface *iface);
+G_DEFINE_TYPE_WITH_CODE(GisPluginRadar, gis_plugin_radar, G_TYPE_OBJECT,
+		G_IMPLEMENT_INTERFACE(GIS_TYPE_PLUGIN,
+			gis_plugin_radar_plugin_init));
+static void gis_plugin_radar_plugin_init(GisPluginInterface *iface)
+{
+	g_debug("GisPluginRadar: plugin_init");
+	/* Add methods to the interface */
+	iface->expose     = gis_plugin_radar_expose;
+	iface->get_config = gis_plugin_radar_get_config;
+}
+/* Class/Object init */
+static void gis_plugin_radar_init(GisPluginRadar *self)
+{
+	g_debug("GisPluginRadar: class_init");
+	/* Set defaults */
+	self->soup          = NULL;
+	self->cur_triangles = NULL;
+	self->cur_num_triangles = 0;
+
+	self->config_body = gtk_alignment_new(0, 0, 1, 1);
+	gtk_container_set_border_width(GTK_CONTAINER(self->config_body), 5);
+	gtk_container_add(GTK_CONTAINER(self->config_body), gtk_label_new("No radar loaded"));
+}
+static void gis_plugin_radar_dispose(GObject *gobject)
+{
+	g_debug("GisPluginRadar: dispose");
+	GisPluginRadar *self = GIS_PLUGIN_RADAR(gobject);
+	g_signal_handler_disconnect(self->view, self->time_changed_id);
+	/* Drop references */
+	G_OBJECT_CLASS(gis_plugin_radar_parent_class)->dispose(gobject);
+}
+static void gis_plugin_radar_finalize(GObject *gobject)
+{
+	g_debug("GisPluginRadar: finalize");
+	GisPluginRadar *self = GIS_PLUGIN_RADAR(gobject);
+	/* Free data */
+	G_OBJECT_CLASS(gis_plugin_radar_parent_class)->finalize(gobject);
+
+}
+static void gis_plugin_radar_class_init(GisPluginRadarClass *klass)
+{
+	g_debug("GisPluginRadar: class_init");
+	GObjectClass *gobject_class = (GObjectClass*)klass;
+	gobject_class->dispose  = gis_plugin_radar_dispose;
+	gobject_class->finalize = gis_plugin_radar_finalize;
+}
+

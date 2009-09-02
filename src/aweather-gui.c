@@ -25,126 +25,6 @@
 #include "aweather-gui.h"
 #include "aweather-location.h"
 
-/* Needed prototpes */
-gboolean on_gui_key_press(GtkWidget *widget, GdkEventKey *event, AWeatherGui *self);
-static void on_gis_refresh(GisWorld *world, gpointer _self);
-static void on_gis_site_changed(GisView *view, char *site, gpointer _self);
-static void site_setup(AWeatherGui *self);
-static void time_setup(AWeatherGui *self);
-static void prefs_setup(AWeatherGui *self);
-
-/****************
- * GObject code *
- ****************/
-G_DEFINE_TYPE(AWeatherGui, aweather_gui, GTK_TYPE_WINDOW);
-static void aweather_gui_init(AWeatherGui *self)
-{
-	g_debug("AWeatherGui: init");
-
-	/* Simple things */
-	self->prefs   = gis_prefs_new("aweather");
-	self->plugins = gis_plugins_new();
-	self->world   = gis_world_new();
-	self->view    = gis_view_new();
-
-	/* Setup window */
-	self->builder = gtk_builder_new();
-	GError *error = NULL;
-	if (!gtk_builder_add_from_file(self->builder, DATADIR "/aweather/main.ui", &error))
-		g_error("Failed to create gtk builder: %s", error->message);
-	gtk_widget_reparent(aweather_gui_get_widget(self, "body"), GTK_WIDGET(self));
-
-	/* GIS things */
-	GtkWidget *drawing = aweather_gui_get_widget(self, "drawing");
-	self->opengl = gis_opengl_new(self->world, self->view, GTK_DRAWING_AREA(drawing));
-	self->opengl->plugins = self->plugins;
-	//gtk_widget_show_all(GTK_WIDGET(self));
-
-	/* Plugins */
-	GtkTreeIter iter;
-	self->gtk_plugins = GTK_LIST_STORE(aweather_gui_get_object(self, "plugins"));
-	for (GList *cur = gis_plugins_available(); cur; cur = cur->next) {
-		gchar *name = cur->data;
-		gboolean enabled = gis_prefs_get_boolean_v(self->prefs, cur->data, "enabled");
-		gtk_list_store_append(self->gtk_plugins, &iter);
-		gtk_list_store_set(self->gtk_plugins, &iter, 0, name, 1, enabled, -1);
-		if (enabled)
-			aweather_gui_attach_plugin(self, name);
-	}
-
-	/* Misc, helpers */
-	site_setup(self);
-	time_setup(self);
-	prefs_setup(self);
-
-	/* Connect signals */
-	gtk_builder_connect_signals(self->builder, self);
-	g_signal_connect(self, "key-press-event",
-			G_CALLBACK(on_gui_key_press), self);
-	g_signal_connect_swapped(self->world, "offline",
-			G_CALLBACK(gtk_toggle_action_set_active),
-			aweather_gui_get_object(self, "offline"));
-
-	/* deprecated site stuff */
-	g_signal_connect(self->view,  "site-changed", G_CALLBACK(on_gis_site_changed), self);
-	g_signal_connect(self->world, "refresh",      G_CALLBACK(on_gis_refresh),      self);
-}
-static GObject *aweather_gui_constructor(GType gtype, guint n_properties,
-		GObjectConstructParam *properties)
-{
-	g_debug("aweather_gui: constructor");
-	GObjectClass *parent_class = G_OBJECT_CLASS(aweather_gui_parent_class);
-	return  parent_class->constructor(gtype, n_properties, properties);
-}
-static void aweather_gui_dispose(GObject *_self)
-{
-	g_debug("AWeatherGui: dispose");
-	AWeatherGui *self = AWEATHER_GUI(_self);
-	if (self->builder) {
-		/* Reparent to avoid double unrefs */
-		GtkWidget *body   = aweather_gui_get_widget(self, "body");
-		GtkWidget *window = aweather_gui_get_widget(self, "main_window");
-		gtk_widget_reparent(body, window);
-		g_object_unref(self->builder);
-		self->builder = NULL;
-	}
-	if (self->world) {
-		g_object_unref(self->world);
-		self->world = NULL;
-	}
-	if (self->view) {
-		g_object_unref(self->view);
-		self->view = NULL;
-	}
-	if (self->opengl) {
-		g_object_unref(self->opengl);
-		self->opengl = NULL;
-	}
-	if (self->plugins) {
-		gis_plugins_free(self->plugins);
-		self->plugins = NULL;
-	}
-	if (self->prefs) {
-		g_object_unref(self->prefs);
-		self->prefs = NULL;
-	}
-	G_OBJECT_CLASS(aweather_gui_parent_class)->dispose(_self);
-}
-static void aweather_gui_finalize(GObject *_self)
-{
-	g_debug("AWeatherGui: finalize");
-	G_OBJECT_CLASS(aweather_gui_parent_class)->finalize(_self);
-	gtk_main_quit();
-
-}
-static void aweather_gui_class_init(AWeatherGuiClass *klass)
-{
-	g_debug("AWeatherGui: class_init");
-	GObjectClass *gobject_class = G_OBJECT_CLASS(klass);
-	gobject_class->constructor  = aweather_gui_constructor;
-	gobject_class->dispose      = aweather_gui_dispose;
-	gobject_class->finalize     = aweather_gui_finalize;
-}
 
 /*************
  * Callbacks *
@@ -188,7 +68,6 @@ void on_refresh(GtkAction *action, AWeatherGui *self)
 {
 	gis_world_refresh(self->world);
 }
-
 
 void on_plugin_toggled(GtkCellRendererToggle *cell, gchar *path_str, AWeatherGui *self)
 {
@@ -254,6 +133,7 @@ static gboolean gtk_tree_model_find_string(GtkTreeModel *model,
 	}
 	return FALSE;
 }
+
 static void update_time_widget(GisView *view, const char *time, AWeatherGui *self)
 {
 	g_debug("AWeatherGui: update_time_widget - time=%s", time);
@@ -270,6 +150,7 @@ static void update_time_widget(GisView *view, const char *time, AWeatherGui *sel
 		gtk_tree_path_free(path);
 	}
 }
+
 static void update_site_widget(GisView *view, char *site, AWeatherGui *self)
 {
 	g_debug("AWeatherGui: update_site_widget - site=%s", site);
@@ -284,6 +165,7 @@ static void update_site_widget(GisView *view, char *site, AWeatherGui *self)
 				G_CALLBACK(on_site_changed), self);
 	}
 }
+
 /* Prefs callbacks */
 void on_offline(GtkToggleAction *action, AWeatherGui *self)
 {
@@ -292,6 +174,7 @@ void on_offline(GtkToggleAction *action, AWeatherGui *self)
 	gis_prefs_set_boolean(self->prefs, "gis/offline", value);
 	gis_world_set_offline(self->world, value);
 }
+
 void on_initial_site_changed(GtkComboBox *combo, AWeatherGui *self)
 {
 	gchar *site;
@@ -303,12 +186,14 @@ void on_initial_site_changed(GtkComboBox *combo, AWeatherGui *self)
 	gis_prefs_set_string(self->prefs, "aweather/initial_site", site);
 	g_free(site);
 }
+
 void on_nexrad_url_changed(GtkEntry *entry, AWeatherGui *self)
 {
 	const gchar *text = gtk_entry_get_text(entry);
 	g_debug("AWeatherGui: on_nexrad_url_changed - url=%s", text);
 	gis_prefs_set_string(self->prefs, "aweather/nexrad_url", text);
 }
+
 int on_log_level_changed(GtkSpinButton *spinner, AWeatherGui *self)
 {
 	gint value = gtk_spin_button_get_value_as_int(spinner);
@@ -316,7 +201,7 @@ int on_log_level_changed(GtkSpinButton *spinner, AWeatherGui *self)
 	gis_prefs_set_integer(self->prefs, "aweather/log_level", value);
 	return TRUE;
 }
-// plugins
+
 
 /*****************
  * Setup helpers *
@@ -483,6 +368,7 @@ static void on_gis_refresh(GisWorld *world, gpointer _self)
 	update_times(self, self->view, site);
 }
 
+
 /***********
  * Methods *
  ***********/
@@ -554,4 +440,116 @@ void aweather_gui_deattach_plugin(AWeatherGui *self, const gchar *name)
 	}
 	gis_plugins_unload(self->plugins, name);
 	gis_opengl_redraw(self->opengl);
+}
+
+
+/****************
+ * GObject code *
+ ****************/
+G_DEFINE_TYPE(AWeatherGui, aweather_gui, GTK_TYPE_WINDOW);
+static void aweather_gui_init(AWeatherGui *self)
+{
+	g_debug("AWeatherGui: init");
+
+	/* Simple things */
+	self->prefs   = gis_prefs_new("aweather");
+	self->plugins = gis_plugins_new();
+	self->world   = gis_world_new();
+	self->view    = gis_view_new();
+	self->opengl  = gis_opengl_new(self->world, self->view, self->plugins);
+
+	/* Setup window */
+	self->builder = gtk_builder_new();
+	GError *error = NULL;
+	if (!gtk_builder_add_from_file(self->builder, DATADIR "/aweather/main.ui", &error))
+		g_error("Failed to create gtk builder: %s", error->message);
+	gtk_widget_reparent(aweather_gui_get_widget(self, "body"), GTK_WIDGET(self));
+	GtkWidget *hpaned = aweather_gui_get_widget(self, "hpaned");
+	gtk_widget_destroy(gtk_paned_get_child1(GTK_PANED(hpaned)));
+	gtk_paned_pack1(GTK_PANED(hpaned), GTK_WIDGET(self->opengl), TRUE, FALSE);
+
+	/* Plugins */
+	GtkTreeIter iter;
+	self->gtk_plugins = GTK_LIST_STORE(aweather_gui_get_object(self, "plugins"));
+	for (GList *cur = gis_plugins_available(); cur; cur = cur->next) {
+		gchar *name = cur->data;
+		gboolean enabled = gis_prefs_get_boolean_v(self->prefs, cur->data, "enabled");
+		gtk_list_store_append(self->gtk_plugins, &iter);
+		gtk_list_store_set(self->gtk_plugins, &iter, 0, name, 1, enabled, -1);
+		if (enabled)
+			aweather_gui_attach_plugin(self, name);
+	}
+
+	/* Misc, helpers */
+	site_setup(self);
+	time_setup(self);
+	prefs_setup(self);
+
+	/* Connect signals */
+	gtk_builder_connect_signals(self->builder, self);
+	g_signal_connect(self, "key-press-event",
+			G_CALLBACK(on_gui_key_press), self);
+	g_signal_connect_swapped(self->world, "offline",
+			G_CALLBACK(gtk_toggle_action_set_active),
+			aweather_gui_get_object(self, "offline"));
+
+	/* deprecated site stuff */
+	g_signal_connect(self->view,  "site-changed", G_CALLBACK(on_gis_site_changed), self);
+	g_signal_connect(self->world, "refresh",      G_CALLBACK(on_gis_refresh),      self);
+}
+static GObject *aweather_gui_constructor(GType gtype, guint n_properties,
+		GObjectConstructParam *properties)
+{
+	g_debug("aweather_gui: constructor");
+	GObjectClass *parent_class = G_OBJECT_CLASS(aweather_gui_parent_class);
+	return parent_class->constructor(gtype, n_properties, properties);
+}
+static void aweather_gui_dispose(GObject *_self)
+{
+	g_debug("AWeatherGui: dispose");
+	AWeatherGui *self = AWEATHER_GUI(_self);
+	if (self->builder) {
+		/* Reparent to avoid double unrefs */
+		GtkWidget *body   = aweather_gui_get_widget(self, "body");
+		GtkWidget *window = aweather_gui_get_widget(self, "main_window");
+		gtk_widget_reparent(body, window);
+		g_object_unref(self->builder);
+		self->builder = NULL;
+	}
+	if (self->world) {
+		g_object_unref(self->world);
+		self->world = NULL;
+	}
+	if (self->view) {
+		g_object_unref(self->view);
+		self->view = NULL;
+	}
+	if (self->opengl) {
+		g_object_unref(self->opengl);
+		self->opengl = NULL;
+	}
+	if (self->plugins) {
+		gis_plugins_free(self->plugins);
+		self->plugins = NULL;
+	}
+	if (self->prefs) {
+		g_object_unref(self->prefs);
+		self->prefs = NULL;
+	}
+	G_OBJECT_CLASS(aweather_gui_parent_class)->dispose(_self);
+}
+static void aweather_gui_finalize(GObject *_self)
+{
+	g_debug("AWeatherGui: finalize");
+	G_OBJECT_CLASS(aweather_gui_parent_class)->finalize(_self);
+	gtk_main_quit();
+
+}
+static void aweather_gui_class_init(AWeatherGuiClass *klass)
+{
+	g_debug("AWeatherGui: class_init");
+	GObjectClass *gobject_class = G_OBJECT_CLASS(klass);
+	gobject_class->constructor  = aweather_gui_constructor;
+	gobject_class->dispose      = aweather_gui_dispose;
+	gobject_class->finalize     = aweather_gui_finalize;
 }

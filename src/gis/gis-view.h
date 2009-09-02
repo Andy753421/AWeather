@@ -55,9 +55,9 @@ GisView *gis_view_new();
 void gis_view_set_time(GisView *view, const gchar *time);
 gchar *gis_view_get_time(GisView *view);
 
-void gis_view_set_location(GisView *view, gdouble  x, gdouble  y, gdouble  z);
-void gis_view_get_location(GisView *view, gdouble *x, gdouble *y, gdouble *z);
-void gis_view_pan         (GisView *view, gdouble  x, gdouble  y, gdouble  z);
+void gis_view_set_location(GisView *view, gdouble  lat, gdouble  lon, gdouble  elev);
+void gis_view_get_location(GisView *view, gdouble *lat, gdouble *lon, gdouble *elev);
+void gis_view_pan         (GisView *view, gdouble  lat, gdouble  lon, gdouble  elev);
 void gis_view_zoom        (GisView *view, gdouble  scale);
 
 void gis_view_set_rotation(GisView *view, gdouble  x, gdouble  y, gdouble  z);

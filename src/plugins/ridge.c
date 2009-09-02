@@ -25,51 +25,6 @@
 
 #include "ridge.h"
 
-/****************
- * GObject code *
- ****************/
-/* Plugin init */
-static void gis_plugin_ridge_plugin_init(GisPluginInterface *iface);
-static void gis_plugin_ridge_expose(GisPlugin *_self);
-static GtkWidget *gis_plugin_ridge_get_config(GisPlugin *_self);
-G_DEFINE_TYPE_WITH_CODE(GisPluginRidge, gis_plugin_ridge, G_TYPE_OBJECT,
-		G_IMPLEMENT_INTERFACE(GIS_TYPE_PLUGIN,
-			gis_plugin_ridge_plugin_init));
-static void gis_plugin_ridge_plugin_init(GisPluginInterface *iface)
-{
-	g_debug("GisPluginRidge: plugin_init");
-	/* Add methods to the interface */
-	iface->expose     = gis_plugin_ridge_expose;
-	iface->get_config = gis_plugin_ridge_get_config;
-}
-/* Class/Object init */
-static void gis_plugin_ridge_init(GisPluginRidge *self)
-{
-	g_debug("GisPluginRidge: init");
-	/* Set defaults */
-}
-static void gis_plugin_ridge_dispose(GObject *gobject)
-{
-	g_debug("GisPluginRidge: dispose");
-	GisPluginRidge *self = GIS_PLUGIN_RIDGE(gobject);
-	/* Drop references */
-	G_OBJECT_CLASS(gis_plugin_ridge_parent_class)->dispose(gobject);
-}
-static void gis_plugin_ridge_finalize(GObject *gobject)
-{
-	g_debug("GisPluginRidge: finalize");
-	GisPluginRidge *self = GIS_PLUGIN_RIDGE(gobject);
-	/* Free data */
-	G_OBJECT_CLASS(gis_plugin_ridge_parent_class)->finalize(gobject);
-
-}
-static void gis_plugin_ridge_class_init(GisPluginRidgeClass *klass)
-{
-	g_debug("GisPluginRidge: class_init");
-	GObjectClass *gobject_class = (GObjectClass*)klass;
-	gobject_class->dispose  = gis_plugin_ridge_dispose;
-	gobject_class->finalize = gis_plugin_ridge_finalize;
-}
 
 /*********************
  * Overlay constants *
@@ -165,6 +120,7 @@ void cached_cb(gchar *filename, gboolean updated, gpointer _udata)
 	g_free(udata);
 }
 
+
 /*************
  * callbacks *
  *************/
@@ -190,6 +146,7 @@ void toggle_layer(GtkToggleButton *check, GisPluginRidge *self)
 	layer->enabled = gtk_toggle_button_get_active(check);
 	gis_opengl_redraw(self->opengl);
 }
+
 
 /***********
  * Methods *
@@ -228,7 +185,6 @@ static void gis_plugin_ridge_expose(GisPlugin *_self)
 	GisPluginRidge *self = GIS_PLUGIN_RIDGE(_self);
 
 	g_debug("GisPluginRidge: expose");
-	glPushMatrix();
 	glEnable(GL_TEXTURE_2D);
 	glColor4f(1,1,1,1);
 
@@ -243,6 +199,50 @@ static void gis_plugin_ridge_expose(GisPlugin *_self)
 		glTexCoord2f(1.0, 0.0); glVertex3f(240*1000* 1.0, 282*1000* 1.0, layers[i].z);
 		glEnd();
 	}
-
-	glPopMatrix();
 }
+
+
+/****************
+ * GObject code *
+ ****************/
+/* Plugin init */
+static void gis_plugin_ridge_plugin_init(GisPluginInterface *iface);
+G_DEFINE_TYPE_WITH_CODE(GisPluginRidge, gis_plugin_ridge, G_TYPE_OBJECT,
+		G_IMPLEMENT_INTERFACE(GIS_TYPE_PLUGIN,
+			gis_plugin_ridge_plugin_init));
+static void gis_plugin_ridge_plugin_init(GisPluginInterface *iface)
+{
+	g_debug("GisPluginRidge: plugin_init");
+	/* Add methods to the interface */
+	iface->expose     = gis_plugin_ridge_expose;
+	iface->get_config = gis_plugin_ridge_get_config;
+}
+/* Class/Object init */
+static void gis_plugin_ridge_init(GisPluginRidge *self)
+{
+	g_debug("GisPluginRidge: init");
+	/* Set defaults */
+}
+static void gis_plugin_ridge_dispose(GObject *gobject)
+{
+	g_debug("GisPluginRidge: dispose");
+	GisPluginRidge *self = GIS_PLUGIN_RIDGE(gobject);
+	/* Drop references */
+	G_OBJECT_CLASS(gis_plugin_ridge_parent_class)->dispose(gobject);
+}
+static void gis_plugin_ridge_finalize(GObject *gobject)
+{
+	g_debug("GisPluginRidge: finalize");
+	GisPluginRidge *self = GIS_PLUGIN_RIDGE(gobject);
+	/* Free data */
+	G_OBJECT_CLASS(gis_plugin_ridge_parent_class)->finalize(gobject);
+
+}
+static void gis_plugin_ridge_class_init(GisPluginRidgeClass *klass)
+{
+	g_debug("GisPluginRidge: class_init");
+	GObjectClass *gobject_class = (GObjectClass*)klass;
+	gobject_class->dispose  = gis_plugin_ridge_dispose;
+	gobject_class->finalize = gis_plugin_ridge_finalize;
+}
+

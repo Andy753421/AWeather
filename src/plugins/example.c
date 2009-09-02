@@ -24,14 +24,71 @@
 
 #include "example.h"
 
+/***********
+ * Helpers *
+ ***********/
+static gboolean rotate(gpointer _self)
+{
+	GisPluginExample *self = _self;
+	if (gtk_toggle_button_get_active(self->button)) {
+		self->rotation += 1.0;
+		gis_opengl_redraw(self->opengl);
+	}
+	return TRUE;
+}
+
+
+/***********
+ * Methods *
+ ***********/
+GisPluginExample *gis_plugin_example_new(GisWorld *world, GisView *view, GisOpenGL *opengl)
+{
+	g_debug("GisPluginExample: new");
+	GisPluginExample *self = g_object_new(GIS_TYPE_PLUGIN_EXAMPLE, NULL);
+	self->opengl = opengl;
+
+	return self;
+}
+
+static GtkWidget *gis_plugin_example_get_config(GisPlugin *_self)
+{
+	GisPluginExample *self = GIS_PLUGIN_EXAMPLE(_self);
+	return GTK_WIDGET(self->button);
+}
+
+static void gis_plugin_example_expose(GisPlugin *_self)
+{
+	GisPluginExample *self = GIS_PLUGIN_EXAMPLE(_self);
+	g_debug("GisPluginExample: expose");
+
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	glOrtho(1,-1, -1,1, -10,10);
+
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+
+	float light_ambient[]  = {0.1f, 0.1f, 0.0f, 1.0f};
+	float light_diffuse[]  = {0.9f, 0.9f, 0.9f, 1.0f};
+	float light_position[] = {-30.0f, 50.0f, 40.0f, 1.0f};
+	glLightfv(GL_LIGHT0, GL_AMBIENT,  light_ambient);
+	glLightfv(GL_LIGHT0, GL_DIFFUSE,  light_diffuse);
+	glLightfv(GL_LIGHT0, GL_POSITION, light_position);
+	glEnable(GL_COLOR_MATERIAL);
+
+	glTranslatef(-0.5, -0.5, -2);
+	glRotatef(self->rotation, 1, 1, 0);
+	glColor4f(0.9, 0.9, 0.7, 1.0);
+	glDisable(GL_CULL_FACE);
+	gdk_gl_draw_teapot(TRUE, 0.25);
+}
+
+
 /****************
  * GObject code *
  ****************/
 /* Plugin init */
-static gboolean rotate(gpointer _self);
 static void gis_plugin_example_plugin_init(GisPluginInterface *iface);
-static void gis_plugin_example_expose(GisPlugin *_self);
-static GtkWidget *gis_plugin_example_get_config(GisPlugin *_self);
 G_DEFINE_TYPE_WITH_CODE(GisPluginExample, gis_plugin_example, G_TYPE_OBJECT,
 		G_IMPLEMENT_INTERFACE(GIS_TYPE_PLUGIN,
 			gis_plugin_example_plugin_init));
@@ -75,69 +132,3 @@ static void gis_plugin_example_class_init(GisPluginExampleClass *klass)
 	gobject_class->dispose  = gis_plugin_example_dispose;
 	gobject_class->finalize = gis_plugin_example_finalize;
 }
-
-/***********
- * Helpers *
- ***********/
-static gboolean rotate(gpointer _self)
-{
-	GisPluginExample *self = _self;
-	if (gtk_toggle_button_get_active(self->button)) {
-		self->rotation += 1.0;
-		gis_opengl_redraw(self->opengl);
-	}
-	return TRUE;
-}
-
-/***********
- * Methods *
- ***********/
-GisPluginExample *gis_plugin_example_new(GisWorld *world, GisView *view, GisOpenGL *opengl)
-{
-	g_debug("GisPluginExample: new");
-	GisPluginExample *self = g_object_new(GIS_TYPE_PLUGIN_EXAMPLE, NULL);
-	self->opengl = opengl;
-
-	return self;
-}
-
-static GtkWidget *gis_plugin_example_get_config(GisPlugin *_self)
-{
-	GisPluginExample *self = GIS_PLUGIN_EXAMPLE(_self);
-	return GTK_WIDGET(self->button);
-}
-
-static void gis_plugin_example_expose(GisPlugin *_self)
-{
-	GisPluginExample *self = GIS_PLUGIN_EXAMPLE(_self);
-	g_debug("GisPluginExample: expose");
-	glDisable(GL_TEXTURE_2D);
-	glMatrixMode(GL_PROJECTION); glPushMatrix(); glLoadIdentity();
-	glOrtho(-1,1,-1,1,-10,10);
-	glMatrixMode(GL_MODELVIEW ); glPushMatrix(); glLoadIdentity();
-
-	float light_ambient[]  = {0.1f, 0.1f, 0.0f};
-	float light_diffuse[]  = {0.9f, 0.9f, 0.9f};
-	float light_position[] = {-30.0f, 50.0f, 40.0f, 1.0f};
-	glLightfv(GL_LIGHT0, GL_AMBIENT,  light_ambient);
-	glLightfv(GL_LIGHT0, GL_DIFFUSE,  light_diffuse);
-	glLightfv(GL_LIGHT0, GL_POSITION, light_position);
-	glEnable(GL_LIGHT0);
-	glEnable(GL_LIGHTING);
-	glEnable(GL_COLOR_MATERIAL);
-
-	glTranslatef(0.5, -0.5, -2);
-	glRotatef(self->rotation, 1, 0, 1);
-	glColor4f(0.9, 0.9, 0.7, 1.0);
-	gdk_gl_draw_teapot(TRUE, 0.25);
-	glColor4f(1.0, 1.0, 1.0, 1.0);
-
-	glDisable(GL_LIGHT0);
-	glDisable(GL_LIGHTING);
-	glDisable(GL_COLOR_MATERIAL);
-
-        glMatrixMode(GL_PROJECTION); glPopMatrix(); 
-	glMatrixMode(GL_MODELVIEW ); glPopMatrix();
-	return;
-}
-

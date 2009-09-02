@@ -16,13 +16,11 @@
  */
 
 #include <glib.h>
+#include <math.h>
 
 #include "gis-marshal.h"
 #include "gis-world.h"
 
-/****************
- * GObject code *
- ****************/
 /* Constants */
 double WGS884_SEMI_MAJOR = 6378137.0;      // a
 double WGS884_SEMI_MINOR = 6356752.314245; // b
@@ -35,7 +33,52 @@ enum {
 };
 static guint signals[NUM_SIGNALS];
 
-/* Class/Object init */
+
+/* Signal helpers */
+static void _gis_world_emit_refresh(GisWorld *world)
+{
+	g_signal_emit(world, signals[SIG_REFRESH], 0);
+}
+static void _gis_world_emit_offline(GisWorld *world)
+{
+	g_signal_emit(world, signals[SIG_OFFLINE], 0,
+			world->offline);
+}
+
+/***********
+ * Methods *
+ ***********/
+GisWorld *gis_world_new()
+{
+	g_debug("GisWorld: new");
+	return g_object_new(GIS_TYPE_WORLD, NULL);
+}
+
+void gis_world_refresh(GisWorld *world)
+{
+	g_debug("GisWorld: refresh");
+	_gis_world_emit_refresh(world);
+}
+
+void gis_world_set_offline(GisWorld *world, gboolean offline)
+{
+	g_assert(GIS_IS_WORLD(world));
+	g_debug("GisWorld: set_offline - %d", offline);
+	world->offline = offline;
+	_gis_world_emit_offline(world);
+}
+
+gboolean gis_world_get_offline(GisWorld *world)
+{
+	g_assert(GIS_IS_WORLD(world));
+	g_debug("GisWorld: get_offline - %d", world->offline);
+	return world->offline;
+}
+
+
+/****************
+ * GObject code *
+ ****************/
 G_DEFINE_TYPE(GisWorld, gis_world, G_TYPE_OBJECT);
 static void gis_world_init(GisWorld *self)
 {
@@ -84,46 +127,42 @@ static void gis_world_class_init(GisWorldClass *klass)
 			G_TYPE_BOOLEAN);
 }
 
-/* Signal helpers */
-static void _gis_world_emit_refresh(GisWorld *world)
-{
-	g_signal_emit(world, signals[SIG_REFRESH], 0);
-}
-static void _gis_world_emit_offline(GisWorld *world)
-{
-	g_signal_emit(world, signals[SIG_OFFLINE], 0,
-			world->offline);
-}
 
-
-/***********
- * Methods *
- ***********/
-GisWorld *gis_world_new()
+/******************
+ * Global helpers *
+ ******************/
+void lle2xyz(gdouble lat, gdouble lon, gdouble elev,
+		gdouble *x, gdouble *y, gdouble *z)
 {
-	g_debug("GisWorld: new");
-	return g_object_new(GIS_TYPE_WORLD, NULL);
+	gdouble rad  = elev2rad(elev);
+	gdouble azim = lon2azim(lon);
+	gdouble incl = lat2incl(lat);
+	*z = rad * cos(azim) * sin(incl);
+	*x = rad * sin(azim) * sin(incl);
+	*y = rad * cos(incl);
 }
 
-void gis_world_refresh(GisWorld *world)
+void xyz2lle(gdouble x, gdouble y, gdouble z,
+		gdouble *lat, gdouble *lon, gdouble *elev)
 {
-	g_debug("GisWorld: refresh");
-	_gis_world_emit_refresh(world);
-}
-
-void gis_world_set_offline(GisWorld *world, gboolean offline)
-{
-	g_assert(GIS_IS_WORLD(world));
-	g_debug("GisWorld: set_offline - %d", offline);
-	world->offline = offline;
-	_gis_world_emit_offline(world);
-}
-
-gboolean gis_world_get_offline(GisWorld *world)
-{
-	g_assert(GIS_IS_WORLD(world));
-	g_debug("GisWorld: get_offline - %d", world->offline);
-	return world->offline;
+	gdouble rad = sqrt(x*x + y*y + z*z);
+	*lat  = incl2lat(acos(y / rad));
+	*lon  = azim2lon(atan2(x,z));
+	*elev = rad2elev(rad);
 }
 
 
+gdouble ll2m(gdouble lon_dist, gdouble lat)
+{
+	gdouble azim = (-lat+90)/180*M_PI;
+	gdouble rad  = sin(azim) * EARTH_R;
+	gdouble circ = 2 * M_PI * rad;
+	return lon_dist/360 * circ;
+}
+
+gdouble distd(gdouble *a, gdouble *b)
+{
+	return sqrt((a[0]-b[0])*(a[0]-b[0]) +
+	            (a[1]-b[1])*(a[1]-b[1]) +
+	            (a[2]-b[2])*(a[2]-b[2]));
+}

@@ -3,6 +3,10 @@ Advanced Weather
 This may eventually become free software program/library/something used to
 access/process/visualize weather related data.
 
+Data:
+Ground    (WMS) - http://www.nasa.network.com/wms
+Elevation (WMS) - http://www.nasa.network.com/elev
+
 See also:
 WDSS II  - http://www.wdssii.org/
 AWIPS    - http://www.nws.noaa.gov/ops2/ops24/awips.htm

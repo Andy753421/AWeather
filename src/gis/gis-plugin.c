@@ -20,6 +20,9 @@
 
 #include "gis-plugin.h"
 
+/********************
+ * Plugin interface *
+ ********************/
 static void gis_plugin_base_init(gpointer g_class)
 {
 	static gboolean is_initialized = FALSE;
@@ -56,7 +59,10 @@ GtkWidget *gis_plugin_get_config(GisPlugin *self)
 	return GIS_PLUGIN_GET_INTERFACE(self)->get_config(self);
 }
 
-/* Plugins API */
+
+/***************
+ * Plugins API *
+ ***************/
 typedef struct {
 	gchar *name;
 	GisPlugin *plugin;

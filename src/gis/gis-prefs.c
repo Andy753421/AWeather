@@ -19,68 +19,13 @@
 #include "gis-marshal.h"
 #include "gis-prefs.h"
 
-/****************
- * GObject code *
- ****************/
+
 enum {
 	SIG_PREF_CHANGED,
 	NUM_SIGNALS,
 };
 static guint signals[NUM_SIGNALS];
 
-G_DEFINE_TYPE(GisPrefs, gis_prefs, G_TYPE_OBJECT);
-static void gis_prefs_init(GisPrefs *self)
-{
-	g_debug("GisPrefs: init");
-	self->key_file = g_key_file_new();
-}
-static GObject *gis_prefs_constructor(GType gtype, guint n_properties,
-		GObjectConstructParam *properties)
-{
-	g_debug("gis_prefs: constructor");
-	GObjectClass *parent_class = G_OBJECT_CLASS(gis_prefs_parent_class);
-	return  parent_class->constructor(gtype, n_properties, properties);
-}
-static void gis_prefs_dispose(GObject *_self)
-{
-	g_debug("GisPrefs: dispose");
-	GisPrefs *self = GIS_PREFS(_self);
-	if (self->key_file) {
-		gsize length;
-		g_mkdir_with_parents(g_path_get_dirname(self->key_path), 0755);
-		gchar *data = g_key_file_to_data(self->key_file, &length, NULL);
-		g_file_set_contents(self->key_path, data, length, NULL);
-		g_key_file_free(self->key_file);
-		self->key_file = NULL;
-	}
-	G_OBJECT_CLASS(gis_prefs_parent_class)->dispose(_self);
-}
-static void gis_prefs_finalize(GObject *_self)
-{
-	g_debug("GisPrefs: finalize");
-	G_OBJECT_CLASS(gis_prefs_parent_class)->finalize(_self);
-}
-static void gis_prefs_class_init(GisPrefsClass *klass)
-{
-	g_debug("GisPrefs: class_init");
-	GObjectClass *gobject_class = G_OBJECT_CLASS(klass);
-	gobject_class->constructor  = gis_prefs_constructor;
-	gobject_class->dispose      = gis_prefs_dispose;
-	gobject_class->finalize     = gis_prefs_finalize;
-	signals[SIG_PREF_CHANGED] = g_signal_new(
-			"pref-changed",
-			G_TYPE_FROM_CLASS(gobject_class),
-			G_SIGNAL_RUN_LAST,
-			0,
-			NULL,
-			NULL,
-			gis_cclosure_marshal_VOID__STRING_UINT_POINTER,
-			G_TYPE_NONE,
-			1,
-			G_TYPE_STRING,
-			G_TYPE_UINT,
-			G_TYPE_POINTER);
-}
 
 /***********
  * Methods *
@@ -157,3 +102,65 @@ make_pref_type(string,  gchar*,   G_TYPE_STRING)
 make_pref_type(boolean, gboolean, G_TYPE_BOOLEAN)
 make_pref_type(integer, gint,     G_TYPE_INT)
 make_pref_type(double,  gdouble,  G_TYPE_DOUBLE)
+
+
+/****************
+ * GObject code *
+ ****************/
+G_DEFINE_TYPE(GisPrefs, gis_prefs, G_TYPE_OBJECT);
+static void gis_prefs_init(GisPrefs *self)
+{
+	g_debug("GisPrefs: init");
+	self->key_file = g_key_file_new();
+}
+static GObject *gis_prefs_constructor(GType gtype, guint n_properties,
+		GObjectConstructParam *properties)
+{
+	g_debug("gis_prefs: constructor");
+	GObjectClass *parent_class = G_OBJECT_CLASS(gis_prefs_parent_class);
+	return  parent_class->constructor(gtype, n_properties, properties);
+}
+static void gis_prefs_dispose(GObject *_self)
+{
+	g_debug("GisPrefs: dispose");
+	GisPrefs *self = GIS_PREFS(_self);
+	if (self->key_file) {
+		gsize length;
+		gchar *dir = g_path_get_dirname(self->key_path);
+		g_mkdir_with_parents(dir, 0755);
+		gchar *data = g_key_file_to_data(self->key_file, &length, NULL);
+		g_file_set_contents(self->key_path, data, length, NULL);
+		g_key_file_free(self->key_file);
+		g_free(self->key_path);
+		g_free(dir);
+		g_free(data);
+		self->key_file = NULL;
+	}
+	G_OBJECT_CLASS(gis_prefs_parent_class)->dispose(_self);
+}
+static void gis_prefs_finalize(GObject *_self)
+{
+	g_debug("GisPrefs: finalize");
+	G_OBJECT_CLASS(gis_prefs_parent_class)->finalize(_self);
+}
+static void gis_prefs_class_init(GisPrefsClass *klass)
+{
+	g_debug("GisPrefs: class_init");
+	GObjectClass *gobject_class = G_OBJECT_CLASS(klass);
+	gobject_class->constructor  = gis_prefs_constructor;
+	gobject_class->dispose      = gis_prefs_dispose;
+	gobject_class->finalize     = gis_prefs_finalize;
+	signals[SIG_PREF_CHANGED] = g_signal_new(
+			"pref-changed",
+			G_TYPE_FROM_CLASS(gobject_class),
+			G_SIGNAL_RUN_LAST,
+			0,
+			NULL,
+			NULL,
+			gis_cclosure_marshal_VOID__STRING_UINT_POINTER,
+			G_TYPE_NONE,
+			1,
+			G_TYPE_STRING,
+			G_TYPE_UINT,
+			G_TYPE_POINTER);
+}

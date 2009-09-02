@@ -24,8 +24,8 @@ gdb: all
 ddd: all
 	LD_LIBRARY_PATH=gis/.libs ddd .libs/aweather
 
-memcheck:
-	LD_LIBRARY_PATH=gis/.libs/               \
+memcheck: all
+	LD_LIBRARY_PATH=gis/.libs               \
 	G_SLICE=always-malloc                   \
 	G_DEBUG=gc-friendly,resident-modules    \
 	valgrind --leak-check=full              \

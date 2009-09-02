@@ -27,16 +27,9 @@ typedef struct {
 	int type;
 	char *code;
 	char *label;
-	struct {
-		gint north;
-		gint ne;
-		gint east;
-		gint se;
-		gint south;
-		gint sw;
-		gint west;
-		gint nw;
-	} neighbors;
+	double lat;
+	double lon;
+	double elev;
 } city_t;
 
 extern city_t cities[];

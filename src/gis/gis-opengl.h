@@ -36,22 +36,24 @@ typedef struct _GisOpenGLClass GisOpenGLClass;
 #include "gis-view.h"
 #include "gis-world.h"
 #include "gis-plugin.h"
-
-#define d2r(deg) (((deg)*M_PI)/180.0)
-#define r2d(rad) (((rad)*180.0)/M_PI)
+#include "roam.h"
+#include "wms.h"
 
 struct _GisOpenGL {
-	GObject parent_instance;
+	GtkDrawingArea parent_instance;
 
 	/* instance members */
-	GisWorld       *world;
-	GisView        *view;
-	GisPlugins     *plugins;
-	GtkDrawingArea *drawing;
+	GisWorld   *world;
+	GisView    *view;
+	GisPlugins *plugins;
+	RoamSphere *sphere;
+	WmsInfo    *bmng;
+	WmsInfo    *srtm;
+	guint       sm_source;
 };
 
 struct _GisOpenGLClass {
-	GObjectClass parent_class;
+	GtkDrawingAreaClass parent_class;
 	
 	/* class members */
 };
@@ -59,11 +61,14 @@ struct _GisOpenGLClass {
 GType gis_opengl_get_type(void);
 
 /* Methods */
-GisOpenGL *gis_opengl_new(GisWorld *world, GisView *view, GtkDrawingArea *drawing);
+GisOpenGL *gis_opengl_new(GisWorld *world, GisView *view, GisPlugins *plugins);
 
-void       gis_opengl_redraw(GisOpenGL *gis);
-void       gis_opengl_begin(GisOpenGL *gis);
-void       gis_opengl_end(GisOpenGL *gis);
-void       gis_opengl_flush(GisOpenGL *gis);
+void gis_opengl_center_position(GisOpenGL *gis, gdouble lat, gdouble lon, gdouble elev);
+
+void gis_opengl_redraw(GisOpenGL *gis);
+
+void gis_opengl_begin(GisOpenGL *gis);
+void gis_opengl_end(GisOpenGL *gis);
+void gis_opengl_flush(GisOpenGL *gis);
 
 #endif

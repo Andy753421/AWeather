@@ -1,7 +1,7 @@
 AM_CPPFLAGS= $(RSL_CFLAGS) $(SOUP_CFLAGS) $(GLIB_CFLAGS) $(GTK_CFLAGS)
 GTKDOC_LIBS=$(RSL_LIBS) $(SOUP_LIBS) $(GLIB_LIBS) $(GTK_LIBS) \
 	$(top_srcdir)/src/aweather-aweather-*.o \
-	$(top_srcdir)/src/gis/*.o \
+	$(top_srcdir)/src/gis/libgis*.o \
 	$(top_srcdir)/src/plugins/*.o
 DOC_MODULE=aweather
 DOC_SOURCE_DIR=$(top_srcdir)/src/
