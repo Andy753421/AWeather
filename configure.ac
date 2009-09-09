@@ -16,10 +16,8 @@ PKG_CHECK_MODULES(GTK,  gtk+-2.0 >= 2.16 gtkglext-1.0)
 PKG_CHECK_MODULES(SOUP, libsoup-2.4 >= 2.26)
 
 # Define odd RSL install location
-#AC_SUBST(RSL_CFLAGS, "-I/usr/local/trmm/GVBOX/include/")
-#AC_SUBST(RSL_LIBS,   "-L/usr/local/trmm/GVBOX/lib/ -lrsl")
-AC_SUBST(RSL_CFLAGS, "")
-AC_SUBST(RSL_LIBS,   "-lrsl")
+AC_CHECK_LIB(rsl, RSL_wsr88d_to_radar, RLS_LIBS="-lrsl")
+AM_CONDITIONAL(HAVE_RSL, test "$RSL_LIBS" != "")
 
 # Output 
 AC_CONFIG_FILES([
@@ -33,3 +31,8 @@ AC_CONFIG_FILES([
 	docs/api/Makefile
 ])
 AC_OUTPUT
+
+# Print status messages
+if test "$RSL_LIBS" = ""; then
+	echo " ** Warning, RSL not found, radar plugin disabled"
+fi
