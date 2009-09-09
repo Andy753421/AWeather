@@ -281,7 +281,7 @@ static void set_visuals(GisOpenGL *self)
 	gis_view_get_location(self->view, &lat, &lon, &elev);
 	gdouble rg   = MAX(0, 1-(elev/20000));
 	gdouble blue = MAX(0, 1-(elev/50000));
-	glClearColor(MIN(0.8,rg), MIN(0.8,rg), MIN(1,blue), 1.0f);
+	glClearColor(MIN(0.65,rg), MIN(0.65,rg), MIN(1,blue), 1.0f);
 
 	glDisable(GL_ALPHA_TEST);
 
