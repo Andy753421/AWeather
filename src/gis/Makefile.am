@@ -39,7 +39,7 @@ pkgconfig_DATA = libgis.pc
 bin_PROGRAMS = gis_test wms_test
 
 gis_test_SOURCES  = gis_test.c gis.h
-gis_test_LDADD    = $(AM_LDADD) libgis.la
+gis_test_LDADD    = $(AM_LDADD) .libs/libgis.a
 
 wms_test_SOURCES  = wms_test.c gis-world.c gis-world.h wms.c wms.h
 wms_test_LDADD    = $(AM_LDADD)
@@ -53,7 +53,7 @@ MAINTAINERCLEANFILES = Makefile.in
 
 test: all
 	make -C ../plugins all
-	LD_LIBRARY_PATH=.libs .libs/gis_test
+	./gis_test
 
 gdb: all
 	LD_LIBRARY_PATH=.libs gdb .libs/gis_test

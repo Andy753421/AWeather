@@ -125,6 +125,30 @@ g_pqueue_foreach (GPQueue *pqueue,
   g_pqueue_node_foreach (pqueue->root, NULL, func, user_data);
 }
 
+static void
+g_pqueue_add_ptr_cb (gpointer obj, GPtrArray *ptrs)
+{
+	g_ptr_array_add(ptrs, obj);
+}
+/**
+ * g_pqueue_get_array:
+ * @pqueue: a #GQueue.
+ *
+ * Construct a GPtrArray for the items in pqueue. This can be useful when
+ * updating the priorities of all the elements in pqueue.
+ *
+ * Returns: A GPtrArray containing a pointer to each item in pqueue
+ * 
+ * Since: 2.x
+ */
+GPtrArray *
+g_pqueue_get_array (GPQueue *pqueue)
+{
+	GPtrArray *ptrs = g_ptr_array_new();
+	g_pqueue_foreach(pqueue, (GFunc)g_pqueue_add_ptr_cb, ptrs);
+	return ptrs;
+}
+
 static inline gint
 cmp (GPQueue *pqueue,
      GPQueueNode *a,

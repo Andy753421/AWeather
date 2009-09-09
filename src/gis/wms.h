@@ -35,13 +35,15 @@ typedef void (*WmsFreeer)(WmsCacheNode *node);
  ****************/
 struct _WmsCacheNode {
 	gpointer data;
-	gdouble latlon[4]; // xmin,ymin,xmax,ymax
+	gdouble  latlon[4]; // xmin,ymin,xmax,ymax
+	gdouble  res;       // xmin,ymin,xmax,ymax
 	gboolean caching;
-	time_t atime;
+	time_t   atime;
+	WmsCacheNode *parent;
 	WmsCacheNode *children[4][4];
 };
 
-WmsCacheNode *wms_cache_node_new(gdouble xmin, gdouble ymin, gdouble xmax, gdouble ymax);
+WmsCacheNode *wms_cache_node_new(WmsCacheNode *parent, gdouble xmin, gdouble ymin, gdouble xmax, gdouble ymax, gint width);
 
 void wms_cache_node_free(WmsCacheNode *node, WmsFreeer freeer);
 
@@ -49,8 +51,6 @@ void wms_cache_node_free(WmsCacheNode *node, WmsFreeer freeer);
  * WmsInfo *
  ***********/
 struct _WmsInfo {
-	WmsLoader loader;
-	WmsFreeer freeer;
 	gchar *uri_prefix;
 	gchar *uri_layer;
 	gchar *uri_format;
@@ -63,8 +63,10 @@ struct _WmsInfo {
 	guint  max_age;
 	guint  gc_source;
 	time_t atime;
+	WmsLoader     loader;
+	WmsFreeer     freeer;
 	WmsCacheNode *cache_root;
-	SoupSession *soup;
+	SoupSession  *soup;
 };
 
 WmsInfo *wms_info_new(WmsLoader loader, WmsFreeer freeer,
@@ -76,10 +78,12 @@ void wms_info_cache(WmsInfo *info, gdouble resolution, gdouble lat, gdouble lon,
 		WmsChunkCallback chunk_callback, WmsDoneCallback done_callback,
 		gpointer user_data);
 
-WmsCacheNode *wms_info_fetch(WmsInfo *info, gdouble resolution, gdouble lat, gdouble lon,
+WmsCacheNode *wms_info_fetch(WmsInfo *info, WmsCacheNode *root,
+		gdouble resolution, gdouble lat, gdouble lon,
 		gboolean *correct);
 
-WmsCacheNode *wms_info_fetch_cache(WmsInfo *info, gdouble resolution, gdouble lat, gdouble lon,
+WmsCacheNode *wms_info_fetch_cache(WmsInfo *info, WmsCacheNode *root,
+		gdouble resolution, gdouble lat, gdouble lon,
 		WmsChunkCallback chunk_callback, WmsDoneCallback done_callback,
 		gpointer user_data);
 

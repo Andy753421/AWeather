@@ -38,6 +38,8 @@ void		g_pqueue_foreach		(GPQueue *pqueue,
 						 GFunc func,
 						 gpointer user_data);
 
+GPtrArray*	g_pqueue_get_array		(GPQueue *pqueue);
+
 GPQueueHandle	g_pqueue_push			(GPQueue *pqueue,
 						 gpointer data);
 

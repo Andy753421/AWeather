@@ -19,8 +19,10 @@
 #define __ROAM_H__
 
 #include "gpqueue.h"
+#include "wms.h"
 
 /* Roam */
+typedef struct _RoamView     RoamView;
 typedef struct _RoamPoint    RoamPoint;
 typedef struct _RoamTriangle RoamTriangle;
 typedef struct _RoamDiamond  RoamDiamond;
@@ -28,18 +30,32 @@ typedef struct _RoamSphere   RoamSphere;
 typedef void (*RoamTriFunc)(RoamTriangle *triangle, gpointer user_data);
 typedef void (*RoamHeightFunc)(RoamPoint *point, gpointer user_data);
 
+/* Misc */
+struct _RoamView {
+	gdouble model[16];
+	gdouble proj[16]; 
+	gint view[4]; 
+};
+
 /*************
  * RoamPoint *
  *************/
 struct _RoamPoint {
-	double x,y,z;
-	double coords;  // Texture coordinantes 
-	double norm[3]; // Vertex normal
-	int    refs;    // Reference count
+	gdouble  x,y,z;     // Model coordinates
+	gdouble  px,py,pz;  // Projected coordinates
+
+	gboolean cached;    // Height/projection cached
+
+	gint     tris;      // Associated triangles
+	gdouble  norm[3];   // Vertex normal
+
+	WmsCacheNode *node; // TODO: don't depend on wms
 };
 RoamPoint *roam_point_new(double x, double y, double z);
 void roam_point_add_triangle(RoamPoint *point, RoamTriangle *triangle);
 void roam_point_remove_triangle(RoamPoint *point, RoamTriangle *triangle);
+void roam_point_update(RoamPoint *point, RoamSphere *sphere, gboolean do_height);
+void roam_point_clear(RoamPoint *self);
 
 /****************
  * RoamTriangle *
@@ -47,17 +63,19 @@ void roam_point_remove_triangle(RoamPoint *point, RoamTriangle *triangle);
 struct _RoamTriangle {
 	struct { RoamPoint    *l,*m,*r; } p;
 	struct { RoamTriangle *l,*b,*r; } t;
-	RoamDiamond *diamond;
+	RoamDiamond *parent;
 	double norm[3];
 	double error;
 	GPQueueHandle handle;
+
+	WmsCacheNode *nodes[5]; // TODO: don't depend on wms
 };
 RoamTriangle *roam_triangle_new(RoamPoint *l, RoamPoint *m, RoamPoint *r);
 void roam_triangle_add(RoamTriangle *triangle,
 		RoamTriangle *left, RoamTriangle *base, RoamTriangle *right,
 		RoamSphere *sphere);
 void roam_triangle_remove(RoamTriangle *triangle, RoamSphere *sphere);
-void roam_triangle_update_error(RoamTriangle *triangle, RoamSphere *sphere, GPQueue *triangles);
+void roam_triangle_update(RoamTriangle *triangle, RoamSphere *sphere);
 void roam_triangle_split(RoamTriangle *triangle, RoamSphere *sphere);
 void roam_triangle_draw_normal(RoamTriangle *triangle);
 
@@ -65,8 +83,8 @@ void roam_triangle_draw_normal(RoamTriangle *triangle);
  * RoamDiamond *
  ***************/
 struct _RoamDiamond {
-	RoamTriangle *kid[4];
-	RoamTriangle *parent[2];
+	RoamTriangle *kids[4];
+	RoamTriangle *parents[2];
 	double error;
 	gboolean active;
 	GPQueueHandle handle;
@@ -78,7 +96,7 @@ RoamDiamond *roam_diamond_new(
 void roam_diamond_add(RoamDiamond *diamond, RoamSphere *sphere);
 void roam_diamond_remove(RoamDiamond *diamond, RoamSphere *sphere);
 void roam_diamond_merge(RoamDiamond *diamond, RoamSphere *sphere);
-void roam_diamond_update_error(RoamDiamond *self, RoamSphere *sphere, GPQueue *diamonds);
+void roam_diamond_update(RoamDiamond *self, RoamSphere *sphere);
 
 /**************
  * RoamSphere *
@@ -86,14 +104,14 @@ void roam_diamond_update_error(RoamDiamond *self, RoamSphere *sphere, GPQueue *d
 struct _RoamSphere {
 	GPQueue *triangles;
 	GPQueue *diamonds;
+	RoamView *view;
 	RoamTriFunc tri_func;
 	RoamHeightFunc height_func;
 	gpointer user_data;
 	gint polys;
 };
 RoamSphere *roam_sphere_new(RoamTriFunc tri_func, RoamHeightFunc height_func, gpointer user_data);
-void roam_sphere_update_errors(RoamSphere *sphere);
-void roam_sphere_update_point(RoamSphere *sphere, RoamPoint *point);
+void roam_sphere_update(RoamSphere *sphere);
 void roam_sphere_split_one(RoamSphere *sphere);
 void roam_sphere_merge_one(RoamSphere *sphere);
 gint roam_sphere_split_merge(RoamSphere *sphere);

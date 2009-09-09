@@ -79,7 +79,8 @@ gchar *wms_make_uri(WmsInfo *info, gdouble xmin, gdouble ymin, gdouble xmax, gdo
 /****************
  * WmsCacheNode *
  ****************/
-WmsCacheNode *wms_cache_node_new(gdouble xmin, gdouble ymin, gdouble xmax, gdouble ymax)
+WmsCacheNode *wms_cache_node_new(WmsCacheNode *parent,
+		gdouble xmin, gdouble ymin, gdouble xmax, gdouble ymax, gint width)
 {
 	WmsCacheNode *self = g_new0(WmsCacheNode, 1);
 	//g_debug("WmsCacheNode: new - %p %+7.3f,%+7.3f,%+7.3f,%+7.3f",
@@ -88,6 +89,11 @@ WmsCacheNode *wms_cache_node_new(gdouble xmin, gdouble ymin, gdouble xmax, gdoub
 	self->latlon[1] = ymin;
 	self->latlon[2] = xmax;
 	self->latlon[3] = ymax;
+	self->parent    = parent;
+	if (ymin <= 0 && ymax >= 0)
+		self->res = ll2m(xmax-xmin, 0)/width;
+	else
+		self->res = ll2m(xmax-xmin, MIN(ABS(ymin),ABS(ymax)))/width;
 	return self;
 }
 
@@ -125,10 +131,10 @@ WmsInfo *wms_info_new(WmsLoader loader, WmsFreeer freeer,
 	self->width        = width;
 	self->height       = height;
 
-	self->max_age      = 30;
+	self->max_age      = 60;
 	self->atime        = time(NULL);
 	self->gc_source    = g_timeout_add_seconds(1, (GSourceFunc)wms_info_gc, self);
-	self->cache_root   = wms_cache_node_new(-180, -90, 180, 90);
+	self->cache_root   = wms_cache_node_new(NULL, -180, -90, 180, 90, width);
 	self->soup         = soup_session_async_new();
 	return self;
 }
@@ -225,8 +231,8 @@ void wms_info_cache(WmsInfo *info, gdouble resolution, gdouble lat, gdouble lon,
 		}
 
 		/* Break if current resolution (m/px) is good enough */
-		if (ll2m(xdist, cur_lat)/info->width < resolution  ||
-		    ll2m(xdist, cur_lat)/info->width < info->resolution)
+		if (ll2m(xdist, cur_lat)/info->width <= resolution  ||
+		    ll2m(xdist, cur_lat)/info->width <= info->resolution)
 		    	break;
 
 		/* Get locations for the correct sub-tile */
@@ -246,7 +252,8 @@ void wms_info_cache(WmsInfo *info, gdouble resolution, gdouble lat, gdouble lon,
 		g_string_append_printf(target_path, "/%d%d", xpos, ypos);
 		if (target_node->children[xpos][ypos] == NULL)
 			target_node->children[xpos][ypos] =
-				wms_cache_node_new(xmin, ymin, xmax, ymax);
+				wms_cache_node_new(target_node,
+					xmin, ymin, xmax, ymax, info->width);
 		target_node = target_node->children[xpos][ypos];
 	}
 
@@ -297,36 +304,46 @@ void wms_info_cache(WmsInfo *info, gdouble resolution, gdouble lat, gdouble lon,
 		g_string_free(target_path, TRUE);
 	}
 }
-WmsCacheNode *wms_info_fetch(WmsInfo *info, gdouble resolution, gdouble lat, gdouble lon,
+/* TODO:
+ *   - Store WmsCacheNode in point and then use parent pointers to go up/down
+ *   - If resolution doesn't change, tell caller to skip remaining calculations
+ */
+WmsCacheNode *wms_info_fetch(WmsInfo *info, WmsCacheNode *root,
+		gdouble resolution, gdouble lat, gdouble lon,
 		gboolean *correct)
 {
+	if (root && root->data && !root->caching &&
+	    root->latlon[0] <= lon && lon <= root->latlon[2] &&
+	    root->latlon[1] <= lat && lat <= root->latlon[3] &&
+	    root->res <= resolution &&
+	    (!root->parent || root->parent->res > resolution)) {
+	    	*correct = TRUE;
+		info->atime = time(NULL);
+		root->atime = info->atime;
+		return root;
+	}
+
 	if (info->cache_root == NULL) {
 		*correct = FALSE;
 		return NULL;
 	}
 	WmsCacheNode *node = info->cache_root;
 	WmsCacheNode *best = (node && node->data ? node : NULL);
-	gdouble x=lon, y=lat;
-	gdouble xmin=-180, ymin=-90, xmax=180, ymax=90;
-	gdouble xdist = xmax - xmin;
-	gdouble ydist = ymax - ymin;
+	gdouble xmin=-180, ymin=-90, xmax=180, ymax=90, xdist=360, ydist=180;
 	gdouble cur_lat = 0;
 	int xpos=0, ypos=0;
-	while (ll2m(xdist, cur_lat)/info->width > resolution  &&
-	       ll2m(xdist, cur_lat)/info->width > info->resolution) {
+	gdouble cur_res = ll2m(xdist, cur_lat)/info->width;
+	while (cur_res > resolution  &&
+	       cur_res > info->resolution) {
 
-		xpos = (int)(((x - xmin) / xdist) * 4);
-		ypos = (int)(((y - ymin) / ydist) * 4);
-		//g_message("%d = (int)(((%f - %f) / %f) * 4)",
-		//		xpos, x, xmin, xdist);
+		xpos = ((lon - xmin) / xdist) * 4;
+		ypos = ((lat - ymin) / ydist) * 4;
 		if (xpos == 4) xpos--;
 		if (ypos == 4) ypos--;
 		xdist /= 4;
 		ydist /= 4;
 		xmin = xmin + xdist*(xpos+0);
 		ymin = ymin + ydist*(ypos+0);
-		xmax = xmin + xdist;
-		ymax = ymin + ydist; 
 		cur_lat = MIN(ABS(ymin), ABS(ymax));
 
 		node = node->children[xpos][ypos];
@@ -334,6 +351,8 @@ WmsCacheNode *wms_info_fetch(WmsInfo *info, gdouble resolution, gdouble lat, gdo
 			break;
 		if (node->data)
 			best = node;
+
+		cur_res = ll2m(xdist, cur_lat)/info->width;
 	}
 	if (correct)
 		*correct = (node && node == best);
@@ -343,13 +362,19 @@ WmsCacheNode *wms_info_fetch(WmsInfo *info, gdouble resolution, gdouble lat, gdo
 	return best;
 }
 
-WmsCacheNode *wms_info_fetch_cache(WmsInfo *info, gdouble res, gdouble lat, gdouble lon,
+WmsCacheNode *wms_info_fetch_cache(WmsInfo *info, WmsCacheNode *root,
+		gdouble res, gdouble lat, gdouble lon,
 		WmsChunkCallback chunk_callback, WmsDoneCallback done_callback, gpointer user_data)
 {
+	/* Fetch a node, if it isn't cached, cache it, also keep it's parent cached */
 	gboolean correct;
-	WmsCacheNode *node = wms_info_fetch(info, res, lat, lon, &correct);
+	WmsCacheNode *node = wms_info_fetch(info, root, res, lat, lon, &correct);
 	if (!node || !correct)
 		wms_info_cache(info, res, lat, lon, chunk_callback, done_callback, user_data);
+	//else if (node->parent && node->parent->data == NULL)
+	//	wms_info_cache(info, node->parent->res, lat, lon, chunk_callback, done_callback, user_data);
+	//else if  (node->parent)
+	//	node->parent->atime = node->atime;
 	return node;
 }
 
@@ -357,8 +382,8 @@ WmsCacheNode *wms_info_fetch_cache(WmsInfo *info, gdouble res, gdouble lat, gdou
 static WmsCacheNode *wms_info_gc_cb(WmsInfo *self, WmsCacheNode *node)
 {
 	gboolean empty = FALSE;
-	if (node->data && !node->caching &&
-	    self->atime - node->atime > self->max_age) {
+	if (self->atime - node->atime > self->max_age &&
+	    node->data && node != self->cache_root && !node->caching) {
 		g_debug("WmsInfo: gc - expired node %p", node);
 		self->freeer(node);
 		node->data = NULL;
@@ -373,8 +398,13 @@ static WmsCacheNode *wms_info_gc_cb(WmsInfo *self, WmsCacheNode *node)
 			}
 	if (empty) {
 		g_debug("WmsInfo: gc - empty branch %p", node);
+		/* 
+		 * TODO: Don't prune nodes while we're caching WmsCacheNodes in the Roam triangles
+		 * and points
 		g_free(node);
 		return NULL;
+		*/
+		return node;
 	} else {
 		return node;
 	}

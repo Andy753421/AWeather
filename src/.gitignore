@@ -2,8 +2,10 @@
 *.lo
 *.o
 *.so
+*.prof
 .deps
 .libs
+gmon.*
 aweather
 level2
 wsr88ddec

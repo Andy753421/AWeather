@@ -69,10 +69,10 @@ int main(int argc, char **argv)
 	gdouble res = 200, lon = -101.76, lat = 46.85;
 
 	WmsInfo *bmng_info = wms_info_new_for_bmng(bmng_pixbuf_loader, bmng_pixbuf_freeer);
-	wms_info_cache(bmng_info, res, lat, lon, chunk_callback, done_callback, &bmng_state);
+	wms_info_fetch_cache(bmng_info, NULL, res, lat, lon, chunk_callback, done_callback, &bmng_state);
 
 	WmsInfo *srtm_info = wms_info_new_for_srtm(srtm_pixbuf_loader, srtm_pixbuf_freeer);
-	wms_info_cache(srtm_info, res, lat, lon, chunk_callback, done_callback, &srtm_state);
+	wms_info_fetch_cache(srtm_info, NULL, res, lat, lon, chunk_callback, done_callback, &srtm_state);
 
 	gtk_widget_show_all(win);
 	gtk_main();
