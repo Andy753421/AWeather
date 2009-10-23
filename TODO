@@ -10,6 +10,10 @@ Road plan
   * GTK docs
 
 0.x - GIS
+  * Use Vertex Arrays/
+    VertexBufferObjects/
+    DisplayLists/
+    glInterleavedArrays
   * States/cities/roads overlays
   * NEXRAD LLE listings, click to center
 

@@ -25,14 +25,3 @@ gdb: all
 
 ddd: all
 	LD_LIBRARY_PATH=gis/.libs ddd .libs/aweather
-
-memcheck: all
-	LD_LIBRARY_PATH=gis/.libs               \
-	G_SLICE=always-malloc                   \
-	G_DEBUG=gc-friendly,resident-modules    \
-	valgrind --leak-check=full              \
-	         --leak-resolution=high         \
-	         --num-callers=100              \
-	         --suppressions=gtk.suppression \
-	         .libs/aweather                 \
-	2> valgrind.out

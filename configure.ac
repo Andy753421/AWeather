@@ -3,6 +3,7 @@ AC_INIT([aweather], [0.3-p0], [spenceal@rose-hulman.edu])
 AM_INIT_AUTOMAKE([-Wall -Werror -Wno-portability foreign])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])
+#AM_SILENT_RULES([yes])
 
 # Check for required programs
 AC_PROG_CC
