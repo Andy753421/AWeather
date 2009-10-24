@@ -38,7 +38,7 @@ gboolean on_gui_key_press(GtkWidget *widget, GdkEventKey *event, AWeatherGui *se
 	else if (event->keyval == GDK_r && event->state & GDK_CONTROL_MASK)
 		gis_world_refresh(self->world);
 	else if (event->keyval == GDK_Tab || event->keyval == GDK_ISO_Left_Tab) {
-		GtkNotebook *tabs = GTK_NOTEBOOK(aweather_gui_get_widget(self, "tabs"));
+		GtkNotebook *tabs = GTK_NOTEBOOK(aweather_gui_get_widget(self, "main_tabs"));
 		gint num_tabs = gtk_notebook_get_n_pages(tabs);
 		gint cur_tab  = gtk_notebook_get_current_page(tabs);
 		if (event->state & GDK_SHIFT_MASK)
@@ -71,7 +71,7 @@ void on_refresh(GtkAction *action, AWeatherGui *self)
 
 void on_plugin_toggled(GtkCellRendererToggle *cell, gchar *path_str, AWeatherGui *self)
 {
-	GtkWidget    *tview = aweather_gui_get_widget(self, "plugins_view");
+	GtkWidget    *tview = aweather_gui_get_widget(self, "prefs_plugins_view");
 	GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(tview));
 	gboolean state;
 	gchar *name;
@@ -137,7 +137,7 @@ static gboolean gtk_tree_model_find_string(GtkTreeModel *model,
 static void update_time_widget(GisView *view, const char *time, AWeatherGui *self)
 {
 	g_debug("AWeatherGui: update_time_widget - time=%s", time);
-	GtkTreeView  *tview = GTK_TREE_VIEW(aweather_gui_get_widget(self, "time"));
+	GtkTreeView  *tview = GTK_TREE_VIEW(aweather_gui_get_widget(self, "main_time"));
 	GtkTreeModel *model = GTK_TREE_MODEL(gtk_tree_view_get_model(tview));
 	GtkTreeIter iter;
 	if (gtk_tree_model_find_string(model, &iter, NULL, 0, time)) {
@@ -154,7 +154,7 @@ static void update_time_widget(GisView *view, const char *time, AWeatherGui *sel
 static void update_site_widget(GisView *view, char *site, AWeatherGui *self)
 {
 	g_debug("AWeatherGui: update_site_widget - site=%s", site);
-	GtkComboBox  *combo = GTK_COMBO_BOX(aweather_gui_get_widget(self, "site"));
+	GtkComboBox  *combo = GTK_COMBO_BOX(aweather_gui_get_widget(self, "main_site"));
 	GtkTreeModel *model = GTK_TREE_MODEL(gtk_combo_box_get_model(combo));
 	GtkTreeIter iter;
 	if (gtk_tree_model_find_string(model, &iter, NULL, 1, site)) {
@@ -212,9 +212,9 @@ static void prefs_setup(AWeatherGui *self)
 	gchar *nu = gis_prefs_get_string (self->prefs, "aweather/nexrad_url");
 	gint   ll = gis_prefs_get_integer(self->prefs, "aweather/log_level");
 	gchar *is = gis_prefs_get_string (self->prefs, "aweather/initial_site");
-	GtkWidget *nuw = aweather_gui_get_widget(self, "nexrad_url");
-	GtkWidget *llw = aweather_gui_get_widget(self, "log_level");
-	GtkWidget *isw = aweather_gui_get_widget(self, "initial_site");
+	GtkWidget *nuw = aweather_gui_get_widget(self, "prefs_general_url");
+	GtkWidget *llw = aweather_gui_get_widget(self, "prefs_general_log");
+	GtkWidget *isw = aweather_gui_get_widget(self, "prefs_general_site");
 	if (nu) gtk_entry_set_text(GTK_ENTRY(nuw), nu), g_free(nu);
 	if (ll) gtk_spin_button_set_value(GTK_SPIN_BUTTON(llw), ll);
 	if (is) {
@@ -225,7 +225,7 @@ static void prefs_setup(AWeatherGui *self)
 	}
 
 	/* Load Plugins */
-	GtkTreeView       *tview = GTK_TREE_VIEW(aweather_gui_get_widget(self, "plugins_view"));
+	GtkTreeView       *tview = GTK_TREE_VIEW(aweather_gui_get_widget(self, "prefs_plugins_view"));
 	GtkCellRenderer   *rend1 = gtk_cell_renderer_text_new();
 	GtkCellRenderer   *rend2 = gtk_cell_renderer_toggle_new();
 	GtkTreeViewColumn *col1  = gtk_tree_view_column_new_with_attributes(
@@ -261,8 +261,8 @@ static void site_setup(AWeatherGui *self)
 		}
 	}
 
-	GtkWidget *combo    = aweather_gui_get_widget(self, "site");
-	GObject   *renderer = aweather_gui_get_object(self, "site_rend");
+	GtkWidget *combo    = aweather_gui_get_widget(self, "main_site");
+	GObject   *renderer = aweather_gui_get_object(self, "main_site_rend");
 	gtk_cell_layout_set_cell_data_func(GTK_CELL_LAYOUT(combo),
 			GTK_CELL_RENDERER(renderer), combo_sensitive, NULL, NULL);
 
@@ -272,7 +272,7 @@ static void site_setup(AWeatherGui *self)
 
 static void time_setup(AWeatherGui *self)
 {
-	GtkTreeView       *tview = GTK_TREE_VIEW(aweather_gui_get_widget(self, "time"));
+	GtkTreeView       *tview = GTK_TREE_VIEW(aweather_gui_get_widget(self, "main_time"));
 	GtkCellRenderer   *rend  = gtk_cell_renderer_text_new();
 	GtkTreeViewColumn *col   = gtk_tree_view_column_new_with_attributes(
 					"Time", rend, "text", 0, NULL);
@@ -295,7 +295,7 @@ static void update_times_gtk(AWeatherGui *self, GList *times)
 	GRegex *regex = g_regex_new("^[A-Z]{4}_([0-9]{8}_[0-9]{4})$", 0, 0, NULL); // KLSX_20090622_2113
 	GMatchInfo *info;
 
-	GtkTreeView  *tview  = GTK_TREE_VIEW(aweather_gui_get_widget(self, "time"));
+	GtkTreeView  *tview  = GTK_TREE_VIEW(aweather_gui_get_widget(self, "main_time"));
 	GtkListStore *lstore = GTK_LIST_STORE(gtk_tree_view_get_model(tview));
 	gtk_list_store_clear(lstore);
 	GtkTreeIter iter;
@@ -417,7 +417,7 @@ void aweather_gui_attach_plugin(AWeatherGui *self, const gchar *name)
 {
 	GisPlugin *plugin = gis_plugins_load(self->plugins, name,
 			self->world, self->view, self->opengl, self->prefs);
-	GtkWidget *config = aweather_gui_get_widget(self, "tabs");
+	GtkWidget *config = aweather_gui_get_widget(self, "main_tabs");
 	GtkWidget *tab    = gtk_label_new(name);
 	GtkWidget *body   = gis_plugin_get_config(plugin);
 	gtk_notebook_append_page(GTK_NOTEBOOK(config), body, tab);
@@ -426,7 +426,7 @@ void aweather_gui_attach_plugin(AWeatherGui *self, const gchar *name)
 }
 void aweather_gui_deattach_plugin(AWeatherGui *self, const gchar *name)
 {
-	GtkWidget *config = aweather_gui_get_widget(self, "tabs");
+	GtkWidget *config = aweather_gui_get_widget(self, "main_tabs");
 	guint n_pages = gtk_notebook_get_n_pages(GTK_NOTEBOOK(config));
 	for (int i = 0; i < n_pages; i++) {
 		g_debug("testing tab %d", i);
@@ -463,10 +463,10 @@ static void aweather_gui_init(AWeatherGui *self)
 	GError *error = NULL;
 	if (!gtk_builder_add_from_file(self->builder, DATADIR "/aweather/main.ui", &error))
 		g_error("Failed to create gtk builder: %s", error->message);
-	gtk_widget_reparent(aweather_gui_get_widget(self, "body"), GTK_WIDGET(self));
-	GtkWidget *hpaned = aweather_gui_get_widget(self, "hpaned");
-	gtk_widget_destroy(gtk_paned_get_child1(GTK_PANED(hpaned)));
-	gtk_paned_pack1(GTK_PANED(hpaned), GTK_WIDGET(self->opengl), TRUE, FALSE);
+	gtk_widget_reparent(aweather_gui_get_widget(self, "main_body"), GTK_WIDGET(self));
+	GtkWidget *paned = aweather_gui_get_widget(self, "main_paned");
+	gtk_widget_destroy(gtk_paned_get_child1(GTK_PANED(paned)));
+	gtk_paned_pack1(GTK_PANED(paned), GTK_WIDGET(self->opengl), TRUE, FALSE);
 
 	/* Plugins */
 	GtkTreeIter iter;
@@ -510,7 +510,7 @@ static void aweather_gui_dispose(GObject *_self)
 	AWeatherGui *self = AWEATHER_GUI(_self);
 	if (self->builder) {
 		/* Reparent to avoid double unrefs */
-		GtkWidget *body   = aweather_gui_get_widget(self, "body");
+		GtkWidget *body   = aweather_gui_get_widget(self, "main_body");
 		GtkWidget *window = aweather_gui_get_widget(self, "main_window");
 		gtk_widget_reparent(body, window);
 		g_object_unref(self->builder);

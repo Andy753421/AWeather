@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <interface>
   <requires lib="gtk+" version="2.16"/>
-  <!-- interface-naming-policy toplevel-contextual -->
+  <!-- interface-naming-policy project-wide -->
   <object class="GtkListStore" id="times">
     <columns>
       <!-- column-name time -->
@@ -27,46 +27,47 @@
   <object class="GtkWindow" id="main_window">
     <property name="title" translatable="yes">AWeather</property>
     <child>
-      <object class="GtkVBox" id="body">
+      <object class="GtkVBox" id="main_body">
         <property name="visible">True</property>
+        <property name="orientation">vertical</property>
         <child>
-          <object class="GtkMenuBar" id="menu">
+          <object class="GtkMenuBar" id="main_menu">
             <property name="visible">True</property>
             <child>
-              <object class="GtkMenuItem" id="file_item">
+              <object class="GtkMenuItem" id="main_menu_file">
                 <property name="visible">True</property>
                 <property name="label" translatable="yes">_File</property>
                 <property name="use_underline">True</property>
                 <child type="submenu">
-                  <object class="GtkMenu" id="file_menu">
+                  <object class="GtkMenu" id="main_menu_file_menu">
                     <property name="visible">True</property>
                     <child>
-                      <object class="GtkCheckMenuItem" id="offline_item">
+                      <object class="GtkCheckMenuItem" id="main_menu_file_offline">
                         <property name="visible">True</property>
                         <property name="tooltip_text" translatable="yes">Work offline</property>
-                        <property name="use_action_appearance">True</property>
                         <property name="related_action">offline</property>
+                        <property name="use_action_appearance">True</property>
                       </object>
                     </child>
                     <child>
-                      <object class="GtkImageMenuItem" id="prefs_item">
+                      <object class="GtkImageMenuItem" id="main_menu_file_prefs">
                         <property name="visible">True</property>
-                        <property name="use_action_appearance">True</property>
                         <property name="related_action">prefs</property>
+                        <property name="use_action_appearance">True</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
                       </object>
                     </child>
                     <child>
-                      <object class="GtkSeparatorMenuItem" id="sep2">
+                      <object class="GtkSeparatorMenuItem" id="main_menu_file_0">
                         <property name="visible">True</property>
                       </object>
                     </child>
                     <child>
-                      <object class="GtkImageMenuItem" id="quit_item">
+                      <object class="GtkImageMenuItem" id="main_menu_file_quit">
                         <property name="visible">True</property>
-                        <property name="use_action_appearance">True</property>
                         <property name="related_action">quit</property>
+                        <property name="use_action_appearance">True</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
                       </object>
@@ -76,41 +77,41 @@
               </object>
             </child>
             <child>
-              <object class="GtkMenuItem" id="view_item">
+              <object class="GtkMenuItem" id="main_menu_view">
                 <property name="visible">True</property>
                 <property name="label" translatable="yes">_View</property>
                 <property name="use_underline">True</property>
                 <child type="submenu">
-                  <object class="GtkMenu" id="view_menu">
+                  <object class="GtkMenu" id="main_menu_view_menu">
                     <property name="visible">True</property>
                     <child>
-                      <object class="GtkImageMenuItem" id="zoomin_item">
+                      <object class="GtkImageMenuItem" id="main_menu_view_zoomin">
                         <property name="visible">True</property>
-                        <property name="use_action_appearance">True</property>
                         <property name="related_action">zoomin</property>
+                        <property name="use_action_appearance">True</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
                       </object>
                     </child>
                     <child>
-                      <object class="GtkImageMenuItem" id="zoomout_item">
+                      <object class="GtkImageMenuItem" id="main_menu_view_zoomout">
                         <property name="visible">True</property>
-                        <property name="use_action_appearance">True</property>
                         <property name="related_action">zoomout</property>
+                        <property name="use_action_appearance">True</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
                       </object>
                     </child>
                     <child>
-                      <object class="GtkSeparatorMenuItem" id="sep1">
+                      <object class="GtkSeparatorMenuItem" id="main_menu_view_0">
                         <property name="visible">True</property>
                       </object>
                     </child>
                     <child>
-                      <object class="GtkImageMenuItem" id="refresh_item">
+                      <object class="GtkImageMenuItem" id="main_menu_view_refresh">
                         <property name="visible">True</property>
-                        <property name="use_action_appearance">True</property>
                         <property name="related_action">refresh</property>
+                        <property name="use_action_appearance">True</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
                       </object>
@@ -120,18 +121,18 @@
               </object>
             </child>
             <child>
-              <object class="GtkMenuItem" id="help_item">
+              <object class="GtkMenuItem" id="main_menu_help">
                 <property name="visible">True</property>
                 <property name="label" translatable="yes">_Help</property>
                 <property name="use_underline">True</property>
                 <child type="submenu">
-                  <object class="GtkMenu" id="help_menu">
+                  <object class="GtkMenu" id="main_menu_help_menu">
                     <property name="visible">True</property>
                     <child>
-                      <object class="GtkImageMenuItem" id="about_item">
+                      <object class="GtkImageMenuItem" id="main_menu_help_about">
                         <property name="visible">True</property>
-                        <property name="use_action_appearance">True</property>
                         <property name="related_action">about</property>
+                        <property name="use_action_appearance">True</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
                       </object>
@@ -147,14 +148,14 @@
           </packing>
         </child>
         <child>
-          <object class="GtkToolbar" id="toolbar">
+          <object class="GtkToolbar" id="main_toolbar">
             <property name="visible">True</property>
             <property name="toolbar_style">icons</property>
             <child>
-              <object class="GtkToolButton" id="zoomin_button">
+              <object class="GtkToolButton" id="main_tb_zoomin">
                 <property name="visible">True</property>
-                <property name="use_action_appearance">True</property>
                 <property name="related_action">zoomin</property>
+                <property name="use_action_appearance">True</property>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -162,30 +163,30 @@
               </packing>
             </child>
             <child>
-              <object class="GtkToolButton" id="zoomout_button">
+              <object class="GtkToolButton" id="main_tb_zoomout">
                 <property name="visible">True</property>
-                <property name="use_action_appearance">True</property>
                 <property name="related_action">zoomout</property>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="homogeneous">True</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkSeparatorToolItem" id="sep">
-                <property name="visible">True</property>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="homogeneous">True</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkToggleToolButton" id="offline_button">
-                <property name="visible">True</property>
                 <property name="use_action_appearance">True</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="homogeneous">True</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkSeparatorToolItem" id="main_tb_0">
+                <property name="visible">True</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="homogeneous">True</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkToggleToolButton" id="main_tb_offline">
+                <property name="visible">True</property>
                 <property name="related_action">offline</property>
+                <property name="use_action_appearance">True</property>
                 <property name="label" translatable="yes">toolbutton3</property>
                 <property name="use_underline">True</property>
               </object>
@@ -195,10 +196,10 @@
               </packing>
             </child>
             <child>
-              <object class="GtkToolButton" id="refresh_button">
+              <object class="GtkToolButton" id="main_tb_refresh">
                 <property name="visible">True</property>
-                <property name="use_action_appearance">True</property>
                 <property name="related_action">refresh</property>
+                <property name="use_action_appearance">True</property>
                 <property name="use_underline">True</property>
               </object>
               <packing>
@@ -207,7 +208,7 @@
               </packing>
             </child>
             <child>
-              <object class="GtkSeparatorToolItem" id="sep3">
+              <object class="GtkSeparatorToolItem" id="main_tb_1">
                 <property name="visible">True</property>
               </object>
               <packing>
@@ -216,10 +217,10 @@
               </packing>
             </child>
             <child>
-              <object class="GtkToolButton" id="prefs_button">
+              <object class="GtkToolButton" id="main_tb_prefs">
                 <property name="visible">True</property>
-                <property name="use_action_appearance">True</property>
                 <property name="related_action">prefs</property>
+                <property name="use_action_appearance">True</property>
                 <property name="label" translatable="yes">toolbutton1</property>
                 <property name="use_underline">True</property>
               </object>
@@ -235,15 +236,15 @@
           </packing>
         </child>
         <child>
-          <object class="GtkVPaned" id="vpaned1">
+          <object class="GtkVPaned" id="main_0">
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <child>
-              <object class="GtkHPaned" id="hpaned">
+              <object class="GtkHPaned" id="main_paned">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <child>
-                  <object class="GtkLabel" id="label3">
+                  <object class="GtkLabel" id="main_placeholder">
                     <property name="visible">True</property>
                     <property name="label" translatable="yes">placeholder
 (it's buggy with blank placeholders)</property>
@@ -255,23 +256,24 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkVBox" id="vbox2">
+                  <object class="GtkVBox" id="main_1">
                     <property name="visible">True</property>
+                    <property name="orientation">vertical</property>
                     <property name="spacing">5</property>
                     <child>
-                      <object class="GtkExpander" id="expander1">
+                      <object class="GtkExpander" id="main_site_0">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="expanded">True</property>
                         <property name="use_markup">True</property>
                         <child>
-                          <object class="GtkComboBox" id="site">
+                          <object class="GtkComboBox" id="main_site">
                             <property name="visible">True</property>
                             <property name="model">sites</property>
                             <property name="add_tearoffs">True</property>
                             <signal name="changed" handler="on_site_changed"/>
                             <child>
-                              <object class="GtkCellRendererText" id="site_rend"/>
+                              <object class="GtkCellRendererText" id="main_site_rend"/>
                               <attributes>
                                 <attribute name="text">0</attribute>
                               </attributes>
@@ -279,7 +281,7 @@
                           </object>
                         </child>
                         <child type="label">
-                          <object class="GtkLabel" id="label1">
+                          <object class="GtkLabel" id="main_site_label">
                             <property name="visible">True</property>
                             <property name="label" translatable="yes">&lt;b&gt;Site&lt;/b&gt;</property>
                             <property name="use_markup">True</property>
@@ -292,19 +294,19 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkExpander" id="expander2">
+                      <object class="GtkExpander" id="main_time_0">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="expanded">True</property>
                         <child>
-                          <object class="GtkScrolledWindow" id="scrolledwindow1">
+                          <object class="GtkScrolledWindow" id="main_time_1">
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="hscrollbar_policy">never</property>
                             <property name="vscrollbar_policy">automatic</property>
                             <property name="shadow_type">in</property>
                             <child>
-                              <object class="GtkTreeView" id="time">
+                              <object class="GtkTreeView" id="main_time">
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
                                 <property name="model">times</property>
@@ -315,7 +317,7 @@
                           </object>
                         </child>
                         <child type="label">
-                          <object class="GtkLabel" id="label2">
+                          <object class="GtkLabel" id="main_time_label">
                             <property name="visible">True</property>
                             <property name="label" translatable="yes">&lt;b&gt;Time&lt;/b&gt;</property>
                             <property name="use_markup">True</property>
@@ -339,7 +341,7 @@
               </packing>
             </child>
             <child>
-              <object class="GtkNotebook" id="tabs">
+              <object class="GtkNotebook" id="main_tabs">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="tab_pos">bottom</property>
@@ -400,34 +402,34 @@
     <signal name="response" handler="gtk_widget_hide" object="prefs_window"/>
     <signal name="delete_event" handler="gtk_widget_hide_on_delete"/>
     <child internal-child="vbox">
-      <object class="GtkVBox" id="dialog-vbox1">
+      <object class="GtkVBox" id="prefs_0">
         <property name="visible">True</property>
         <property name="orientation">vertical</property>
         <property name="spacing">2</property>
         <child>
-          <object class="GtkNotebook" id="notebook">
+          <object class="GtkNotebook" id="prefs_notebook">
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <child>
-              <object class="GtkVBox" id="vbox1">
+              <object class="GtkVBox" id="prefs_general_0">
                 <property name="visible">True</property>
                 <property name="orientation">vertical</property>
                 <child>
-                  <object class="GtkFrame" id="frame1">
+                  <object class="GtkFrame" id="prefs_general_1">
                     <property name="visible">True</property>
                     <property name="label_xalign">0</property>
                     <property name="shadow_type">none</property>
                     <child>
-                      <object class="GtkAlignment" id="alignment1">
+                      <object class="GtkAlignment" id="prefs_general_2">
                         <property name="visible">True</property>
                         <property name="left_padding">12</property>
                         <child>
-                          <object class="GtkVBox" id="vbox2">
+                          <object class="GtkVBox" id="prefs_general_3">
                             <property name="visible">True</property>
                             <property name="orientation">vertical</property>
                             <property name="spacing">5</property>
                             <child>
-                              <object class="GtkCheckButton" id="checkbutton1">
+                              <object class="GtkCheckButton" id="prefs_general_offline">
                                 <property name="label" translatable="yes">Work offline</property>
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
@@ -440,11 +442,11 @@
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkHBox" id="hbox1">
+                              <object class="GtkHBox" id="prefs_general_site_0">
                                 <property name="visible">True</property>
                                 <property name="spacing">5</property>
                                 <child>
-                                  <object class="GtkLabel" id="site_label">
+                                  <object class="GtkLabel" id="prefs_general_site_label">
                                     <property name="visible">True</property>
                                     <property name="xalign">0</property>
                                     <property name="label" translatable="yes">Initial site</property>
@@ -455,12 +457,12 @@
                                   </packing>
                                 </child>
                                 <child>
-                                  <object class="GtkComboBox" id="initial_site">
+                                  <object class="GtkComboBox" id="prefs_general_site">
                                     <property name="visible">True</property>
                                     <property name="model">sites</property>
                                     <signal name="changed" handler="on_initial_site_changed"/>
                                     <child>
-                                      <object class="GtkCellRendererText" id="site_rend"/>
+                                      <object class="GtkCellRendererText" id="prefs_general_site_rend"/>
                                       <attributes>
                                         <attribute name="text">0</attribute>
                                       </attributes>
@@ -476,11 +478,11 @@
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkHBox" id="hbox3">
+                              <object class="GtkHBox" id="prefs_general_url_0">
                                 <property name="visible">True</property>
                                 <property name="spacing">5</property>
                                 <child>
-                                  <object class="GtkLabel" id="nexrad_label">
+                                  <object class="GtkLabel" id="prefs_general_url_label">
                                     <property name="visible">True</property>
                                     <property name="xalign">0</property>
                                     <property name="label" translatable="yes">NEXRAD URL</property>
@@ -491,7 +493,7 @@
                                   </packing>
                                 </child>
                                 <child>
-                                  <object class="GtkEntry" id="nexrad_url">
+                                  <object class="GtkEntry" id="prefs_general_url">
                                     <property name="visible">True</property>
                                     <property name="can_focus">True</property>
                                     <property name="invisible_char">&#x25CF;</property>
@@ -507,11 +509,11 @@
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkHBox" id="hbox2">
+                              <object class="GtkHBox" id="prefs_general_log_0">
                                 <property name="visible">True</property>
                                 <property name="spacing">5</property>
                                 <child>
-                                  <object class="GtkLabel" id="log_label">
+                                  <object class="GtkLabel" id="prefs_general_log_label">
                                     <property name="visible">True</property>
                                     <property name="xalign">0</property>
                                     <property name="label" translatable="yes">Debug level</property>
@@ -522,11 +524,11 @@
                                   </packing>
                                 </child>
                                 <child>
-                                  <object class="GtkSpinButton" id="log_level">
+                                  <object class="GtkSpinButton" id="prefs_general_log">
                                     <property name="visible">True</property>
                                     <property name="can_focus">True</property>
                                     <property name="invisible_char">&#x25CF;</property>
-                                    <property name="adjustment">adjustment</property>
+                                    <property name="adjustment">prefs_general_log_adj</property>
                                     <property name="numeric">True</property>
                                     <signal name="value_changed" handler="on_log_level_changed"/>
                                   </object>
@@ -544,7 +546,7 @@
                       </object>
                     </child>
                     <child type="label">
-                      <object class="GtkLabel" id="label1">
+                      <object class="GtkLabel" id="prefs_general_prefs_label">
                         <property name="visible">True</property>
                         <property name="label" translatable="yes">&lt;b&gt;Preferences&lt;/b&gt;</property>
                         <property name="use_markup">True</property>
@@ -559,7 +561,7 @@
               </object>
             </child>
             <child type="tab">
-              <object class="GtkLabel" id="general_label">
+              <object class="GtkLabel" id="prefs_general_label">
                 <property name="visible">True</property>
                 <property name="label" translatable="yes">General</property>
               </object>
@@ -568,7 +570,7 @@
               </packing>
             </child>
             <child>
-              <object class="GtkTreeView" id="plugins_view">
+              <object class="GtkTreeView" id="prefs_plugins_view">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
               </object>
@@ -577,7 +579,7 @@
               </packing>
             </child>
             <child type="tab">
-              <object class="GtkLabel" id="plugins_label">
+              <object class="GtkLabel" id="prefs_plugins_label">
                 <property name="visible">True</property>
                 <property name="label" translatable="yes">Plugins</property>
               </object>
@@ -592,12 +594,12 @@
           </packing>
         </child>
         <child internal-child="action_area">
-          <object class="GtkHButtonBox" id="dialog-action_area1">
+          <object class="GtkHButtonBox" id="prefs_action">
             <property name="visible">True</property>
             <property name="layout_style">end</property>
             <child>
-              <object class="GtkButton" id="button1">
-                <property name="label" translatable="yes">gtk-close</property>
+              <object class="GtkButton" id="prefs_action_close">
+                <property name="label">gtk-close</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
@@ -619,7 +621,7 @@
       </object>
     </child>
     <action-widgets>
-      <action-widget response="0">button1</action-widget>
+      <action-widget response="0">prefs_action_close</action-widget>
     </action-widgets>
   </object>
   <object class="GtkAboutDialog" id="about_window">
@@ -883,14 +885,15 @@ The hypothetical commands `show w' and `show c' should show the appropriate part
     <signal name="response" handler="gtk_widget_hide"/>
     <signal name="delete_event" handler="gtk_widget_hide_on_delete"/>
     <child internal-child="vbox">
-      <object class="GtkVBox" id="dialog-vbox3">
+      <object class="GtkVBox" id="about_0">
         <property name="visible">True</property>
+        <property name="orientation">vertical</property>
         <property name="spacing">2</property>
         <child>
           <placeholder/>
         </child>
         <child internal-child="action_area">
-          <object class="GtkHButtonBox" id="dialog-action_area3">
+          <object class="GtkHButtonBox" id="about_action">
             <property name="visible">True</property>
             <property name="layout_style">end</property>
           </object>
@@ -903,17 +906,15 @@ The hypothetical commands `show w' and `show c' should show the appropriate part
       </object>
     </child>
   </object>
-  <object class="GtkSizeGroup" id="prefs_size">
+  <object class="GtkSizeGroup" id="prefs_general_size">
     <widgets>
-      <widget name="site_label"/>
-      <widget name="nexrad_label"/>
-      <widget name="log_label"/>
+      <widget name="prefs_general_site_label"/>
+      <widget name="prefs_general_url_label"/>
+      <widget name="prefs_general_log_label"/>
     </widgets>
   </object>
-  <object class="GtkAdjustment" id="adjustment">
+  <object class="GtkAdjustment" id="prefs_general_log_adj">
     <property name="upper">8</property>
     <property name="step_increment">1</property>
-    <property name="page_increment">1</property>
-    <property name="page_size">1</property>
   </object>
 </interface>
