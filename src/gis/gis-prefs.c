@@ -94,9 +94,27 @@ GisPrefs *gis_prefs_new(const gchar *prog)
 	GError *error = NULL;
 	g_key_file_load_from_file(self->key_file, self->key_path,
 			G_KEY_FILE_KEEP_COMMENTS, &error);
-	if (error)
-		g_warning("GisPrefs: init - Unable to load key file `%s': %s",
+	if (error) {
+		g_debug("GisPrefs: new - Trying %s defaults", prog);
+		g_clear_error(&error);
+		gchar *tmp = g_build_filename(DATADIR, prog, "defaults.ini", NULL);
+		g_key_file_load_from_file(self->key_file, tmp,
+				G_KEY_FILE_KEEP_COMMENTS, &error);
+		g_free(tmp);
+	}
+	if (error) {
+		g_debug("GisPrefs: new - Trying GIS defaults");
+		g_clear_error(&error);
+		gchar *tmp = g_build_filename(DATADIR, "gis", "defaults.ini", NULL);
+		g_key_file_load_from_file(self->key_file, tmp,
+				G_KEY_FILE_KEEP_COMMENTS, &error);
+		g_free(tmp);
+	}
+	if (error) {
+		g_clear_error(&error);
+		g_warning("GisPrefs: new - Unable to load key file `%s': %s",
 			self->key_path, error->message);
+	}
 	return self;
 }
 
