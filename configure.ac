@@ -17,8 +17,9 @@ PKG_CHECK_MODULES(GTK,  gtk+-2.0 >= 2.16 gtkglext-1.0)
 PKG_CHECK_MODULES(SOUP, libsoup-2.4 >= 2.26)
 
 # Define odd RSL install location
-AC_CHECK_LIB(rsl, RSL_wsr88d_to_radar, RLS_LIBS="-lrsl")
+AC_CHECK_LIB(rsl, RSL_wsr88d_to_radar, RSL_LIBS="-lrsl")
 AM_CONDITIONAL(HAVE_RSL, test "$RSL_LIBS" != "")
+AC_SUBST(RSL_LIBS)
 
 # Output 
 AC_CONFIG_FILES([
