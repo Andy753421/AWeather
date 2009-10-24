@@ -12,9 +12,8 @@ test: all
 release: all dist
 	@echo -en "\nRelease $(PACKAGE)-$(VERSION) (y/n): "
 	@read ans && [ "$$ans" != "y" ] && exit 1 || exit 0
-	svn cp \
-		https://lug.rose-hulman.edu/svn/proj-$(PACKAGE)/trunk \
-		https://lug.rose-hulman.edu/svn/proj-$(PACKAGE)/tags/$(VERSION)
+	git tag -s -m "Version $(VERSION)" v$(VERSION)
+	git push --all
 	echo $(VERSION) > LATEST
 	scp LATEST $(PACKAGE)-$(VERSION).tar.* \
 		"lug@lug.rose-hulman.edu:/home/lug/htdocs/proj/$(PACKAGE)"; \
