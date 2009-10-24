@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=AWeather
+Comment=Advanced weather reporting program
+Exec=aweather
+Terminal=false
+Icon=aweather.png
+Categories=Education;Science;Geoscience
