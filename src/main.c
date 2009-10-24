@@ -88,7 +88,7 @@ int main(int argc, char *argv[])
 	gis_world_set_offline(world, opt_offline);
 	on_map_id = g_signal_connect(gui, "map-event", G_CALLBACK(on_map), opt_site);
 
-	GObject *action = aweather_gui_get_object(gui, "log_level");
+	GObject *action = aweather_gui_get_object(gui, "prefs_general_log");
 	g_signal_connect(action, "changed", G_CALLBACK(on_log_level_changed), NULL);
 
 	gtk_widget_show_all(GTK_WIDGET(gui));
