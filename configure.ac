@@ -12,9 +12,7 @@ PKG_PROG_PKG_CONFIG
 GTK_DOC_CHECK(1.9)
 
 # Check for required packages
-PKG_CHECK_MODULES(GLIB, glib-2.0 >= 2.14 gobject-2.0 gthread-2.0 gmodule-export-2.0)
-PKG_CHECK_MODULES(GTK,  gtk+-2.0 >= 2.16 gtkglext-1.0)
-PKG_CHECK_MODULES(SOUP, libsoup-2.4 >= 2.26)
+PKG_CHECK_MODULES(GIS, libgis)
 
 # Define odd RSL install location
 AC_CHECK_LIB(rsl, RSL_wsr88d_to_radar, RSL_LIBS="-lrsl")
@@ -25,12 +23,9 @@ AC_SUBST(RSL_LIBS)
 AC_CONFIG_FILES([
 	Makefile
 	src/Makefile
-	src/gis/Makefile
-	src/gis/libgis.pc
 	src/plugins/Makefile
 	data/Makefile
 	docs/Makefile
-	docs/api/Makefile
 ])
 AC_OUTPUT
 

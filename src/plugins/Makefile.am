@@ -1,7 +1,7 @@
 AM_CFLAGS   = -Wall --std=gnu99  -I../
-AM_CPPFLAGS = $(GLIB_CFLAGS) $(GTK_CFLAGS) $(SOUP_CFLAGS)
+AM_CPPFLAGS = $(GIS_CFLAGS)
 AM_LDFLAGS  = -module -avoid-version
-LIBS        = $(top_srcdir)/src/gis/libgis.la
+LIBS        = $(GIS_LIBS)
 
 plugindir = $(libdir)/gis
 

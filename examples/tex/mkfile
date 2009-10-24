@@ -1,6 +1,0 @@
-MKSHELL=/usr/lib/plan9/bin/rc
-PROGS=tex
-tex_libs=`{pkg-config --libs gtkglext-1.0}
-tex_cflags=`{pkg-config --cflags gtkglext-1.0}
-default:V: tex-run
-<$HOME/lib/mkcommon
