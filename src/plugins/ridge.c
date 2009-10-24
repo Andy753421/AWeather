@@ -18,7 +18,6 @@
 #include <config.h>
 #include <stdio.h>
 #include <gtk/gtk.h>
-#include <curl/curl.h>
 #include <GL/gl.h>
 
 #include <gis/gis.h>
