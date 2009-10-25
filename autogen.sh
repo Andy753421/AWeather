@@ -1,6 +1,5 @@
 #!/bin/sh
 
-gtkdocize
 libtoolize
 aclocal
 autoheader

@@ -1,8 +1,8 @@
 #!/bin/bash
 dir=$(dirname $(readlink -f $0))
-# "--libdir=$dir/src/plugins"
-# "--datadir=$dir/data"
+PKG_CONFIG_PATH="../libgis/src/" \
 ./autogen.sh \
-	--enable-gtk-doc \
+	"--datadir=$dir/data" \
+	"--libdir=$dir/src/plugins" \
 	CFLAGS="-g -Werror -Wno-unused $CFLAGS" \
 	LDFLAGS="-Wl,-z,defs"

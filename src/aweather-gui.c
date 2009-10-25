@@ -452,16 +452,20 @@ static void aweather_gui_init(AWeatherGui *self)
 	g_debug("AWeatherGui: init");
 
 	/* Simple things */
-	self->prefs   = gis_prefs_new("aweather");
-	self->plugins = gis_plugins_new();
+	gchar *config   = g_build_filename(g_get_user_cache_dir(), "config.ini", NULL);
+	gchar *defaults = g_build_filename(PKGDATADIR, "defaults.ini", NULL);
+	self->prefs   = gis_prefs_new(config, defaults);
+	self->plugins = gis_plugins_new(PLUGINSDIR);
 	self->world   = gis_world_new();
 	self->view    = gis_view_new();
 	self->opengl  = gis_opengl_new(self->world, self->view, self->plugins);
+	g_free(config);
+	g_free(defaults);
 
 	/* Setup window */
 	self->builder = gtk_builder_new();
 	GError *error = NULL;
-	if (!gtk_builder_add_from_file(self->builder, DATADIR "/aweather/main.ui", &error))
+	if (!gtk_builder_add_from_file(self->builder, PKGDATADIR "/main.ui", &error))
 		g_error("Failed to create gtk builder: %s", error->message);
 	gtk_widget_reparent(aweather_gui_get_widget(self, "main_body"), GTK_WIDGET(self));
 	GtkWidget *paned = aweather_gui_get_widget(self, "main_paned");
@@ -471,7 +475,7 @@ static void aweather_gui_init(AWeatherGui *self)
 	/* Plugins */
 	GtkTreeIter iter;
 	self->gtk_plugins = GTK_LIST_STORE(aweather_gui_get_object(self, "plugins"));
-	for (GList *cur = gis_plugins_available(); cur; cur = cur->next) {
+	for (GList *cur = gis_plugins_available(self->plugins); cur; cur = cur->next) {
 		gchar *name = cur->data;
 		gboolean enabled = gis_prefs_get_boolean_v(self->prefs, cur->data, "enabled");
 		gtk_list_store_append(self->gtk_plugins, &iter);

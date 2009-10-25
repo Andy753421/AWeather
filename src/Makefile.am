@@ -8,7 +8,8 @@ bin_PROGRAMS = aweather wsr88ddec
 aweather_SOURCES  = main.c \
 	aweather-gui.c      aweather-gui.h \
 	aweather-location.c aweather-location.h
-aweather_CPPFLAGS = $(AM_CPPFLAGS) -DDATADIR="\"$(datadir)\""
+aweather_CPPFLAGS = $(AM_CPPFLAGS) \
+		    -DPKGDATADIR="\"$(pkgdatadir)\"" -DPLUGINSDIR="\"$(pkglibdir)\""
 
 wsr88ddec       = wsr88ddec.c
 wsr88ddec_LDADD = -lbz2
@@ -17,10 +18,10 @@ CLEANFILES = gmon.out valgrind.out
 MAINTAINERCLEANFILES = Makefile.in
 
 test: all
-	aweather -o -d 7 -s KVNX
+	.libs/aweather -o -d 7 -s KVNX
 
 gdb: all
-	gdb aweather
+	gdb .libs/aweather
 
 ddd: all
-	ddd aweather
+	ddd .libs/aweather

@@ -3,12 +3,12 @@ AM_CPPFLAGS = $(GIS_CFLAGS)
 AM_LDFLAGS  = -module -avoid-version
 LIBS        = $(GIS_LIBS)
 
-plugindir = $(libdir)/gis
+pluginsdir = $(PLUGINSDIR)
 
-plugin_LTLIBRARIES =
+plugins_LTLIBRARIES =
 
 if HAVE_RSL
-plugin_LTLIBRARIES += radar.la
+plugins_LTLIBRARIES += radar.la
 radar_la_SOURCES = radar.c   radar.h \
 	marching.c marching.h \
 	radar-colormap.c
