@@ -3,7 +3,7 @@ AM_CPPFLAGS = $(GIS_CFLAGS)
 AM_LDFLAGS  = -module -avoid-version
 LIBS        = $(GIS_LIBS)
 
-pluginsdir = $(PLUGINSDIR)
+pluginsdir  = $(pkglibdir)
 
 plugins_LTLIBRARIES =
 

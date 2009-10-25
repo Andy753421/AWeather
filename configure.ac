@@ -12,7 +12,6 @@ PKG_PROG_PKG_CONFIG
 
 # Check for required packages
 PKG_CHECK_MODULES(GIS, libgis)
-AC_SUBST(PLUGINSDIR, `pkg-config --variable=pluginsdir libgis`)
 
 # Define odd RSL install location
 AC_CHECK_LIB(rsl, RSL_wsr88d_to_radar, RSL_LIBS="-lrsl")
