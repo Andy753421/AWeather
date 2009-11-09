@@ -18,7 +18,7 @@ CLEANFILES = gmon.out valgrind.out
 MAINTAINERCLEANFILES = Makefile.in
 
 test: all
-	.libs/aweather -o -d 7 -s KVNX
+	.libs/aweather -o -d 7
 
 gdb: all
 	gdb .libs/aweather

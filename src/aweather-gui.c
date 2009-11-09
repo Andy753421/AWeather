@@ -43,7 +43,7 @@ gboolean on_gui_key_press(GtkWidget *widget, GdkEventKey *event, AWeatherGui *se
 		gint cur_tab  = gtk_notebook_get_current_page(tabs);
 		if (event->state & GDK_SHIFT_MASK)
 			gtk_notebook_set_current_page(tabs, (cur_tab-1)%num_tabs);
-		else 
+		else
 			gtk_notebook_set_current_page(tabs, (cur_tab+1)%num_tabs);
 	};
 	return FALSE;
@@ -337,7 +337,8 @@ static void update_times(AWeatherGui *self, GisView *view, char *site)
 	g_debug("AWeatherGui: update_times - site=%s", site);
 	if (gis_world_get_offline(self->world)) {
 		GList *times = NULL;
-		gchar *path = g_build_filename(g_get_user_cache_dir(), PACKAGE, "nexrd2", "raw", site, NULL);
+		gchar *path = g_build_filename(g_get_user_cache_dir(),
+				"libgis", "nexrd2", "raw", site, NULL);
 		GDir *dir = g_dir_open(path, 0, NULL);
 		if (dir) {
 			const gchar *name;
@@ -417,11 +418,13 @@ void aweather_gui_attach_plugin(AWeatherGui *self, const gchar *name)
 {
 	GisPlugin *plugin = gis_plugins_load(self->plugins, name,
 			self->world, self->view, self->opengl, self->prefs);
-	GtkWidget *config = aweather_gui_get_widget(self, "main_tabs");
-	GtkWidget *tab    = gtk_label_new(name);
-	GtkWidget *body   = gis_plugin_get_config(plugin);
-	gtk_notebook_append_page(GTK_NOTEBOOK(config), body, tab);
-	gtk_widget_show_all(config);
+	GtkWidget *body = gis_plugin_get_config(plugin);
+	if (body) {
+		GtkWidget *config = aweather_gui_get_widget(self, "main_tabs");
+		GtkWidget *tab    = gtk_label_new(name);
+		gtk_notebook_append_page(GTK_NOTEBOOK(config), body, tab);
+		gtk_widget_show_all(config);
+	}
 	gis_opengl_redraw(self->opengl);
 }
 void aweather_gui_deattach_plugin(AWeatherGui *self, const gchar *name)
@@ -452,7 +455,7 @@ static void aweather_gui_init(AWeatherGui *self)
 	g_debug("AWeatherGui: init");
 
 	/* Simple things */
-	gchar *config   = g_build_filename(g_get_user_cache_dir(), "config.ini", NULL);
+	gchar *config   = g_build_filename(g_get_user_config_dir(), PACKAGE, "config.ini", NULL);
 	gchar *defaults = g_build_filename(PKGDATADIR, "defaults.ini", NULL);
 	self->prefs   = gis_prefs_new(config, defaults);
 	self->plugins = gis_plugins_new(PLUGINSDIR);
