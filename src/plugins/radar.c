@@ -33,7 +33,7 @@
  * Data loading functions *
  **************************/
 /* Convert a sweep to an 2d array of data points */
-static void bscan_sweep(GisPluginRadar *self, Sweep *sweep, colormap_t *colormap,
+static void _bscan_sweep(GisPluginRadar *self, Sweep *sweep, colormap_t *colormap,
 		guint8 **data, int *width, int *height)
 {
 	/* Calculate max number of bins */
@@ -70,14 +70,14 @@ static void bscan_sweep(GisPluginRadar *self, Sweep *sweep, colormap_t *colormap
 }
 
 /* Load a sweep as the active texture */
-static void load_sweep(GisPluginRadar *self, Sweep *sweep)
+static void _load_sweep(GisPluginRadar *self, Sweep *sweep)
 {
 	GisOpenGL *opengl = self->opengl;
 	gis_opengl_begin(opengl);
 	self->cur_sweep = sweep;
 	int height, width;
 	guint8 *data;
-	bscan_sweep(self, sweep, self->cur_colormap, &data, &width, &height);
+	_bscan_sweep(self, sweep, self->cur_colormap, &data, &width, &height);
 	glDeleteTextures(1, &self->cur_sweep_tex);
 	glGenTextures(1, &self->cur_sweep_tex);
 	glBindTexture(GL_TEXTURE_2D, self->cur_sweep_tex);
@@ -92,7 +92,7 @@ static void load_sweep(GisPluginRadar *self, Sweep *sweep)
 	gis_opengl_end(opengl);
 }
 
-static void load_colormap(GisPluginRadar *self, gchar *table)
+static void _load_colormap(GisPluginRadar *self, gchar *table)
 {
 	/* Set colormap so we can draw it on expose */
 	for (int i = 0; colormaps[i].name; i++)
@@ -101,8 +101,8 @@ static void load_colormap(GisPluginRadar *self, gchar *table)
 }
 
 /* Add selectors to the config area for the sweeps */
-static void on_sweep_clicked(GtkRadioButton *button, gpointer _self);
-static void load_radar_gui(GisPluginRadar *self, Radar *radar)
+static void _on_sweep_clicked(GtkRadioButton *button, gpointer _self);
+static void _load_radar_gui(GisPluginRadar *self, Radar *radar)
 {
 	/* Clear existing items */
 	GtkWidget *child = gtk_bin_get_child(GTK_BIN(self->config_body));
@@ -164,7 +164,7 @@ static void load_radar_gui(GisPluginRadar *self, Radar *radar)
 
 			g_object_set_data(G_OBJECT(button), "type",  vol->h.type_str);
 			g_object_set_data(G_OBJECT(button), "sweep", sweep);
-			g_signal_connect(button, "clicked", G_CALLBACK(on_sweep_clicked), self);
+			g_signal_connect(button, "clicked", G_CALLBACK(_on_sweep_clicked), self);
 		}
 	}
 	gtk_container_add(GTK_CONTAINER(self->config_body), table);
@@ -183,7 +183,7 @@ static void _gis_plugin_radar_grid_set(GRIDCELL *grid, int gi, Ray *ray, int bi)
 	double lz    = sin(tilt);
 
 	double dist   = bi*ray->h.gate_size + ray->h.range_bin1;
-		
+
 	grid->p[gi].x = lx*dist;
 	grid->p[gi].y = ly*dist;
 	grid->p[gi].z = lz*dist;
@@ -203,7 +203,7 @@ static void _gis_plugin_radar_grid_set(GRIDCELL *grid, int gi, Ray *ray, int bi)
 }
 
 /* Load a radar from a decompressed file */
-static void load_radar(GisPluginRadar *self, gchar *radar_file)
+static void _load_radar(GisPluginRadar *self, gchar *radar_file)
 {
 	char *dir  = g_path_get_dirname(radar_file);
 	char *site = g_path_get_basename(dir);
@@ -233,7 +233,7 @@ static void load_radar(GisPluginRadar *self, gchar *radar_file)
 			Sweep *sweep0 = radar->v[vi]->sweep[si+0];
 			Sweep *sweep1 = radar->v[vi]->sweep[si+1];
 
-			//g_debug("_gis_plugin_radar_expose: sweep[%3d-%3d] -- nrays = %d, %d",
+			//g_debug("GisPluginRadar: load_radar: sweep[%3d-%3d] -- nrays = %d, %d",
 			//	si, si+1,sweep0->h.nrays, sweep1->h.nrays);
 
 			/* Skip super->regular resolution switch for now */
@@ -254,7 +254,7 @@ static void load_radar(GisPluginRadar *self, gchar *radar_file)
 					sweep1->ray[ri];
 
 			for (guint ri = 0; ri+x < sweep0->h.nrays; ri+=x) {
-				//g_debug("_gis_plugin_radar_expose: ray[%3d-%3d] -- nbins = %d, %d, %d, %d",
+				//g_debug("GisPluginRadar: load_radar - ray[%3d-%3d] -- nbins = %d, %d, %d, %d",
 				//	ri, ri+x,
 				//	rays0[ri  ]->h.nbins, 
 				//	rays0[ri+1]->h.nbins, 
@@ -302,15 +302,15 @@ static void load_radar(GisPluginRadar *self, gchar *radar_file)
 			if (radar->v[vi]== NULL) continue;
 			for (int si = 0; si < radar->v[vi]->h.nsweeps; si++) {
 				if (radar->v[vi]->sweep[si]== NULL) continue;
-				load_colormap(self, radar->v[vi]->h.type_str);
-				load_sweep(self, radar->v[vi]->sweep[si]);
+				_load_colormap(self, radar->v[vi]->h.type_str);
+				_load_sweep(self, radar->v[vi]->sweep[si]);
 				break;
 			}
 			break;
 		}
 	}
 
-	load_radar_gui(self, radar);
+	_load_radar_gui(self, radar);
 }
 
 
@@ -322,7 +322,7 @@ typedef struct {
 	gchar *radar_file;
 } decompressed_t;
 
-static void decompressed_cb(GPid pid, gint status, gpointer _udata)
+static void _decompressed_cb(GPid pid, gint status, gpointer _udata)
 {
 	g_debug("GisPluginRadar: decompressed_cb");
 	decompressed_t *udata = _udata;
@@ -330,18 +330,18 @@ static void decompressed_cb(GPid pid, gint status, gpointer _udata)
 		g_warning("wsr88ddec exited with status %d", status);
 		return;
 	}
-	load_radar(udata->self, udata->radar_file);
+	_load_radar(udata->self, udata->radar_file);
 	g_spawn_close_pid(pid);
 	g_free(udata->radar_file);
 	g_free(udata);
 }
 
-static void cache_chunk_cb(char *path, goffset cur, goffset total, gpointer _self)
+static void _cache_chunk_cb(char *path, goffset cur, goffset total, gpointer _self)
 {
 	GisPluginRadar *self = GIS_PLUGIN_RADAR(_self);
 	double percent = (double)cur/total;
 
-	//g_message("GisPluginRadar: cache_chunk_cb - %lld/%lld = %.2f%%",
+	//g_debug("GisPluginRadar: cache_chunk_cb - %lld/%lld = %.2f%%",
 	//		cur, total, percent*100);
 
 	gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(self->progress_bar), MIN(percent, 1.0));
@@ -352,13 +352,13 @@ static void cache_chunk_cb(char *path, goffset cur, goffset total, gpointer _sel
 	g_free(msg);
 }
 
-static void cache_done_cb(char *path, gboolean updated, gpointer _self)
+static void _cache_done_cb(char *path, gboolean updated, gpointer _self)
 {
 	g_debug("GisPluginRadar: cache_done_cb - updated = %d", updated);
 	GisPluginRadar *self = GIS_PLUGIN_RADAR(_self);
 	char *decompressed = g_strconcat(path, ".raw", NULL);
 	if (!updated && g_file_test(decompressed, G_FILE_TEST_EXISTS)) {
-		load_radar(self, decompressed);
+		_load_radar(self, decompressed);
 		return;
 	}
 
@@ -392,7 +392,7 @@ static void cache_done_cb(char *path, gboolean updated, gpointer _self)
 		g_error_free(error);
 		g_free(message);
 	}
-	g_child_watch_add(pid, decompressed_cb, udata);
+	g_child_watch_add(pid, _decompressed_cb, udata);
 	self->soup = NULL;
 }
 
@@ -400,14 +400,14 @@ static void cache_done_cb(char *path, gboolean updated, gpointer _self)
 /*************
  * Callbacks *
  *************/
-static void on_sweep_clicked(GtkRadioButton *button, gpointer _self)
+static void _on_sweep_clicked(GtkRadioButton *button, gpointer _self)
 {
 	GisPluginRadar *self = GIS_PLUGIN_RADAR(_self);
-	load_colormap(self, g_object_get_data(G_OBJECT(button), "type" ));
-	load_sweep   (self, g_object_get_data(G_OBJECT(button), "sweep"));
+	_load_colormap(self, g_object_get_data(G_OBJECT(button), "type" ));
+	_load_sweep   (self, g_object_get_data(G_OBJECT(button), "sweep"));
 }
 
-static void on_time_changed(GisView *view, const char *time, gpointer _self)
+static void _on_time_changed(GisView *view, const char *time, gpointer _self)
 {
 	GisPluginRadar *self = GIS_PLUGIN_RADAR(_self);
 	g_debug("GisPluginRadar: on_time_changed - setting time=%s", time);
@@ -443,10 +443,10 @@ static void on_time_changed(GisView *view, const char *time, gpointer _self)
 	gchar *base = gis_prefs_get_string(self->prefs, "aweather/nexrad_url", NULL);
 	if (gis_world_get_offline(self->world)) 
 		self->soup = cache_file(base, path, GIS_ONCE,
-				cache_chunk_cb, cache_done_cb, self);
+				_cache_chunk_cb, _cache_done_cb, self);
 	else 
 		self->soup = cache_file(base, path, GIS_UPDATE,
-				cache_chunk_cb, cache_done_cb, self);
+				_cache_chunk_cb, _cache_done_cb, self);
 	g_free(path);
 }
 
@@ -464,7 +464,7 @@ GisPluginRadar *gis_plugin_radar_new(GisWorld *world, GisView *view, GisOpenGL *
 	self->opengl = opengl;
 	self->prefs  = prefs;
 	self->time_changed_id = g_signal_connect(view, "time-changed",
-			G_CALLBACK(on_time_changed), self);
+			G_CALLBACK(_on_time_changed), self);
 	return self;
 }
 
@@ -512,7 +512,7 @@ static void gis_plugin_radar_expose(GisPlugin *_self)
 	glPopMatrix();
 #endif
 
-	g_message("set camera");
+	g_debug("GisPluginRadar: expose - setting camera");
 	Radar_header *h = &self->cur_radar->h;
 	gdouble lat  = (double)h->latd + (double)h->latm/60 + (double)h->lats/(60*60);
 	gdouble lon  = (double)h->lond + (double)h->lonm/60 + (double)h->lons/(60*60);
