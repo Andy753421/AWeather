@@ -15,4 +15,7 @@ radar_la_SOURCES = radar.c   radar.h \
 radar_la_LDFLAGS = $(AM_LDFLAGS) $(RSL_LIBS)
 endif
 
+test:
+	( cd ../; make test )
+
 MAINTAINERCLEANFILES = Makefile.in

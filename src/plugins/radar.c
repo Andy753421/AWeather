@@ -381,9 +381,16 @@ static void cache_done_cb(char *path, gboolean updated, gpointer _self)
 		&pid,    // GPid *child_pid,
 		&error); // GError **error
 	if (error) {
-		g_warning("failed to decompress WSR88D data: %s",
+		gchar *message = g_strdup_printf("Unable to decompress WSR88D data: %s",
 				error->message);
+		g_warning("%s", message);
+		GtkWidget *child = gtk_bin_get_child(GTK_BIN(self->config_body));
+		if (child)
+			gtk_widget_destroy(child);
+		gtk_container_add(GTK_CONTAINER(self->config_body), gtk_label_new(message));
+		gtk_widget_show_all(self->config_body);
 		g_error_free(error);
+		g_free(message);
 	}
 	g_child_watch_add(pid, decompressed_cb, udata);
 	self->soup = NULL;
