@@ -433,7 +433,7 @@ static void on_time_changed(GisView *view, const char *time, gpointer _self)
 		soup_session_abort(self->soup);
 		self->soup = NULL;
 	}
-	gchar *base = gis_prefs_get_string(self->prefs, "aweather/nexrad_url");
+	gchar *base = gis_prefs_get_string(self->prefs, "aweather/nexrad_url", NULL);
 	if (gis_world_get_offline(self->world)) 
 		self->soup = cache_file(base, path, GIS_ONCE,
 				cache_chunk_cb, cache_done_cb, self);

@@ -82,9 +82,9 @@ int main(int argc, char *argv[])
 	/* Set up AWeather */
 	AWeatherGui *gui    = aweather_gui_new();
 
-	gint     prefs_debug   = gis_prefs_get_integer(gui->prefs, "aweather/log_level");
-	gchar   *prefs_site    = gis_prefs_get_string(gui->prefs,  "aweather/initial_site");
-	gboolean prefs_offline = gis_prefs_get_boolean(gui->prefs, "gis/offline");
+	gint     prefs_debug   = gis_prefs_get_integer(gui->prefs, "aweather/log_level", NULL);
+	gchar   *prefs_site    = gis_prefs_get_string(gui->prefs,  "aweather/initial_site", NULL);
+	gboolean prefs_offline = gis_prefs_get_boolean(gui->prefs, "gis/offline", NULL);
 
 	debug   = (opt_debug   ?: prefs_debug   ?: debug);
 	site    = (opt_site    ?: prefs_site    ?: site);

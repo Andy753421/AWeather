@@ -209,9 +209,9 @@ int on_log_level_changed(GtkSpinButton *spinner, AWeatherGui *self)
 static void prefs_setup(AWeatherGui *self)
 {
 	/* Set values */
-	gchar *nu = gis_prefs_get_string (self->prefs, "aweather/nexrad_url");
-	gint   ll = gis_prefs_get_integer(self->prefs, "aweather/log_level");
-	gchar *is = gis_prefs_get_string (self->prefs, "aweather/initial_site");
+	gchar *nu = gis_prefs_get_string (self->prefs, "aweather/nexrad_url",   NULL);
+	gint   ll = gis_prefs_get_integer(self->prefs, "aweather/log_level",    NULL);
+	gchar *is = gis_prefs_get_string (self->prefs, "aweather/initial_site", NULL);
 	GtkWidget *nuw = aweather_gui_get_widget(self, "prefs_general_url");
 	GtkWidget *llw = aweather_gui_get_widget(self, "prefs_general_log");
 	GtkWidget *isw = aweather_gui_get_widget(self, "prefs_general_site");
@@ -351,7 +351,7 @@ static void update_times(AWeatherGui *self, GisView *view, char *site)
 		update_times_gtk(self, times);
 	} else {
 		gchar *path = g_strdup_printf("nexrd2/raw/%s/dir.list", site);
-		char *base = gis_prefs_get_string(self->prefs, "aweather/nexrad_url");
+		char *base = gis_prefs_get_string(self->prefs, "aweather/nexrad_url", NULL);
 		cache_file(base, path, GIS_REFRESH, NULL, update_times_online_cb, self);
 		/* update_times_gtk from update_times_online_cb */
 	}
@@ -480,7 +480,10 @@ static void aweather_gui_init(AWeatherGui *self)
 	self->gtk_plugins = GTK_LIST_STORE(aweather_gui_get_object(self, "plugins"));
 	for (GList *cur = gis_plugins_available(self->plugins); cur; cur = cur->next) {
 		gchar *name = cur->data;
-		gboolean enabled = gis_prefs_get_boolean_v(self->prefs, cur->data, "enabled");
+		GError *error = NULL;
+		gboolean enabled = gis_prefs_get_boolean_v(self->prefs, cur->data, "enabled", &error);
+		if (error && error->code == G_KEY_FILE_ERROR_GROUP_NOT_FOUND)
+			enabled = TRUE;
 		gtk_list_store_append(self->gtk_plugins, &iter);
 		gtk_list_store_set(self->gtk_plugins, &iter, 0, name, 1, enabled, -1);
 		if (enabled)
