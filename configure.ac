@@ -11,7 +11,8 @@ AC_PROG_LIBTOOL
 PKG_PROG_PKG_CONFIG
 
 # Check for required packages
-PKG_CHECK_MODULES(GIS, libgis = $VERSION)
+PKG_CHECK_MODULES(GLIB, glib-2.0)
+PKG_CHECK_MODULES(GIS,  libgis = $VERSION)
 
 # Define odd RSL install location
 AC_CHECK_LIB(rsl, RSL_wsr88d_to_radar, RSL_LIBS="-lrsl")

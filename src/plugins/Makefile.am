@@ -1,6 +1,6 @@
 AM_CFLAGS   = -Wall --std=gnu99  -I../
 AM_CPPFLAGS = $(GIS_CFLAGS)
-AM_LDFLAGS  = -module -avoid-version
+AM_LDFLAGS  = -module -avoid-version -no-undefined
 LIBS        = $(GIS_LIBS)
 
 pluginsdir  = $(pkglibdir)
