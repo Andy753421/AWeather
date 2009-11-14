@@ -1,16 +1,16 @@
 /*
  * Copyright (C) 2009 Andy Spencer <spenceal@rose-hulman.edu>
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -72,8 +72,8 @@ static void _bscan_sweep(GisPluginRadar *self, Sweep *sweep, colormap_t *colorma
 /* Load a sweep as the active texture */
 static void _load_sweep(GisPluginRadar *self, Sweep *sweep)
 {
-	GisOpenGL *opengl = self->opengl;
-	gis_opengl_begin(opengl);
+	GisViewer *viewer = self->viewer;
+	gis_viewer_begin(viewer);
 	self->cur_sweep = sweep;
 	int height, width;
 	guint8 *data;
@@ -88,8 +88,8 @@ static void _load_sweep(GisPluginRadar *self, Sweep *sweep)
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0,
 			GL_RGBA, GL_UNSIGNED_BYTE, data);
 	g_free(data);
-	gis_opengl_redraw(opengl);
-	gis_opengl_end(opengl);
+	gtk_widget_queue_draw(GTK_WIDGET(viewer));
+	gis_viewer_end(viewer);
 }
 
 static void _load_colormap(GisPluginRadar *self, gchar *table)
@@ -194,7 +194,7 @@ static void _gis_plugin_radar_grid_set(GRIDCELL *grid, int gi, Ray *ray, int bi)
 	    val > 80)
 		val = 0;
 	grid->val[gi] = (float)val;
-	//g_debug("(%.2f,%.2f,%.2f) - (%.0f,%.0f,%.0f) = %d", 
+	//g_debug("(%.2f,%.2f,%.2f) - (%.0f,%.0f,%.0f) = %d",
 	//	angle, tilt, dist,
 	//	grid->p[gi].x,
 	//	grid->p[gi].y,
@@ -256,9 +256,9 @@ static void _load_radar(GisPluginRadar *self, gchar *radar_file)
 			for (guint ri = 0; ri+x < sweep0->h.nrays; ri+=x) {
 				//g_debug("GisPluginRadar: load_radar - ray[%3d-%3d] -- nbins = %d, %d, %d, %d",
 				//	ri, ri+x,
-				//	rays0[ri  ]->h.nbins, 
-				//	rays0[ri+1]->h.nbins, 
-				//	rays1[ri  ]->h.nbins, 
+				//	rays0[ri  ]->h.nbins,
+				//	rays0[ri+1]->h.nbins,
+				//	rays1[ri  ]->h.nbins,
 				//	rays1[ri+1]->h.nbins);
 
 				for (guint bi = 0; bi+x < rays1[ri]->h.nbins; bi+=x) {
@@ -374,7 +374,7 @@ static void _cache_done_cb(char *path, gboolean updated, gpointer _self)
 		argv,    // gchar **argv,
 		NULL,    // gchar **envp,
 		G_SPAWN_SEARCH_PATH|
-		G_SPAWN_DO_NOT_REAP_CHILD, 
+		G_SPAWN_DO_NOT_REAP_CHILD,
 			 // GSpawnFlags flags,
 		NULL,    // GSpawnChildSetupFunc child_setup,
 		NULL,    // gpointer user_data,
@@ -407,12 +407,12 @@ static void _on_sweep_clicked(GtkRadioButton *button, gpointer _self)
 	_load_sweep   (self, g_object_get_data(G_OBJECT(button), "sweep"));
 }
 
-static void _on_time_changed(GisView *view, const char *time, gpointer _self)
+static void _on_time_changed(GisViewer *viewer, const char *time, gpointer _self)
 {
 	GisPluginRadar *self = GIS_PLUGIN_RADAR(_self);
 	g_debug("GisPluginRadar: on_time_changed - setting time=%s", time);
 	// format: http://mesonet.agron.iastate.edu/data/nexrd2/raw/KABR/KABR_20090510_0323
-	char *site = gis_view_get_site(view);
+	char *site = gis_viewer_get_site(viewer);
 	char *path = g_strdup_printf("nexrd2/raw/%s/%s_%s", site, site, time);
 
 	/* Set up progress bar */
@@ -433,7 +433,7 @@ static void _on_time_changed(GisView *view, const char *time, gpointer _self)
 		RSL_free_radar(self->cur_radar);
 	self->cur_radar = NULL;
 	self->cur_sweep = NULL;
-	gis_opengl_redraw(self->opengl);
+	gtk_widget_queue_draw(GTK_WIDGET(self->viewer));
 
 	/* Start loading the new radar */
 	if (self->soup) {
@@ -441,10 +441,10 @@ static void _on_time_changed(GisView *view, const char *time, gpointer _self)
 		self->soup = NULL;
 	}
 	gchar *base = gis_prefs_get_string(self->prefs, "aweather/nexrad_url", NULL);
-	if (gis_world_get_offline(self->world)) 
+	if (gis_viewer_get_offline(self->viewer))
 		self->soup = cache_file(base, path, GIS_ONCE,
 				_cache_chunk_cb, _cache_done_cb, self);
-	else 
+	else
 		self->soup = cache_file(base, path, GIS_UPDATE,
 				_cache_chunk_cb, _cache_done_cb, self);
 	g_free(path);
@@ -454,16 +454,14 @@ static void _on_time_changed(GisView *view, const char *time, gpointer _self)
 /***********
  * Methods *
  ***********/
-GisPluginRadar *gis_plugin_radar_new(GisWorld *world, GisView *view, GisOpenGL *opengl, GisPrefs *prefs)
+GisPluginRadar *gis_plugin_radar_new(GisViewer *viewer, GisPrefs *prefs)
 {
 	/* TODO: move to constructor if possible */
 	g_debug("GisPluginRadar: new");
 	GisPluginRadar *self = g_object_new(GIS_TYPE_PLUGIN_RADAR, NULL);
-	self->world  = world;
-	self->view   = view;
-	self->opengl = opengl;
+	self->viewer = viewer;
 	self->prefs  = prefs;
-	self->time_changed_id = g_signal_connect(view, "time-changed",
+	self->time_changed_id = g_signal_connect(viewer, "time-changed",
 			G_CALLBACK(_on_time_changed), self);
 	return self;
 }
@@ -517,7 +515,7 @@ static void gis_plugin_radar_expose(GisPlugin *_self)
 	gdouble lat  = (double)h->latd + (double)h->latm/60 + (double)h->lats/(60*60);
 	gdouble lon  = (double)h->lond + (double)h->lonm/60 + (double)h->lons/(60*60);
 	gdouble elev = h->height;
-	gis_opengl_center_position(self->opengl, lat, lon, elev);
+	gis_viewer_center_position(self->viewer, lat, lon, elev);
 
 	glDisable(GL_ALPHA_TEST);
 	glDisable(GL_CULL_FACE);
@@ -619,7 +617,7 @@ static void gis_plugin_radar_dispose(GObject *gobject)
 {
 	g_debug("GisPluginRadar: dispose");
 	GisPluginRadar *self = GIS_PLUGIN_RADAR(gobject);
-	g_signal_handler_disconnect(self->view, self->time_changed_id);
+	g_signal_handler_disconnect(self->viewer, self->time_changed_id);
 	/* Drop references */
 	G_OBJECT_CLASS(gis_plugin_radar_parent_class)->dispose(gobject);
 }

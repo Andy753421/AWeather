@@ -39,9 +39,7 @@ struct _AWeatherGui {
 
 	/* instance members */
 	GtkBuilder   *builder;
-	GisWorld     *world;
-	GisView      *view;
-	GisOpenGL    *opengl;
+	GisViewer    *viewer;
 	GisPlugins   *plugins;
 	GisPrefs     *prefs;
 	GtkListStore *gtk_plugins;
@@ -58,9 +56,7 @@ GType aweather_gui_get_type(void);
 /* Methods */
 AWeatherGui *aweather_gui_new();
 
-GisWorld    *aweather_gui_get_world(AWeatherGui *gui);
-GisOpenGL   *aweather_gui_get_opengl(AWeatherGui *gui);
-GisView     *aweather_gui_get_view(AWeatherGui *gui);
+GisViewer   *aweather_gui_get_viewer(AWeatherGui *gui);
 
 GtkWidget   *aweather_gui_get_widget(AWeatherGui *gui, const gchar *name);
 GObject     *aweather_gui_get_object(AWeatherGui *gui, const gchar *name);

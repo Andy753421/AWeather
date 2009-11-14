@@ -90,14 +90,14 @@ int main(int argc, char *argv[])
 	site    = (opt_site    ?: prefs_site    ?: site);
 	offline = (opt_offline ?: prefs_offline ?: offline);
 
-	gis_world_set_offline(gui->world, offline);
+	gis_viewer_set_offline(gui->viewer, offline);
 	log_levels = (1 << (debug+1))-1;
 
 	GObject *action = aweather_gui_get_object(gui, "prefs_general_log");
 	g_signal_connect(action, "changed", G_CALLBACK(on_log_level_changed), NULL);
 
 	gtk_widget_show_all(GTK_WIDGET(gui));
-	gis_view_set_site(gui->view, site);
+	gis_viewer_set_site(gui->viewer, site);
 	gtk_main();
 	return 0;
 }

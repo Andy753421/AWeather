@@ -47,9 +47,7 @@ struct _GisPluginRadar {
 	GObject parent_instance;
 
 	/* instance members */
-	GisWorld    *world;
-	GisView     *view;
-	GisOpenGL   *opengl;
+	GisViewer   *viewer;
 	GisPrefs    *prefs;
 	GtkWidget   *config_body;
 	GtkWidget   *progress_bar;
@@ -73,7 +71,7 @@ struct _GisPluginRadarClass {
 GType gis_plugin_radar_get_type();
 
 /* Methods */
-GisPluginRadar *gis_plugin_radar_new(GisWorld *world, GisView *view, GisOpenGL *opengl, GisPrefs *prefs);
+GisPluginRadar *gis_plugin_radar_new(GisViewer *viewer, GisPrefs *prefs);
 
 /* Misc. RSL helpers */
 #define RSL_FOREACH_VOL(radar, volume, count, index) \
