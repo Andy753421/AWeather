@@ -314,10 +314,6 @@ static void _load_radar(GisPluginRadar *self, gchar *radar_file)
 	_load_radar_gui(self, radar);
 }
 
-
-/*****************
- * ASync helpers *
- *****************/
 typedef struct {
 	GisPluginRadar *self;
 	gchar *radar_file;
@@ -539,14 +535,16 @@ static gpointer _draw_radar(GisCallback *callback, gpointer _self)
 
 	glDisable(GL_ALPHA_TEST);
 	glDisable(GL_CULL_FACE);
-	glDisable(GL_DEPTH_TEST);
 	glDisable(GL_LIGHTING);
 	glEnable(GL_TEXTURE_2D);
+	glEnable(GL_POLYGON_OFFSET_FILL);
+	glPolygonOffset(1.0, -2.0);
 	glColor4f(1,1,1,1);
 
 	/* Draw the rays */
 	glBindTexture(GL_TEXTURE_2D, self->cur_sweep_tex);
-	glBegin(GL_QUAD_STRIP);
+	g_message("Tex = %d", self->cur_sweep_tex);
+	glBegin(GL_TRIANGLE_STRIP);
 	for (int ri = 0; ri <= sweep->h.nrays; ri++) {
 		Ray  *ray = NULL;
 		double angle = 0;
