@@ -493,6 +493,7 @@ static void aweather_gui_init(AWeatherGui *self)
 	GtkWidget *paned = aweather_gui_get_widget(self, "main_paned");
 	gtk_widget_destroy(gtk_paned_get_child1(GTK_PANED(paned)));
 	gtk_paned_pack1(GTK_PANED(paned), GTK_WIDGET(self->viewer), TRUE, FALSE);
+	gtk_widget_show_all(GTK_WIDGET(self));
 
 	/* Plugins */
 	GtkTreeIter iter;

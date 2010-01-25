@@ -635,6 +635,17 @@ GisPluginRadar *gis_plugin_radar_new(GisViewer *viewer, GisPrefs *prefs)
 	self->location_changed_id = g_signal_connect(viewer, "location-changed",
 			G_CALLBACK(_on_location_changed), self);
 
+	for (city_t *city = cities; city->type; city++) {
+		if (city->type != LOCATION_CITY)
+			continue;
+		g_debug("Adding marker for %s %s", city->code, city->label);
+		GisMarker *marker = gis_marker_new(city->label);
+		gis_point_set_lle(gis_object_center(GIS_OBJECT(marker)),
+				city->lat, city->lon, city->elev);
+		GIS_OBJECT(marker)->lod = EARTH_R/2;
+		gis_viewer_add(self->viewer, GIS_OBJECT(marker), GIS_LEVEL_OVERLAY, FALSE);
+	}
+
 	/* Add renderers */
 	GisCallback *callback;
 
