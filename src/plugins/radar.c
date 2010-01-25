@@ -450,34 +450,12 @@ static void _on_time_changed(GisViewer *viewer, const char *time, gpointer _self
 	g_free(path);
 }
 
-
-/***********
- * Methods *
- ***********/
-GisPluginRadar *gis_plugin_radar_new(GisViewer *viewer, GisPrefs *prefs)
-{
-	/* TODO: move to constructor if possible */
-	g_debug("GisPluginRadar: new");
-	GisPluginRadar *self = g_object_new(GIS_TYPE_PLUGIN_RADAR, NULL);
-	self->viewer = viewer;
-	self->prefs  = prefs;
-	self->time_changed_id = g_signal_connect(viewer, "time-changed",
-			G_CALLBACK(_on_time_changed), self);
-	return self;
-}
-
-static GtkWidget *gis_plugin_radar_get_config(GisPlugin *_self)
+static gpointer _draw_radar(GisCallback *callback, gpointer _self)
 {
 	GisPluginRadar *self = GIS_PLUGIN_RADAR(_self);
-	return self->config_body;
-}
-
-static void gis_plugin_radar_expose(GisPlugin *_self)
-{
-	GisPluginRadar *self = GIS_PLUGIN_RADAR(_self);
-	g_debug("GisPluginRadar: expose");
 	if (self->cur_sweep == NULL)
-		return;
+		return NULL;
+	g_debug("GisPluginRadar: _draw_radar");
 	Sweep *sweep = self->cur_sweep;
 
 #ifdef MARCHING
@@ -510,7 +488,7 @@ static void gis_plugin_radar_expose(GisPlugin *_self)
 	glPopMatrix();
 #endif
 
-	g_debug("GisPluginRadar: expose - setting camera");
+	g_debug("GisPluginRadar: _draw_radar - setting camera");
 	Radar_header *h = &self->cur_radar->h;
 	gdouble lat  = (double)h->latd + (double)h->latm/60 + (double)h->lats/(60*60);
 	gdouble lon  = (double)h->lond + (double)h->lonm/60 + (double)h->lons/(60*60);
@@ -567,10 +545,23 @@ static void gis_plugin_radar_expose(GisPlugin *_self)
 	//glTexCoord2d( 1.,  0.); glVertex3f( 0.,     0., 3.); // bot right
 	//glEnd();
 
+	return NULL;
+}
+
+static gpointer _draw_hud(GisCallback *callback, gpointer _self)
+{
+	GisPluginRadar *self = GIS_PLUGIN_RADAR(_self);
+	if (self->cur_sweep == NULL)
+		return NULL;
+	g_debug("GisPluginRadar: _draw_hud");
+
 	/* Print the color table */
 	glMatrixMode(GL_MODELVIEW ); glLoadIdentity();
 	glMatrixMode(GL_PROJECTION); glLoadIdentity();
 	glDisable(GL_TEXTURE_2D);
+	glDisable(GL_ALPHA_TEST);
+	glDisable(GL_CULL_FACE);
+	glDisable(GL_LIGHTING);
 	glEnable(GL_COLOR_MATERIAL);
 	glBegin(GL_QUADS);
 	int i;
@@ -582,6 +573,39 @@ static void gis_plugin_radar_expose(GisPlugin *_self)
 		glVertex3f(-0.9, (float)((i  ) - 256/2)/(256/2), 0.0); // bot right
 	}
 	glEnd();
+
+	return NULL;
+}
+
+
+/***********
+ * Methods *
+ ***********/
+GisPluginRadar *gis_plugin_radar_new(GisViewer *viewer, GisPrefs *prefs)
+{
+	/* TODO: move to constructor if possible */
+	g_debug("GisPluginRadar: new");
+	GisPluginRadar *self = g_object_new(GIS_TYPE_PLUGIN_RADAR, NULL);
+	self->viewer = viewer;
+	self->prefs  = prefs;
+	self->time_changed_id = g_signal_connect(viewer, "time-changed",
+			G_CALLBACK(_on_time_changed), self);
+	/* Add renderers */
+	GisCallback *callback;
+
+	callback = gis_callback_new(_draw_radar, self);
+	gis_viewer_add(viewer, GIS_OBJECT(callback), GIS_LEVEL_WORLD, TRUE);
+
+	callback = gis_callback_new(_draw_hud, self);
+	gis_viewer_add(viewer, GIS_OBJECT(callback), GIS_LEVEL_HUD, FALSE);
+
+	return self;
+}
+
+static GtkWidget *gis_plugin_radar_get_config(GisPlugin *_self)
+{
+	GisPluginRadar *self = GIS_PLUGIN_RADAR(_self);
+	return self->config_body;
 }
 
 
@@ -597,7 +621,6 @@ static void gis_plugin_radar_plugin_init(GisPluginInterface *iface)
 {
 	g_debug("GisPluginRadar: plugin_init");
 	/* Add methods to the interface */
-	iface->expose     = gis_plugin_radar_expose;
 	iface->get_config = gis_plugin_radar_get_config;
 }
 /* Class/Object init */
