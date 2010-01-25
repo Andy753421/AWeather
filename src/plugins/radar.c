@@ -442,8 +442,8 @@ static void _on_time_changed(GisViewer *viewer, const char *time, gpointer _self
 	}
 	gchar *base = gis_prefs_get_string(self->prefs, "aweather/nexrad_url", NULL);
 	if (gis_viewer_get_offline(self->viewer))
-		self->soup = cache_file(base, path, GIS_ONCE,
-				_cache_chunk_cb, _cache_done_cb, self);
+		self->soup = cache_file(base, path, GIS_NEVER,
+				NULL, _cache_done_cb, self);
 	else
 		self->soup = cache_file(base, path, GIS_UPDATE,
 				_cache_chunk_cb, _cache_done_cb, self);
