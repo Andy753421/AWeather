@@ -27,6 +27,7 @@
 
 #include "radar.h"
 #include "marching.h"
+#include "../aweather-location.h"
 
 
 /**************************
@@ -396,23 +397,13 @@ static void _cache_done_cb(char *path, gboolean updated, gpointer _self)
 	self->soup = NULL;
 }
 
-
-/*************
- * Callbacks *
- *************/
-static void _on_sweep_clicked(GtkRadioButton *button, gpointer _self)
+static void _set_radar(GisPluginRadar *self, const char *site, const char *time)
 {
-	GisPluginRadar *self = GIS_PLUGIN_RADAR(_self);
-	_load_colormap(self, g_object_get_data(G_OBJECT(button), "type" ));
-	_load_sweep   (self, g_object_get_data(G_OBJECT(button), "sweep"));
-}
+	if (!site || !time)
+		return;
+	g_debug("GisPluginRadar: set_radar - %s - %s", site, time);
 
-static void _on_time_changed(GisViewer *viewer, const char *time, gpointer _self)
-{
-	GisPluginRadar *self = GIS_PLUGIN_RADAR(_self);
-	g_debug("GisPluginRadar: on_time_changed - setting time=%s", time);
 	// format: http://mesonet.agron.iastate.edu/data/nexrd2/raw/KABR/KABR_20090510_0323
-	char *site = gis_viewer_get_site(viewer);
 	char *path = g_strdup_printf("nexrd2/raw/%s/%s_%s", site, site, time);
 
 	/* Set up progress bar */
@@ -448,6 +439,57 @@ static void _on_time_changed(GisViewer *viewer, const char *time, gpointer _self
 		self->soup = cache_file(base, path, GIS_UPDATE,
 				_cache_chunk_cb, _cache_done_cb, self);
 	g_free(path);
+}
+
+
+/*************
+ * Callbacks *
+ *************/
+static void _on_sweep_clicked(GtkRadioButton *button, gpointer _self)
+{
+	GisPluginRadar *self = GIS_PLUGIN_RADAR(_self);
+	_load_colormap(self, g_object_get_data(G_OBJECT(button), "type" ));
+	_load_sweep   (self, g_object_get_data(G_OBJECT(button), "sweep"));
+}
+
+static void _on_time_changed(GisViewer *viewer, const char *time, gpointer _self)
+{
+	g_debug("GisPluginRadar: _on_time_changed");
+	GisPluginRadar *self = GIS_PLUGIN_RADAR(_self);
+	g_free(self->cur_time);
+	self->cur_time = g_strdup(time);
+	_set_radar(self, self->cur_site, self->cur_time);
+}
+
+static void _on_location_changed(GisViewer *viewer,
+		gdouble lat, gdouble lon, gdouble elev,
+		gpointer _self)
+{
+	g_debug("GisPluginRadar: _on_location_changed");
+	GisPluginRadar *self = GIS_PLUGIN_RADAR(_self);
+	gdouble min_dist = EARTH_R / 5;
+	city_t *city, *min_city = NULL;
+	for (city = cities; city->type; city++) {
+		if (city->type != LOCATION_CITY)
+			continue;
+		gdouble city_loc[3] = {};
+		gdouble eye_loc[3]  = {lat, lon, elev};
+		lle2xyz(city->lat, city->lon, city->elev,
+				&city_loc[0], &city_loc[1], &city_loc[2]);
+		lle2xyz(lat, lon, elev,
+				&eye_loc[0], &eye_loc[1], &eye_loc[2]);
+		gdouble dist = distd(city_loc, eye_loc);
+		if (dist < min_dist) {
+			min_dist = dist;
+			min_city = city;
+		}
+	}
+	static city_t *last_city = NULL;
+	if (min_city && min_city != last_city) {
+		self->cur_site = min_city->code;
+		_set_radar(self, self->cur_site, self->cur_time);
+	}
+	last_city = min_city;
 }
 
 static gpointer _draw_radar(GisCallback *callback, gpointer _self)
@@ -590,6 +632,9 @@ GisPluginRadar *gis_plugin_radar_new(GisViewer *viewer, GisPrefs *prefs)
 	self->prefs  = prefs;
 	self->time_changed_id = g_signal_connect(viewer, "time-changed",
 			G_CALLBACK(_on_time_changed), self);
+	self->location_changed_id = g_signal_connect(viewer, "location-changed",
+			G_CALLBACK(_on_location_changed), self);
+
 	/* Add renderers */
 	GisCallback *callback;
 

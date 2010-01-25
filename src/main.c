@@ -97,7 +97,6 @@ int main(int argc, char *argv[])
 	g_signal_connect(action, "changed", G_CALLBACK(on_log_level_changed), NULL);
 
 	gtk_widget_show_all(GTK_WIDGET(gui));
-	gis_viewer_set_site(gui->viewer, site);
 	gtk_main();
 	return 0;
 }

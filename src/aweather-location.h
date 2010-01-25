@@ -19,8 +19,9 @@
 #define __LOCATION_H__
 
 enum {
+	LOCATION_END,
 	LOCATION_CITY,
-	LOCATION_STATE
+	LOCATION_STATE,
 };
 
 typedef struct {

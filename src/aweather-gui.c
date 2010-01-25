@@ -107,7 +107,14 @@ void on_site_changed(GtkComboBox *combo, AWeatherGui *self)
 	GtkTreeModel *model = gtk_combo_box_get_model(combo);
 	gtk_combo_box_get_active_iter(combo, &iter);
 	gtk_tree_model_get(model, &iter, 1, &site, -1);
-	gis_viewer_set_site(self->viewer, site);
+	city_t *city;
+	for (city = cities; city->type; city++)
+		if (city->code && g_str_equal(city->code, site)) {
+			gis_viewer_set_location(self->viewer,
+					city->lat, city->lon, EARTH_R/20);
+			gis_viewer_set_rotation(self->viewer, 0, 0, 0);
+			break;
+		}
 	g_free(site);
 }
 
@@ -252,11 +259,11 @@ static void site_setup(AWeatherGui *self)
 	for (int i = 0; cities[i].label; i++) {
 		if (cities[i].type == LOCATION_STATE) {
 			gtk_tree_store_append(store, &state, NULL);
-			gtk_tree_store_set   (store, &state, 0, cities[i].label, 
+			gtk_tree_store_set   (store, &state, 0, cities[i].label,
 					                     1, cities[i].code,  -1);
 		} else {
 			gtk_tree_store_append(store, &city, &state);
-			gtk_tree_store_set   (store, &city, 0, cities[i].label, 
+			gtk_tree_store_set   (store, &city, 0, cities[i].label,
 				                            1, cities[i].code,  -1);
 		}
 	}
@@ -265,9 +272,6 @@ static void site_setup(AWeatherGui *self)
 	GObject   *renderer = aweather_gui_get_object(self, "main_site_rend");
 	gtk_cell_layout_set_cell_data_func(GTK_CELL_LAYOUT(combo),
 			GTK_CELL_RENDERER(renderer), combo_sensitive, NULL, NULL);
-
-	g_signal_connect(self->viewer, "site-changed",
-			G_CALLBACK(update_site_widget), self);
 }
 
 static void time_setup(AWeatherGui *self)
@@ -356,17 +360,44 @@ static void update_times(AWeatherGui *self, GisViewer *viewer, char *site)
 		/* update_times_gtk from update_times_online_cb */
 	}
 }
-static void on_gis_site_changed(GisViewer *viewer, char *site, gpointer _self)
+/* FIXME: This is redundent with the radar plugin
+ *        Make a shared wsr88d file? */
+static void on_gis_location_changed(GisViewer *viewer,
+		gdouble lat, gdouble lon, gdouble elev,
+		gpointer _self)
 {
 	AWeatherGui *self = AWEATHER_GUI(_self);
-	g_debug("AWeatherGui: on_site_changed - Loading wsr88d list for %s", site);
-	update_times(self, viewer, site);
+	gdouble min_dist = EARTH_R / 5;
+	city_t *city, *min_city = NULL;
+	for (city = cities; city->type; city++) {
+		if (city->type != LOCATION_CITY)
+			continue;
+		gdouble city_loc[3] = {};
+		gdouble eye_loc[3]  = {lat, lon, elev};
+		lle2xyz(city->lat, city->lon, city->elev,
+				&city_loc[0], &city_loc[1], &city_loc[2]);
+		lle2xyz(lat, lon, elev,
+				&eye_loc[0], &eye_loc[1], &eye_loc[2]);
+		gdouble dist = distd(city_loc, eye_loc);
+		if (dist < min_dist) {
+			min_dist = dist;
+			min_city = city;
+		}
+	}
+	static city_t *last_city = NULL;
+	if (min_city && min_city != last_city) {
+		update_site_widget(self->viewer, min_city->code, self);
+		update_times(self, viewer, min_city->code);
+	}
+	last_city = min_city;
 }
 static void on_gis_refresh(GisViewer *viewer, gpointer _self)
 {
 	AWeatherGui *self = AWEATHER_GUI(_self);
-	char *site = gis_viewer_get_site(self->viewer);
-	update_times(self, self->viewer, site);
+	gdouble lat, lon, elev;
+	gis_viewer_get_location(self->viewer, &lat, &lon, &elev);
+	/* Hack to update times */
+	on_gis_location_changed(self->viewer, lat, lon, elev, self);
 }
 
 
@@ -492,8 +523,10 @@ static void aweather_gui_init(AWeatherGui *self)
 			aweather_gui_get_object(self, "offline"));
 
 	/* deprecated site stuff */
-	g_signal_connect(self->viewer, "site-changed", G_CALLBACK(on_gis_site_changed), self);
-	g_signal_connect(self->viewer, "refresh",      G_CALLBACK(on_gis_refresh),      self);
+	g_signal_connect(self->viewer, "location-changed",
+			G_CALLBACK(on_gis_location_changed), self);
+	g_signal_connect(self->viewer, "refresh",
+			G_CALLBACK(on_gis_refresh), self);
 }
 static GObject *aweather_gui_constructor(GType gtype, guint n_properties,
 		GObjectConstructParam *properties)
