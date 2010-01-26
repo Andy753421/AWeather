@@ -56,7 +56,7 @@ static void _bscan_sweep(GisPluginRadar *self, Sweep *sweep, colormap_t *colorma
 			buf[buf_i+0] = colormap->data[val][0];
 			buf[buf_i+1] = colormap->data[val][1];
 			buf[buf_i+2] = colormap->data[val][2];
-			buf[buf_i+3] = colormap->data[val][3]; // TESTING
+			buf[buf_i+3] = colormap->data[val][3]/2; // TESTING
 			if (val == BADVAL     || val == RFVAL      || val == APFLAG ||
 			    val == NOTFOUND_H || val == NOTFOUND_V || val == NOECHO) {
 				buf[buf_i+3] = 0x00; // transparent
