@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009 Andy Spencer <spenceal@rose-hulman.edu>
+ * Copyright (C) 2009-2010 Andy Spencer <andy753421@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
