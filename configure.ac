@@ -25,6 +25,7 @@ AC_CONFIG_FILES([
 	src/Makefile
 	src/plugins/Makefile
 	data/Makefile
+	data/main.ui
 	docs/Makefile
 ])
 AC_OUTPUT
