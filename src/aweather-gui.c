@@ -84,7 +84,6 @@ void on_plugin_toggled(GtkCellRendererToggle *cell, gchar *path_str, AWeatherGui
 		aweather_gui_attach_plugin(self, name);
 	else
 		aweather_gui_deattach_plugin(self, name);
-	gis_prefs_set_boolean_v(self->prefs, name, "enabled", state);
 	g_free(name);
 }
 
@@ -178,7 +177,6 @@ void on_offline(GtkToggleAction *action, AWeatherGui *self)
 {
 	gboolean value = gtk_toggle_action_get_active(action);
 	g_debug("AWeatherGui: on_offline - offline=%d", value);
-	gis_prefs_set_boolean(self->prefs, "gis/offline", value);
 	gis_viewer_set_offline(self->viewer, value);
 }
 
@@ -437,7 +435,7 @@ GObject *aweather_gui_get_object(AWeatherGui *self, const gchar *name)
 }
 void aweather_gui_attach_plugin(AWeatherGui *self, const gchar *name)
 {
-	GisPlugin *plugin = gis_plugins_load(self->plugins, name,
+	GisPlugin *plugin = gis_plugins_enable(self->plugins, name,
 			self->viewer, self->prefs);
 	GtkWidget *body = gis_plugin_get_config(plugin);
 	if (body) {
@@ -462,7 +460,7 @@ void aweather_gui_deattach_plugin(AWeatherGui *self, const gchar *name)
 		if (tab_name && g_str_equal(name, tab_name))
 			gtk_notebook_remove_page(GTK_NOTEBOOK(config), i);
 	}
-	gis_plugins_unload(self->plugins, name);
+	gis_plugins_disable(self->plugins, name);
 	gtk_widget_queue_draw(GTK_WIDGET(self->viewer));
 }
 
@@ -479,8 +477,8 @@ static void aweather_gui_init(AWeatherGui *self)
 	gchar *config   = g_build_filename(g_get_user_config_dir(), PACKAGE, "config.ini", NULL);
 	gchar *defaults = g_build_filename(PKGDATADIR, "defaults.ini", NULL);
 	self->prefs   = gis_prefs_new(config, defaults);
-	self->plugins = gis_plugins_new(PLUGINSDIR);
-	self->viewer  = gis_opengl_new(self->plugins);
+	self->plugins = gis_plugins_new(PLUGINSDIR, self->prefs);
+	self->viewer  = gis_opengl_new(self->plugins, self->prefs);
 	g_free(config);
 	g_free(defaults);
 
@@ -501,7 +499,7 @@ static void aweather_gui_init(AWeatherGui *self)
 	for (GList *cur = gis_plugins_available(self->plugins); cur; cur = cur->next) {
 		gchar *name = cur->data;
 		GError *error = NULL;
-		gboolean enabled = gis_prefs_get_boolean_v(self->prefs, cur->data, "enabled", &error);
+		gboolean enabled = gis_prefs_get_boolean_v(self->prefs, "plugins", cur->data, &error);
 		if (error && error->code == G_KEY_FILE_ERROR_GROUP_NOT_FOUND)
 			enabled = TRUE;
 		gtk_list_store_append(self->gtk_plugins, &iter);
