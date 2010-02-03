@@ -21,7 +21,7 @@
 #include <gtk/gtk.h>
 #include <glib-object.h>
 
-#include <gis/gis.h>
+#include <gis.h>
 
 /* Type macros */
 #define AWEATHER_TYPE_GUI            (aweather_gui_get_type())

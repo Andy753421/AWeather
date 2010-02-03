@@ -19,7 +19,7 @@
 #include <gtk/gtk.h>
 #include <gtk/gtkgl.h>
 
-#include <gis/gis.h>
+#include <gis.h>
 
 #include "aweather-gui.h"
 

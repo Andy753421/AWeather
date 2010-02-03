@@ -22,7 +22,7 @@
 #include <libsoup/soup.h>
 #include <rsl.h>
 
-#include <gis/gis.h>
+#include <gis.h>
 
 #include "marching.h"
 

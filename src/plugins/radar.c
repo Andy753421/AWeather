@@ -23,7 +23,7 @@
 #include <math.h>
 #include <rsl.h>
 
-#include <gis/gis.h>
+#include <gis.h>
 
 #include "radar.h"
 #include "marching.h"
@@ -491,6 +491,8 @@ static void _on_location_changed(GisViewer *viewer,
 static gpointer _draw_radar(GisCallback *callback, gpointer _self)
 {
 	GisPluginRadar *self = GIS_PLUGIN_RADAR(_self);
+
+	/* Draw wsr88d */
 	if (self->cur_sweep == NULL)
 		return NULL;
 	g_debug("GisPluginRadar: _draw_radar");
@@ -645,13 +647,11 @@ GisPluginRadar *gis_plugin_radar_new(GisViewer *viewer, GisPrefs *prefs)
 	}
 
 	/* Add renderers */
-	GisCallback *callback;
+	GisCallback *radar_cb = gis_callback_new(_draw_radar, self);
+	GisCallback *hud_cb   = gis_callback_new(_draw_hud, self);
 
-	callback = gis_callback_new(_draw_radar, self);
-	gis_viewer_add(viewer, GIS_OBJECT(callback), GIS_LEVEL_WORLD, TRUE);
-
-	callback = gis_callback_new(_draw_hud, self);
-	gis_viewer_add(viewer, GIS_OBJECT(callback), GIS_LEVEL_HUD, FALSE);
+	gis_viewer_add(viewer, GIS_OBJECT(radar_cb),    GIS_LEVEL_WORLD, TRUE);
+	gis_viewer_add(viewer, GIS_OBJECT(hud_cb),      GIS_LEVEL_HUD,   FALSE);
 
 	return self;
 }

@@ -20,7 +20,7 @@
 #include <gdk/gdkkeysyms.h>
 #include <math.h>
 
-#include <gis/gis.h>
+#include <gis.h>
 
 #include "aweather-gui.h"
 #include "aweather-location.h"
