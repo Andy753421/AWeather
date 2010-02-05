@@ -390,7 +390,6 @@ static void _cache_done_cb(char *path, gboolean updated, gpointer _self)
 		g_free(message);
 	}
 	g_child_watch_add(pid, _decompressed_cb, udata);
-	self->soup = NULL;
 }
 
 static void _set_radar(GisPluginRadar *self, const char *site, const char *time)
@@ -398,9 +397,6 @@ static void _set_radar(GisPluginRadar *self, const char *site, const char *time)
 	if (!site || !time)
 		return;
 	g_debug("GisPluginRadar: set_radar - %s - %s", site, time);
-
-	// format: http://mesonet.agron.iastate.edu/data/nexrd2/raw/KABR/KABR_20090510_0323
-	char *path = g_strdup_printf("nexrd2/raw/%s/%s_%s", site, site, time);
 
 	/* Set up progress bar */
 	GtkWidget *child = gtk_bin_get_child(GTK_BIN(self->config_body));
@@ -423,18 +419,17 @@ static void _set_radar(GisPluginRadar *self, const char *site, const char *time)
 	gtk_widget_queue_draw(GTK_WIDGET(self->viewer));
 
 	/* Start loading the new radar */
-	if (self->soup) {
-		soup_session_abort(self->soup);
-		self->soup = NULL;
+	soup_session_abort(self->http->soup);
+	/* format: http://mesonet.agron.iastate.edu/data/nexrd2/raw/KABR/KABR_20090510_0323 */
+	gchar *base  = gis_prefs_get_string(self->prefs, "aweather/nexrad_url", NULL);
+	gchar *local = g_strdup_printf("%s/%s_%s", site, site, time);
+	gchar *uri   = g_strconcat(base, "/", local, NULL);
+	GisCacheType mode = gis_viewer_get_offline(self->viewer) ? GIS_LOCAL : GIS_UPDATE;
+	gchar *path  = gis_http_fetch(self->http, uri, local, mode, _cache_chunk_cb, self);
+	if (path) {
+		_cache_done_cb(path, TRUE, self);
+		g_free(path);
 	}
-	gchar *base = gis_prefs_get_string(self->prefs, "aweather/nexrad_url", NULL);
-	if (gis_viewer_get_offline(self->viewer))
-		self->soup = cache_file(base, path, GIS_NEVER,
-				NULL, _cache_done_cb, self);
-	else
-		self->soup = cache_file(base, path, GIS_UPDATE,
-				_cache_chunk_cb, _cache_done_cb, self);
-	g_free(path);
 }
 
 
@@ -682,10 +677,7 @@ static void gis_plugin_radar_init(GisPluginRadar *self)
 {
 	g_debug("GisPluginRadar: class_init");
 	/* Set defaults */
-	self->soup          = NULL;
-	self->cur_triangles = NULL;
-	self->cur_num_triangles = 0;
-
+	self->http = gis_http_new("/nexrad/level2/");
 	self->config_body = gtk_alignment_new(0, 0, 1, 1);
 	gtk_container_set_border_width(GTK_CONTAINER(self->config_body), 5);
 	gtk_container_add(GTK_CONTAINER(self->config_body), gtk_label_new("No radar loaded"));
@@ -703,6 +695,7 @@ static void gis_plugin_radar_finalize(GObject *gobject)
 	g_debug("GisPluginRadar: finalize");
 	GisPluginRadar *self = GIS_PLUGIN_RADAR(gobject);
 	/* Free data */
+	gis_http_free(self->http);
 	G_OBJECT_CLASS(gis_plugin_radar_parent_class)->finalize(gobject);
 
 }

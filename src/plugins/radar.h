@@ -19,7 +19,6 @@
 #define __RADAR_H__
 
 #include <glib-object.h>
-#include <libsoup/soup.h>
 #include <rsl.h>
 
 #include <gis.h>
@@ -49,10 +48,10 @@ struct _GisPluginRadar {
 	/* instance members */
 	GisViewer   *viewer;
 	GisPrefs    *prefs;
+	GisHttp     *http;
 	GtkWidget   *config_body;
 	GtkWidget   *progress_bar;
 	GtkWidget   *progress_label;
-	SoupSession *soup;
 	guint        time_changed_id;
 	guint        location_changed_id;
 

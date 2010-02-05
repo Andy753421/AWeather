@@ -341,7 +341,7 @@ static void update_times(AWeatherGui *self, GisViewer *viewer, char *site)
 	if (gis_viewer_get_offline(self->viewer)) {
 		GList *times = NULL;
 		gchar *path = g_build_filename(g_get_user_cache_dir(),
-				"libgis", "nexrd2", "raw", site, NULL);
+				"libgis", "nexrad", "level2", site, NULL);
 		GDir *dir = g_dir_open(path, 0, NULL);
 		if (dir) {
 			const gchar *name;
@@ -353,9 +353,13 @@ static void update_times(AWeatherGui *self, GisViewer *viewer, char *site)
 		g_free(path);
 		update_times_gtk(self, times);
 	} else {
-		gchar *path = g_strdup_printf("nexrd2/raw/%s/dir.list", site);
-		char *base = gis_prefs_get_string(self->prefs, "aweather/nexrad_url", NULL);
-		cache_file(base, path, GIS_REFRESH, NULL, update_times_online_cb, self);
+		GisHttp *http = gis_http_new("/nexrad/level2/");
+		gchar *base  = gis_prefs_get_string(self->prefs, "aweather/nexrad_url", NULL);
+		gchar *local = g_strdup_printf("%s/dir.list", site);
+		gchar *uri   = g_strconcat(base, "/", local, NULL);
+		gchar *path  = gis_http_fetch(http, uri, local, GIS_REFRESH, NULL, NULL);
+		update_times_online_cb(path, TRUE, self);
+		gis_http_free(http);
 		/* update_times_gtk from update_times_online_cb */
 	}
 }
