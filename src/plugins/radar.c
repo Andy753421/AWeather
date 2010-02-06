@@ -74,7 +74,6 @@ static void _bscan_sweep(GisPluginRadar *self, Sweep *sweep, colormap_t *colorma
 static void _load_sweep(GisPluginRadar *self, Sweep *sweep)
 {
 	GisViewer *viewer = self->viewer;
-	gis_viewer_begin(viewer);
 	self->cur_sweep = sweep;
 	int height, width;
 	guint8 *data;
@@ -90,7 +89,6 @@ static void _load_sweep(GisPluginRadar *self, Sweep *sweep)
 			GL_RGBA, GL_UNSIGNED_BYTE, data);
 	g_free(data);
 	gtk_widget_queue_draw(GTK_WIDGET(viewer));
-	gis_viewer_end(viewer);
 }
 
 static void _load_colormap(GisPluginRadar *self, gchar *table)
