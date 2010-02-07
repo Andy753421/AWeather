@@ -23,8 +23,6 @@
 
 #include <gis.h>
 
-#include "marching.h"
-
 /* TODO: convert */
 typedef struct {
 	char *name;
@@ -62,8 +60,6 @@ struct _GisPluginRadar {
 	Sweep       *cur_sweep;
 	colormap_t  *cur_colormap;
 	guint        cur_sweep_tex;
-	TRIANGLE    *cur_triangles;
-	guint        cur_num_triangles;
 };
 
 struct _GisPluginRadarClass {

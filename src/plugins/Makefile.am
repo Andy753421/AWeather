@@ -10,7 +10,6 @@ plugins_LTLIBRARIES =
 if HAVE_RSL
 plugins_LTLIBRARIES += radar.la
 radar_la_SOURCES = radar.c   radar.h \
-	marching.c marching.h \
 	radar-colormap.c \
 	../aweather-location.c
 radar_la_LDFLAGS = $(AM_LDFLAGS) $(RSL_LIBS)

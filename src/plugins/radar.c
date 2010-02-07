@@ -26,7 +26,6 @@
 #include <gis.h>
 
 #include "radar.h"
-#include "marching.h"
 #include "../aweather-location.h"
 
 
@@ -170,37 +169,6 @@ static void _load_radar_gui(GisPluginRadar *self, Radar *radar)
 	gtk_widget_show_all(table);
 }
 
-static void _gis_plugin_radar_grid_set(GRIDCELL *grid, int gi, Ray *ray, int bi)
-{
-	Range range = ray->range[bi];
-
-	double angle = deg2rad(ray->h.azimuth);
-	double tilt  = deg2rad(ray->h.elev);
-
-	double lx    = sin(angle);
-	double ly    = cos(angle);
-	double lz    = sin(tilt);
-
-	double dist   = bi*ray->h.gate_size + ray->h.range_bin1;
-
-	grid->p[gi].x = lx*dist;
-	grid->p[gi].y = ly*dist;
-	grid->p[gi].z = lz*dist;
-
-	guint8 val = (guint8)ray->h.f(ray->range[bi]);
-	if (val == BADVAL     || val == RFVAL      || val == APFLAG ||
-	    val == NOTFOUND_H || val == NOTFOUND_V || val == NOECHO ||
-	    val > 80)
-		val = 0;
-	grid->val[gi] = (float)val;
-	//g_debug("(%.2f,%.2f,%.2f) - (%.0f,%.0f,%.0f) = %d",
-	//	angle, tilt, dist,
-	//	grid->p[gi].x,
-	//	grid->p[gi].y,
-	//	grid->p[gi].z,
-	//	val);
-}
-
 /* Load a radar from a decompressed file */
 static void _load_radar(GisPluginRadar *self, gchar *radar_file)
 {
@@ -216,81 +184,6 @@ static void _load_radar(GisPluginRadar *self, gchar *radar_file)
 		return;
 	}
 	g_free(site);
-
-#ifdef MARCHING
-	/* Load the surface */
-	if (self->cur_triangles) {
-		g_free(self->cur_triangles);
-		self->cur_triangles = NULL;
-	}
-	self->cur_num_triangles = 0;
-	int x = 1;
-	for (guint vi = 0; vi < radar->h.nvolumes; vi++) {
-		if (radar->v[vi] == NULL) continue;
-
-		for (guint si = 0; si+1 < radar->v[vi]->h.nsweeps; si++) {
-			Sweep *sweep0 = radar->v[vi]->sweep[si+0];
-			Sweep *sweep1 = radar->v[vi]->sweep[si+1];
-
-			//g_debug("GisPluginRadar: load_radar: sweep[%3d-%3d] -- nrays = %d, %d",
-			//	si, si+1,sweep0->h.nrays, sweep1->h.nrays);
-
-			/* Skip super->regular resolution switch for now */
-			if (sweep0 == NULL || sweep0->h.elev == 0 ||
-			    sweep1 == NULL || sweep1->h.elev == 0 ||
-			    sweep0->h.nrays != sweep1->h.nrays)
-				continue;
-
-			/* We repack the arrays so that raysX[0] is always north, etc */
-			Ray **rays0 = g_malloc0(sizeof(Ray*)*sweep0->h.nrays);
-			Ray **rays1 = g_malloc0(sizeof(Ray*)*sweep1->h.nrays);
-
-			for (guint ri = 0; ri < sweep0->h.nrays; ri++)
-				rays0[(guint)(sweep0->ray[ri]->h.azimuth * sweep0->h.nrays / 360)] =
-					sweep0->ray[ri];
-			for (guint ri = 0; ri < sweep1->h.nrays; ri++)
-				rays1[(guint)(sweep1->ray[ri]->h.azimuth * sweep1->h.nrays / 360)] =
-					sweep1->ray[ri];
-
-			for (guint ri = 0; ri+x < sweep0->h.nrays; ri+=x) {
-				//g_debug("GisPluginRadar: load_radar - ray[%3d-%3d] -- nbins = %d, %d, %d, %d",
-				//	ri, ri+x,
-				//	rays0[ri  ]->h.nbins,
-				//	rays0[ri+1]->h.nbins,
-				//	rays1[ri  ]->h.nbins,
-				//	rays1[ri+1]->h.nbins);
-
-				for (guint bi = 0; bi+x < rays1[ri]->h.nbins; bi+=x) {
-					GRIDCELL grid = {};
-					_gis_plugin_radar_grid_set(&grid, 7, rays0[(ri  )%sweep0->h.nrays], bi+x);
-					_gis_plugin_radar_grid_set(&grid, 6, rays0[(ri+x)%sweep0->h.nrays], bi+x);
-					_gis_plugin_radar_grid_set(&grid, 5, rays0[(ri+x)%sweep0->h.nrays], bi  );
-					_gis_plugin_radar_grid_set(&grid, 4, rays0[(ri  )%sweep0->h.nrays], bi  );
-					_gis_plugin_radar_grid_set(&grid, 3, rays1[(ri  )%sweep0->h.nrays], bi+x);
-					_gis_plugin_radar_grid_set(&grid, 2, rays1[(ri+x)%sweep0->h.nrays], bi+x);
-					_gis_plugin_radar_grid_set(&grid, 1, rays1[(ri+x)%sweep0->h.nrays], bi  );
-					_gis_plugin_radar_grid_set(&grid, 0, rays1[(ri  )%sweep0->h.nrays], bi  );
-					
-					TRIANGLE tris[10];
-					int n = march_one_cube(grid, 40, tris);
-
-					self->cur_triangles = g_realloc(self->cur_triangles,
-						(self->cur_num_triangles+n)*sizeof(TRIANGLE));
-					for (int i = 0; i < n; i++) {
-						//g_debug("triangle: ");
-						//g_debug("\t(%f,%f,%f)", tris[i].p[0].x, tris[i].p[0].y, tris[i].p[0].z);
-						//g_debug("\t(%f,%f,%f)", tris[i].p[1].x, tris[i].p[1].y, tris[i].p[1].z);
-						//g_debug("\t(%f,%f,%f)", tris[i].p[2].x, tris[i].p[2].y, tris[i].p[2].z);
-						self->cur_triangles[self->cur_num_triangles+i] = tris[i];
-					}
-					self->cur_num_triangles += n;
-					//g_debug(" ");
-				}
-			}
-		}
-		break; // Exit after first volume (reflectivity)
-	}
-#endif
 
 	/* Load the first sweep by default */
 	if (radar->h.nvolumes < 1 || radar->v[0]->h.nsweeps < 1) {
@@ -490,36 +383,6 @@ static gpointer _draw_radar(GisCallback *callback, gpointer _self)
 		return NULL;
 	g_debug("GisPluginRadar: _draw_radar");
 	Sweep *sweep = self->cur_sweep;
-
-#ifdef MARCHING
-	/* Draw the surface */
-	glMatrixMode(GL_MODELVIEW);
-	glPushMatrix();
-	glDisable(GL_TEXTURE_2D);
-	float light_ambient[]  = {0.1f, 0.1f, 0.0f};
-	float light_diffuse[]  = {0.9f, 0.9f, 0.9f};
-	float light_position[] = {-300000.0f, 500000.0f, 400000.0f, 1.0f};
-	glLightfv(GL_LIGHT0, GL_AMBIENT,  light_ambient);
-	glLightfv(GL_LIGHT0, GL_DIFFUSE,  light_diffuse);
-	glLightfv(GL_LIGHT0, GL_POSITION, light_position);
-	glEnable(GL_LIGHT0);
-	glEnable(GL_LIGHTING);
-	glEnable(GL_COLOR_MATERIAL);
-	glColor4f(1,1,1,0.75);
-	g_debug("ntri=%d", self->cur_num_triangles);
-	glBegin(GL_TRIANGLES);
-	for (int i = 0; i < self->cur_num_triangles; i++) {
-		TRIANGLE t = self->cur_triangles[i];
-		do_normal(t.p[0].x, t.p[0].y, t.p[0].z,
-		          t.p[1].x, t.p[1].y, t.p[1].z,
-		          t.p[2].x, t.p[2].y, t.p[2].z);
-		glVertex3f(t.p[0].x, t.p[0].y, t.p[0].z);
-		glVertex3f(t.p[1].x, t.p[1].y, t.p[1].z);
-		glVertex3f(t.p[2].x, t.p[2].y, t.p[2].z);
-	}
-	glEnd();
-	glPopMatrix();
-#endif
 
 	g_debug("GisPluginRadar: _draw_radar - setting camera");
 	Radar_header *h = &self->cur_radar->h;
