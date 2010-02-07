@@ -22,13 +22,7 @@
 #include <rsl.h>
 
 #include <gis.h>
-
-/* TODO: convert */
-typedef struct {
-	char *name;
-	guint8 data[256][4];
-} colormap_t;
-extern colormap_t colormaps[];
+#include "level2.h"
 
 #define GIS_TYPE_PLUGIN_RADAR            (gis_plugin_radar_get_type ())
 #define GIS_PLUGIN_RADAR(obj)            (G_TYPE_CHECK_INSTANCE_CAST((obj),   GIS_TYPE_PLUGIN_RADAR, GisPluginRadar))
@@ -44,23 +38,24 @@ struct _GisPluginRadar {
 	GObject parent_instance;
 
 	/* instance members */
-	GisViewer   *viewer;
-	GisPrefs    *prefs;
-	GisHttp     *http;
-	GtkWidget   *config_body;
-	GtkWidget   *progress_bar;
-	GtkWidget   *progress_label;
-	guint        time_changed_id;
-	guint        location_changed_id;
+	GisViewer *viewer;
+	GisPrefs  *prefs;
+	GisHttp   *http;
 
-	/* Private data for loading radars */
-	GMutex      *load_mutex;
-	char        *cur_site;
-	char        *cur_time;
-	Radar       *cur_radar;
-	Sweep       *cur_sweep;
-	colormap_t  *cur_colormap;
-	guint        cur_sweep_tex;
+	/* Signals */
+	guint      time_changed_id;
+	guint      location_changed_id;
+
+	/* Tab area */
+	GtkWidget *config_body;
+	GtkWidget *progress_bar;
+	GtkWidget *progress_label;
+
+	/* Radar lists */
+	AWeatherColormap *colormap;
+	gpointer   radar;
+	gchar     *cur_site;
+	gchar     *cur_time;
 };
 
 struct _GisPluginRadarClass {

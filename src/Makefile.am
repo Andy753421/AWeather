@@ -6,7 +6,9 @@ bin_PROGRAMS = aweather wsr88ddec
 aweather_SOURCES  = main.c \
 	aweather-gui.c      aweather-gui.h \
 	aweather-location.c aweather-location.h
-aweather_CPPFLAGS = -DPKGDATADIR="\"$(pkgdatadir)\"" -DPLUGINSDIR="\"$(pkglibdir)\""
+aweather_CPPFLAGS = \
+	-DPKGDATADIR="\"$(pkgdatadir)\"" \
+	-DPLUGINSDIR="\"$(pkglibdir)\""
 aweather_CFLAGS   = $(GIS_CFLAGS) $(AM_CFLAGS)
 aweather_LDADD    = $(GIS_LIBS)
 
