@@ -16,6 +16,7 @@
  */
 
 #include <config.h>
+#include <glib/gstdio.h>
 #include <gtk/gtk.h>
 #include <gtk/gtkgl.h>
 #include <gio/gio.h>
@@ -36,6 +37,8 @@
 static void _bscan_sweep(GisPluginRadar *self, Sweep *sweep, colormap_t *colormap,
 		guint8 **data, int *width, int *height)
 {
+	g_debug("GisPluginRadar: _bscan_sweep - %p, %p, %p",
+			sweep, colormap, data);
 	/* Calculate max number of bins */
 	int max_bins = 0;
 	for (int i = 0; i < sweep->h.nrays; i++)
@@ -70,13 +73,15 @@ static void _bscan_sweep(GisPluginRadar *self, Sweep *sweep, colormap_t *colorma
 }
 
 /* Load a sweep as the active texture */
-static void _load_sweep(GisPluginRadar *self, Sweep *sweep)
+static gboolean _load_sweep(gpointer _self)
 {
-	GisViewer *viewer = self->viewer;
-	self->cur_sweep = sweep;
+	GisPluginRadar *self = _self;
+	if (!self->cur_sweep)
+		return FALSE;
+	g_debug("GisPluginRadar: _load_sweep - %p", self->cur_sweep);
 	int height, width;
 	guint8 *data;
-	_bscan_sweep(self, sweep, self->cur_colormap, &data, &width, &height);
+	_bscan_sweep(self, self->cur_sweep, self->cur_colormap, &data, &width, &height);
 	glDeleteTextures(1, &self->cur_sweep_tex);
 	glGenTextures(1, &self->cur_sweep_tex);
 	glBindTexture(GL_TEXTURE_2D, self->cur_sweep_tex);
@@ -87,22 +92,95 @@ static void _load_sweep(GisPluginRadar *self, Sweep *sweep)
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0,
 			GL_RGBA, GL_UNSIGNED_BYTE, data);
 	g_free(data);
-	gtk_widget_queue_draw(GTK_WIDGET(viewer));
+	gtk_widget_queue_draw(GTK_WIDGET(self->viewer));
+	return FALSE;
 }
 
+/* Load the colormap for a sweep */
 static void _load_colormap(GisPluginRadar *self, gchar *table)
 {
+	g_debug("GisPluginRadar: _load_colormap - %s", table);
 	/* Set colormap so we can draw it on expose */
 	for (int i = 0; colormaps[i].name; i++)
 		if (g_str_equal(colormaps[i].name, table))
 			self->cur_colormap = &colormaps[i];
 }
 
-/* Add selectors to the config area for the sweeps */
-static void _on_sweep_clicked(GtkRadioButton *button, gpointer _self);
-static void _load_radar_gui(GisPluginRadar *self, Radar *radar)
+
+/***************
+ * GUI loading *
+ ***************/
+/* Setup a loading screen in the tab */
+static void _load_gui_pre(GisPluginRadar *self)
 {
+	g_debug("GisPluginRadar: _load_gui_pre");
+
+	gdk_threads_enter();
+	/* Set up progress bar */
+	GtkWidget *child = gtk_bin_get_child(GTK_BIN(self->config_body));
+	if (child)
+		gtk_widget_destroy(child);
+
+	GtkWidget *vbox = gtk_vbox_new(FALSE, 10);
+	gtk_container_set_border_width(GTK_CONTAINER(vbox), 10);
+	self->progress_bar   = gtk_progress_bar_new();
+	self->progress_label = gtk_label_new("Loading radar...");
+	gtk_box_pack_start(GTK_BOX(vbox), self->progress_bar,   FALSE, FALSE, 0);
+	gtk_box_pack_start(GTK_BOX(vbox), self->progress_label, FALSE, FALSE, 0);
+	gtk_container_add(GTK_CONTAINER(self->config_body), vbox);
+	gtk_widget_show_all(self->config_body);
+
+	/* Clear radar */
+	if (self->cur_radar)
+		RSL_free_radar(self->cur_radar);
+	self->cur_radar = NULL;
+	self->cur_sweep = NULL;
+	gtk_widget_queue_draw(GTK_WIDGET(self->viewer));
+	gdk_threads_leave();
+}
+
+/* Update pogress bar of loading screen */
+static void _load_gui_update(char *path, goffset cur, goffset total, gpointer _self)
+{
+	GisPluginRadar *self = GIS_PLUGIN_RADAR(_self);
+	double percent = (double)cur/total;
+
+	//g_debug("GisPluginRadar: cache_chunk_cb - %lld/%lld = %.2f%%",
+	//		cur, total, percent*100);
+
+	gdk_threads_enter();
+	gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(self->progress_bar), MIN(percent, 1.0));
+
+	gchar *msg = g_strdup_printf("Loading radar... %5.1f%% (%.2f/%.2f MB)",
+			percent*100, (double)cur/1000000, (double)total/1000000);
+	gtk_label_set_text(GTK_LABEL(self->progress_label), msg);
+	gdk_threads_leave();
+	g_free(msg);
+}
+
+/* Update pogress bar of loading screen */
+static void _load_gui_error(GisPluginRadar *self, gchar *error)
+{
+	gchar *msg = g_strdup_printf(
+			"GisPluginRadar: error loading radar - %s", error);
+	g_warning("%s", msg);
+	gdk_threads_enter();
+	GtkWidget *child = gtk_bin_get_child(GTK_BIN(self->config_body));
+	if (child)
+		gtk_widget_destroy(child);
+	gtk_container_add(GTK_CONTAINER(self->config_body), gtk_label_new(msg));
+	gtk_widget_show_all(self->config_body);
+	gdk_threads_leave();
+	g_free(msg);
+}
+
+/* Clear loading screen and add sweep selectors */
+static void _on_sweep_clicked(GtkRadioButton *button, gpointer _self);
+static void _load_gui_success(GisPluginRadar *self, Radar *radar)
+{
+	g_debug("GisPluginRadar: _load_gui_success - %p", radar);
 	/* Clear existing items */
+	gdk_threads_enter();
 	GtkWidget *child = gtk_bin_get_child(GTK_BIN(self->config_body));
 	if (child)
 		gtk_widget_destroy(child);
@@ -167,160 +245,155 @@ static void _load_radar_gui(GisPluginRadar *self, Radar *radar)
 	}
 	gtk_container_add(GTK_CONTAINER(self->config_body), table);
 	gtk_widget_show_all(table);
+	gdk_threads_leave();
 }
 
-/* Load a radar from a decompressed file */
-static void _load_radar(GisPluginRadar *self, gchar *radar_file)
+
+/*****************
+ * Radar caching *
+ *****************/
+/* Download a compressed radar file from the remote server */
+static gchar *_download_radar(GisPluginRadar *self, const gchar *site, const gchar *time)
 {
-	char *dir  = g_path_get_dirname(radar_file);
-	char *site = g_path_get_basename(dir);
-	g_free(dir);
-	g_debug("GisPluginRadar: load_radar - Loading new radar");
-	RSL_read_these_sweeps("all", NULL);
-	Radar *radar = self->cur_radar = RSL_wsr88d_to_radar(radar_file, site);
-	if (radar == NULL) {
-		g_warning("fail to load radar: path=%s, site=%s", radar_file, site);
-		g_free(site);
-		return;
-	}
-	g_free(site);
+	g_debug("GisPluginRadar: _download_radar - %s, %s", site, time);
 
-	/* Load the first sweep by default */
-	if (radar->h.nvolumes < 1 || radar->v[0]->h.nsweeps < 1) {
-		g_warning("No sweeps found\n");
-	} else {
-		/* load first available sweep */
-		for (int vi = 0; vi < radar->h.nvolumes; vi++) {
-			if (radar->v[vi]== NULL) continue;
-			for (int si = 0; si < radar->v[vi]->h.nsweeps; si++) {
-				if (radar->v[vi]->sweep[si]== NULL) continue;
-				_load_colormap(self, radar->v[vi]->h.type_str);
-				_load_sweep(self, radar->v[vi]->sweep[si]);
-				break;
-			}
-			break;
-		}
-	}
-
-	_load_radar_gui(self, radar);
-}
-
-typedef struct {
-	GisPluginRadar *self;
-	gchar *radar_file;
-} decompressed_t;
-
-static void _decompressed_cb(GPid pid, gint status, gpointer _udata)
-{
-	g_debug("GisPluginRadar: decompressed_cb");
-	decompressed_t *udata = _udata;
-	if (status != 0) {
-		g_warning("wsr88ddec exited with status %d", status);
-		return;
-	}
-	_load_radar(udata->self, udata->radar_file);
-	g_spawn_close_pid(pid);
-	g_free(udata->radar_file);
-	g_free(udata);
-}
-
-static void _cache_chunk_cb(char *path, goffset cur, goffset total, gpointer _self)
-{
-	GisPluginRadar *self = GIS_PLUGIN_RADAR(_self);
-	double percent = (double)cur/total;
-
-	//g_debug("GisPluginRadar: cache_chunk_cb - %lld/%lld = %.2f%%",
-	//		cur, total, percent*100);
-
-	gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(self->progress_bar), MIN(percent, 1.0));
-
-	gchar *msg = g_strdup_printf("Loading radar... %5.1f%% (%.2f/%.2f MB)",
-			percent*100, (double)cur/1000000, (double)total/1000000);
-	gtk_label_set_text(GTK_LABEL(self->progress_label), msg);
-	g_free(msg);
-}
-
-static void _cache_done_cb(char *path, gboolean updated, gpointer _self)
-{
-	g_debug("GisPluginRadar: cache_done_cb - updated = %d", updated);
-	GisPluginRadar *self = GIS_PLUGIN_RADAR(_self);
-	char *decompressed = g_strconcat(path, ".raw", NULL);
-	if (!updated && g_file_test(decompressed, G_FILE_TEST_EXISTS)) {
-		_load_radar(self, decompressed);
-		return;
-	}
-
-	decompressed_t *udata = g_malloc(sizeof(decompressed_t));
-	udata->self       = self;
-	udata->radar_file = decompressed;
-	g_debug("GisPluginRadar: cache_done_cb - File updated, decompressing..");
-	char *argv[] = {"wsr88ddec", path, decompressed, NULL};
-	GPid pid;
-	GError *error = NULL;
-	g_spawn_async(
-		NULL,    // const gchar *working_directory,
-		argv,    // gchar **argv,
-		NULL,    // gchar **envp,
-		G_SPAWN_SEARCH_PATH|
-		G_SPAWN_DO_NOT_REAP_CHILD,
-			 // GSpawnFlags flags,
-		NULL,    // GSpawnChildSetupFunc child_setup,
-		NULL,    // gpointer user_data,
-		&pid,    // GPid *child_pid,
-		&error); // GError **error
-	if (error) {
-		gchar *message = g_strdup_printf("Unable to decompress WSR88D data: %s",
-				error->message);
-		g_warning("%s", message);
-		GtkWidget *child = gtk_bin_get_child(GTK_BIN(self->config_body));
-		if (child)
-			gtk_widget_destroy(child);
-		gtk_container_add(GTK_CONTAINER(self->config_body), gtk_label_new(message));
-		gtk_widget_show_all(self->config_body);
-		g_error_free(error);
-		g_free(message);
-	}
-	g_child_watch_add(pid, _decompressed_cb, udata);
-}
-
-static void _set_radar(GisPluginRadar *self, const char *site, const char *time)
-{
-	if (!site || !time)
-		return;
-	g_debug("GisPluginRadar: set_radar - %s - %s", site, time);
-
-	/* Set up progress bar */
-	GtkWidget *child = gtk_bin_get_child(GTK_BIN(self->config_body));
-	if (child) gtk_widget_destroy(child);
-
-	GtkWidget *vbox = gtk_vbox_new(FALSE, 10);
-	gtk_container_set_border_width(GTK_CONTAINER(vbox), 10);
-	self->progress_bar   = gtk_progress_bar_new();
-	self->progress_label = gtk_label_new("Loading radar...");
-	gtk_box_pack_start(GTK_BOX(vbox), self->progress_bar,   FALSE, FALSE, 0);
-	gtk_box_pack_start(GTK_BOX(vbox), self->progress_label, FALSE, FALSE, 0);
-	gtk_container_add(GTK_CONTAINER(self->config_body), vbox);
-	gtk_widget_show_all(self->config_body);
-
-	/* Clear radar */
-	if (self->cur_radar)
-		RSL_free_radar(self->cur_radar);
-	self->cur_radar = NULL;
-	self->cur_sweep = NULL;
-	gtk_widget_queue_draw(GTK_WIDGET(self->viewer));
-
-	/* Start loading the new radar */
-	soup_session_abort(self->http->soup);
 	/* format: http://mesonet.agron.iastate.edu/data/nexrd2/raw/KABR/KABR_20090510_0323 */
 	gchar *base  = gis_prefs_get_string(self->prefs, "aweather/nexrad_url", NULL);
 	gchar *local = g_strdup_printf("%s/%s_%s", site, site, time);
 	gchar *uri   = g_strconcat(base, "/", local, NULL);
 	GisCacheType mode = gis_viewer_get_offline(self->viewer) ? GIS_LOCAL : GIS_UPDATE;
-	gchar *path  = gis_http_fetch(self->http, uri, local, mode, _cache_chunk_cb, self);
-	if (path) {
-		_cache_done_cb(path, TRUE, self);
-		g_free(path);
+	return gis_http_fetch(self->http, uri, local, mode, _load_gui_update, self);
+}
+
+/* Decompress a radar file using wsr88dec */
+static gchar *_decompress_radar(GisPluginRadar *self, char *compressed)
+{
+	char *decompressed = g_strconcat(compressed, ".raw", NULL);
+	if (g_file_test(decompressed, G_FILE_TEST_EXISTS)) {
+		struct stat comp, dec;
+		g_stat(compressed, &comp);
+		g_stat(decompressed, &dec);
+		if (dec.st_mtime >= comp.st_mtime)
+			return decompressed;
 	}
+	g_debug("GisPluginRadar: _decompress_radar - %s", decompressed);
+	char *argv[] = {"wsr88ddec", compressed, decompressed, NULL};
+	gint status;
+	GError *error = NULL;
+	g_spawn_sync(
+		NULL,    // const gchar *working_directory
+		argv,    // gchar **argv
+		NULL,    // gchar **envp
+		G_SPAWN_SEARCH_PATH, // GSpawnFlags flags
+		NULL,    // GSpawnChildSetupFunc child_setup
+		NULL,    // gpointer user_data
+		NULL,    // gchar *standard_output
+		NULL,    // gchar *standard_output
+		&status, // gint *exit_status
+		&error); // GError **error
+	if (error) {
+		g_warning("GisPluginRadar: _decompress_radar - %s", error->message);
+		g_error_free(error);
+		return NULL;
+	}
+	if (status != 0) {
+		gchar *msg = g_strdup_printf("wsr88ddec exited with status %d", status);
+		g_warning("GisPluginRadar: _decompress_radar - %s", msg);
+		g_free(msg);
+		return NULL;
+	}
+	return decompressed;
+}
+
+
+/****************
+ * Misc helpers *
+ ****************/
+/* Set the radar file based on cur_site andcur_time
+ * This should be run in a separatet hread */
+static gboolean _set_radar_cb(GisPluginRadar *self)
+{
+	g_debug("GisPluginRadar: _set_radar_cb");
+
+	_load_gui_pre(self);
+
+	/* Download and decompress the radar */
+	gchar *compressed = _download_radar(self,
+			self->cur_site, self->cur_time);
+	if (!compressed) {
+		_load_gui_error(self, "Download failed");
+		goto fail;
+	}
+
+	/* Decompress radar */
+	gchar *decompressed = _decompress_radar(self, compressed);
+	g_free(compressed);
+	if (!decompressed) {
+		_load_gui_error(self, "Decompression failed");
+		goto fail;
+	}
+
+	/* Load the radar file */
+	g_debug("GisPluginRadar: _set_radar_cb - loading %s", decompressed);
+	RSL_read_these_sweeps("all", NULL);
+	self->cur_radar = RSL_wsr88d_to_radar(decompressed, self->cur_site);
+	g_free(decompressed);
+	if (!self->cur_radar) {
+		_load_gui_error(self, "Loading failed");
+		goto fail;
+	}
+
+	/* Load the first sweep by default */
+	Radar *radar = self->cur_radar;
+	Sweep *sweep = NULL;
+	gchar *type_str = NULL;
+	for (int vi = 0; vi < radar->h.nvolumes; vi++) {
+		if (radar->v[vi] == NULL)
+			continue;
+		for (int si = 0; si < radar->v[vi]->h.nsweeps; si++) {
+			if (radar->v[vi]->sweep[si] == NULL)
+				continue;
+			sweep    = radar->v[vi]->sweep[si];
+			type_str = radar->v[vi]->h.type_str;
+			break;
+		}
+		break;
+	}
+	if (!type_str) {
+		_load_gui_error(self, "No sweeps found");
+		goto fail;
+	}
+
+	/* Load weep */
+	g_debug("GisPluginRadar: _set_radar_cb - setting sweep");
+	self->cur_sweep = sweep;
+	_load_colormap(self, type_str);
+	g_idle_add(_load_sweep, self);
+	_load_gui_success(self, radar);
+
+	/* Let other threads go */
+	g_mutex_unlock(self->load_mutex);
+	return TRUE;
+
+fail:
+	g_mutex_unlock(self->load_mutex);
+	return TRUE;
+}
+
+static void _set_radar(GisPluginRadar *self,
+		gchar *site, gchar *time)
+{
+	if (site) self->cur_site = site;
+	if (time) self->cur_time = time;
+	if (!self->cur_site || !self->cur_time)
+		return;
+
+	/* Abort any current downloads */
+	soup_session_abort(self->http->soup);
+
+	g_mutex_lock(self->load_mutex);
+
+	g_thread_create((GThreadFunc)_set_radar_cb, self, FALSE, NULL);
 }
 
 
@@ -330,17 +403,16 @@ static void _set_radar(GisPluginRadar *self, const char *site, const char *time)
 static void _on_sweep_clicked(GtkRadioButton *button, gpointer _self)
 {
 	GisPluginRadar *self = GIS_PLUGIN_RADAR(_self);
-	_load_colormap(self, g_object_get_data(G_OBJECT(button), "type" ));
-	_load_sweep   (self, g_object_get_data(G_OBJECT(button), "sweep"));
+	_load_colormap(self, g_object_get_data(G_OBJECT(button), "type"));
+	self->cur_sweep = g_object_get_data(G_OBJECT(button), "sweep");
+	_load_sweep(self);
 }
 
 static void _on_time_changed(GisViewer *viewer, const char *time, gpointer _self)
 {
 	g_debug("GisPluginRadar: _on_time_changed");
 	GisPluginRadar *self = GIS_PLUGIN_RADAR(_self);
-	g_free(self->cur_time);
-	self->cur_time = g_strdup(time);
-	_set_radar(self, self->cur_site, self->cur_time);
+	_set_radar(self, self->cur_site, g_strdup(time));
 }
 
 static void _on_location_changed(GisViewer *viewer,
@@ -367,10 +439,8 @@ static void _on_location_changed(GisViewer *viewer,
 		}
 	}
 	static city_t *last_city = NULL;
-	if (min_city && min_city != last_city) {
-		self->cur_site = min_city->code;
-		_set_radar(self, self->cur_site, self->cur_time);
-	}
+	if (min_city && min_city != last_city)
+		_set_radar(self, min_city->code, self->cur_time);
 	last_city = min_city;
 }
 
@@ -540,6 +610,7 @@ static void gis_plugin_radar_init(GisPluginRadar *self)
 	/* Set defaults */
 	self->http = gis_http_new("/nexrad/level2/");
 	self->config_body = gtk_alignment_new(0, 0, 1, 1);
+	self->load_mutex = g_mutex_new();
 	gtk_container_set_border_width(GTK_CONTAINER(self->config_body), 5);
 	gtk_container_add(GTK_CONTAINER(self->config_body), gtk_label_new("No radar loaded"));
 }
@@ -557,6 +628,7 @@ static void gis_plugin_radar_finalize(GObject *gobject)
 	GisPluginRadar *self = GIS_PLUGIN_RADAR(gobject);
 	/* Free data */
 	gis_http_free(self->http);
+	g_mutex_free(self->load_mutex);
 	G_OBJECT_CLASS(gis_plugin_radar_parent_class)->finalize(gobject);
 
 }

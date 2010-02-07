@@ -54,6 +54,7 @@ struct _GisPluginRadar {
 	guint        location_changed_id;
 
 	/* Private data for loading radars */
+	GMutex      *load_mutex;
 	char        *cur_site;
 	char        *cur_time;
 	Radar       *cur_radar;
