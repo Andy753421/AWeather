@@ -121,11 +121,11 @@ static gboolean _decompress_radar(const gchar *file, const gchar *raw)
 /*********************
  * Drawing functions *
  *********************/
-static gpointer _draw_radar(GisCallback *_self, gpointer _viewer)
+static void _draw_radar(GisCallback *_self, gpointer _viewer)
 {
 	AWeatherLevel2 *self = AWEATHER_LEVEL2(_self);
 	if (!self->sweep || !self->sweep_tex)
-		return NULL;
+		return;
 
 	/* Draw wsr88d */
 	Sweep *sweep = self->sweep;
@@ -186,8 +186,6 @@ static gpointer _draw_radar(GisCallback *_self, gpointer _viewer)
 	//glTexCoord2d( 1.,  1.); glVertex3f( 0.,   500., 3.); // top right
 	//glTexCoord2d( 1.,  0.); glVertex3f( 0.,     0., 3.); // bot right
 	//glEnd();
-
-	return NULL;
 }
 
 

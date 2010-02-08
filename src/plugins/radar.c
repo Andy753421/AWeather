@@ -31,11 +31,11 @@
 #include "../aweather-location.h"
 
 /* Drawing functions */
-static gpointer _draw_hud(GisCallback *callback, gpointer _self)
+static void _draw_hud(GisCallback *callback, gpointer _self)
 {
 	GisPluginRadar *self = GIS_PLUGIN_RADAR(_self);
 	if (!self->colormap)
-		return NULL;
+		return;
 
 	g_debug("GisPluginRadar: _draw_hud");
 	/* Print the color table */
@@ -56,8 +56,6 @@ static gpointer _draw_hud(GisCallback *callback, gpointer _self)
 		glVertex3f(-0.9, (float)((i  ) - 256/2)/(256/2), 0.0); // bot right
 	}
 	glEnd();
-
-	return NULL;
 }
 
 

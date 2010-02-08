@@ -22,12 +22,15 @@
 #include "aweather-colormap.h"
 
 /* Level2 */
-#define AWEATHER_TYPE_LEVEL2 (aweather_level2_get_type())
+#define AWEATHER_TYPE_LEVEL2            (aweather_level2_get_type())
+#define AWEATHER_LEVEL2(obj)            (G_TYPE_CHECK_INSTANCE_CAST((obj),   AWEATHER_TYPE_LEVEL2, AWeatherLevel2))
+#define AWEATHER_IS_LEVEL2(obj)         (G_TYPE_CHECK_INSTANCE_TYPE((obj),   AWEATHER_TYPE_LEVEL2))
+#define AWEATHER_LEVEL2_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST   ((klass), AWEATHER_TYPE_LEVEL2, AWeatherLevel2Class))
+#define AWEATHER_IS_LEVEL2_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE   ((klass), AWEATHER_TYPE_LEVEL2))
+#define AWEATHER_LEVEL2_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj),   AWEATHER_TYPE_LEVEL2, AWeatherLevel2Class))
 
-GOBJECT_HEAD(
-	AWEATHER, LEVEL2,
-	AWeather, Level2,
-	aweather, level2);
+typedef struct _AWeatherLevel2      AWeatherLevel2;
+typedef struct _AWeatherLevel2Class AWeatherLevel2Class;
 
 struct _AWeatherLevel2 {
 	GisCallback       parent;
@@ -44,6 +47,8 @@ struct _AWeatherLevel2 {
 struct _AWeatherLevel2Class {
 	GisCallbackClass parent_class;
 };
+
+GType aweather_level2_get_type(void);
 
 AWeatherLevel2 *aweather_level2_new(GisViewer *viewer,
 		AWeatherColormap *colormap, Radar *radar);
