@@ -52,6 +52,7 @@ struct _GisPluginRadar {
 	GtkWidget *progress_label;
 
 	/* Radar lists */
+	GMutex    *load_mutex;
 	AWeatherColormap *colormap;
 	gpointer   radar;
 	gchar     *cur_site;

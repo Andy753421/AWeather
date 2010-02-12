@@ -215,7 +215,6 @@ static gpointer _set_radar_cb(gpointer _data)
 	struct SetRadarData *data = _data;
 	GisPluginRadar *self = data->self;
 
-	gdk_threads_enter();
 	_load_gui_pre(self);
 	if (self->radar) {
 		gis_viewer_remove(self->viewer, self->radar);
@@ -238,24 +237,23 @@ static gpointer _set_radar_cb(gpointer _data)
 	_load_gui_success(self, level2);
 
 out:
-	gdk_threads_leave();
 	g_free(file);
 	g_free(data->site);
 	g_free(data->time);
 	g_free(data);
+	g_mutex_unlock(self->load_mutex);
 	return NULL;
 }
 static void _set_radar(GisPluginRadar *self, const gchar *site, const gchar *time)
 {
 	if (!site || !time)
 		return;
-	//soup_session_abort(self->http->soup);
-	//g_mutex_lock(self->load_mutex);
 	struct SetRadarData *data = g_new(struct SetRadarData, 1);
 	data->self = self;
 	data->site = g_strdup(site);
 	data->time = g_strdup(time);
-	g_thread_create(_set_radar_cb, data, FALSE, NULL);
+	if (g_mutex_trylock(self->load_mutex))
+		g_thread_create(_set_radar_cb, data, FALSE, NULL);
 }
 
 /*************
@@ -371,7 +369,7 @@ static void gis_plugin_radar_init(GisPluginRadar *self)
 	/* Set defaults */
 	self->http = gis_http_new("/nexrad/level2/");
 	self->config_body = gtk_alignment_new(0, 0, 1, 1);
-	//self->load_mutex = g_mutex_new();
+	self->load_mutex = g_mutex_new();
 	gtk_container_set_border_width(GTK_CONTAINER(self->config_body), 5);
 	gtk_container_add(GTK_CONTAINER(self->config_body), gtk_label_new("No radar loaded"));
 }
@@ -389,7 +387,7 @@ static void gis_plugin_radar_finalize(GObject *gobject)
 	GisPluginRadar *self = GIS_PLUGIN_RADAR(gobject);
 	/* Free data */
 	gis_http_free(self->http);
-	//g_mutex_free(self->load_mutex);
+	g_mutex_free(self->load_mutex);
 	G_OBJECT_CLASS(gis_plugin_radar_parent_class)->finalize(gobject);
 
 }
