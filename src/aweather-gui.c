@@ -353,13 +353,11 @@ static void update_times(AWeatherGui *self, GisViewer *viewer, char *site)
 		g_free(path);
 		update_times_gtk(self, times);
 	} else {
-		GisHttp *http = gis_http_new("/nexrad/level2/");
 		gchar *base  = gis_prefs_get_string(self->prefs, "aweather/nexrad_url", NULL);
 		gchar *local = g_strdup_printf("%s/dir.list", site);
 		gchar *uri   = g_strconcat(base, "/", local, NULL);
-		gchar *path  = gis_http_fetch(http, uri, local, GIS_REFRESH, NULL, NULL);
+		gchar *path  = gis_http_fetch(self->http, uri, local, GIS_REFRESH, NULL, NULL);
 		update_times_online_cb(path, TRUE, self);
-		gis_http_free(http);
 		/* update_times_gtk from update_times_online_cb */
 	}
 }
@@ -527,6 +525,7 @@ static void aweather_gui_init(AWeatherGui *self)
 			aweather_gui_get_object(self, "offline"));
 
 	/* deprecated site stuff */
+	self->http = gis_http_new("/nexrad/level2/");
 	g_signal_connect(self->viewer, "location-changed",
 			G_CALLBACK(on_gis_location_changed), self);
 	g_signal_connect(self->viewer, "refresh",
@@ -562,6 +561,10 @@ static void aweather_gui_dispose(GObject *_self)
 	if (self->prefs) {
 		g_object_unref(self->prefs);
 		self->prefs = NULL;
+	}
+	if (self->http) {
+		gis_http_free(self->http);
+		self->http = NULL;
 	}
 	G_OBJECT_CLASS(aweather_gui_parent_class)->dispose(_self);
 }
