@@ -22,6 +22,7 @@
 #include <gis.h>
 
 #include "aweather-gui.h"
+#include "aweather-location.h"
 
 static gint log_levels = 0;
 
@@ -95,6 +96,13 @@ int main(int argc, char *argv[])
 
 	GObject *action = aweather_gui_get_object(gui, "prefs_general_log");
 	g_signal_connect(action, "changed", G_CALLBACK(on_log_level_changed), NULL);
+
+	/* set locaiton */
+	for (city_t *city = cities; city->type; city++)
+		if (city->type == LOCATION_CITY && g_str_equal(city->code, site)) {
+			gis_viewer_set_location(gui->viewer, city->lat, city->lon, EARTH_R/20);
+			break;
+		}
 
 	gtk_widget_show_all(GTK_WIDGET(gui));
 	gtk_main();
