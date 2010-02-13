@@ -11,7 +11,7 @@ pixmapdir = $(datadir)/pixmaps
 dist_pixmap_DATA = aweather.png
 
 .svg.png:
-	convert $< $@
+	rsvg $< $@
 
 maintainer-clean-local:
 	rm -f Makefile.in
