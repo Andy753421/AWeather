@@ -95,26 +95,8 @@ void on_time_changed(GtkTreeView *view, GtkTreePath *path,
 	GtkTreeModel *model = gtk_tree_view_get_model(view);
 	gtk_tree_model_get_iter(model, &iter, path);
 	gtk_tree_model_get(model, &iter, 0, &time, -1);
-	gis_viewer_set_time(self->viewer, time);
+	//gis_viewer_set_time(self->viewer, time);
 	g_free(time);
-}
-
-void on_site_changed(GtkComboBox *combo, AWeatherGui *self)
-{
-	gchar *site;
-	GtkTreeIter iter;
-	GtkTreeModel *model = gtk_combo_box_get_model(combo);
-	gtk_combo_box_get_active_iter(combo, &iter);
-	gtk_tree_model_get(model, &iter, 1, &site, -1);
-	city_t *city;
-	for (city = cities; city->type; city++)
-		if (city->code && g_str_equal(city->code, site)) {
-			gis_viewer_set_location(self->viewer,
-					city->lat, city->lon, EARTH_R/20);
-			gis_viewer_set_rotation(self->viewer, 0, 0, 0);
-			break;
-		}
-	g_free(site);
 }
 
 static gboolean gtk_tree_model_find_string(GtkTreeModel *model,
@@ -148,27 +130,8 @@ static void update_time_widget(GisViewer *viewer, const char *time, AWeatherGui 
 	GtkTreeIter iter;
 	if (gtk_tree_model_find_string(model, &iter, NULL, 0, time)) {
 		GtkTreePath *path = gtk_tree_model_get_path(model, &iter);
-		g_signal_handlers_block_by_func(tview,
-				G_CALLBACK(on_site_changed), self);
 		gtk_tree_view_set_cursor(tview, path, NULL, FALSE);
-		g_signal_handlers_unblock_by_func(tview,
-				G_CALLBACK(on_site_changed), self);
 		gtk_tree_path_free(path);
-	}
-}
-
-static void update_site_widget(GisViewer *viewer, char *site, AWeatherGui *self)
-{
-	g_debug("AWeatherGui: update_site_widget - site=%s", site);
-	GtkComboBox  *combo = GTK_COMBO_BOX(aweather_gui_get_widget(self, "main_site"));
-	GtkTreeModel *model = GTK_TREE_MODEL(gtk_combo_box_get_model(combo));
-	GtkTreeIter iter;
-	if (gtk_tree_model_find_string(model, &iter, NULL, 1, site)) {
-		g_signal_handlers_block_by_func(combo,
-				G_CALLBACK(on_site_changed), self);
-		gtk_combo_box_set_active_iter(combo, &iter);
-		g_signal_handlers_unblock_by_func(combo,
-				G_CALLBACK(on_site_changed), self);
 	}
 }
 
@@ -178,18 +141,6 @@ void on_offline(GtkToggleAction *action, AWeatherGui *self)
 	gboolean value = gtk_toggle_action_get_active(action);
 	g_debug("AWeatherGui: on_offline - offline=%d", value);
 	gis_viewer_set_offline(self->viewer, value);
-}
-
-void on_initial_site_changed(GtkComboBox *combo, AWeatherGui *self)
-{
-	gchar *site;
-	GtkTreeIter iter;
-	GtkTreeModel *model = gtk_combo_box_get_model(combo);
-	gtk_combo_box_get_active_iter(combo, &iter);
-	gtk_tree_model_get(model, &iter, 1, &site, -1);
-	g_debug("AWeatherGui: on_initial_site_changed - site=%s", site);
-	gis_prefs_set_string(self->prefs, "aweather/initial_site", site);
-	g_free(site);
 }
 
 void on_nexrad_url_changed(GtkEntry *entry, AWeatherGui *self)
@@ -251,28 +202,6 @@ static void combo_sensitive(GtkCellLayout *cell_layout, GtkCellRenderer *cell,
 	g_object_set(cell, "sensitive", sensitive, NULL);
 }
 
-static void site_setup(AWeatherGui *self)
-{
-	GtkTreeIter state, city;
-	GtkTreeStore *store = GTK_TREE_STORE(aweather_gui_get_object(self, "sites"));
-	for (int i = 0; cities[i].label; i++) {
-		if (cities[i].type == LOCATION_STATE) {
-			gtk_tree_store_append(store, &state, NULL);
-			gtk_tree_store_set   (store, &state, 0, cities[i].label,
-					                     1, cities[i].code,  -1);
-		} else {
-			gtk_tree_store_append(store, &city, &state);
-			gtk_tree_store_set   (store, &city, 0, cities[i].label,
-				                            1, cities[i].code,  -1);
-		}
-	}
-
-	GtkWidget *combo    = aweather_gui_get_widget(self, "main_site");
-	GObject   *renderer = aweather_gui_get_object(self, "main_site_rend");
-	gtk_cell_layout_set_cell_data_func(GTK_CELL_LAYOUT(combo),
-			GTK_CELL_RENDERER(renderer), combo_sensitive, NULL, NULL);
-}
-
 static void time_setup(AWeatherGui *self)
 {
 	GtkTreeView       *tview = GTK_TREE_VIEW(aweather_gui_get_widget(self, "main_time"));
@@ -285,120 +214,6 @@ static void time_setup(AWeatherGui *self)
 
 	g_signal_connect(self->viewer, "time-changed",
 			G_CALLBACK(update_time_widget), self);
-}
-
-
-/*************************
- * Deprecated site stuff *
- *************************/
-/* TODO: These update times functions are getting ugly... */
-static void update_times_gtk(AWeatherGui *self, GList *times)
-{
-	gchar *last_time = NULL;
-	GRegex *regex = g_regex_new("^[A-Z]{4}_([0-9]{8}_[0-9]{4})$", 0, 0, NULL); // KLSX_20090622_2113
-	GMatchInfo *info;
-
-	GtkTreeView  *tview  = GTK_TREE_VIEW(aweather_gui_get_widget(self, "main_time"));
-	GtkListStore *lstore = GTK_LIST_STORE(gtk_tree_view_get_model(tview));
-	gtk_list_store_clear(lstore);
-	GtkTreeIter iter;
-	times = g_list_reverse(times);
-	for (GList *cur = times; cur; cur = cur->next) {
-		if (g_regex_match(regex, cur->data, 0, &info)) {
-			gchar *time = g_match_info_fetch(info, 1);
-			gtk_list_store_insert(lstore, &iter, 0);
-			gtk_list_store_set(lstore, &iter, 0, time, -1);
-			last_time = time;
-		}
-	}
-
-	gis_viewer_set_time(self->viewer, last_time);
-
-	g_regex_unref(regex);
-	g_list_foreach(times, (GFunc)g_free, NULL);
-	g_list_free(times);
-}
-static void update_times_online_cb(char *path, gboolean updated, gpointer _self)
-{
-	GList *times = NULL;
-	gchar *data;
-	gsize length;
-	g_file_get_contents(path, &data, &length, NULL);
-	gchar **lines = g_strsplit(data, "\n", -1);
-	for (int i = 0; lines[i] && lines[i][0]; i++) {
-		char **parts = g_strsplit(lines[i], " ", 2);
-		times = g_list_prepend(times, g_strdup(parts[1]));
-		g_strfreev(parts);
-	}
-	g_strfreev(lines);
-	g_free(data);
-
-	update_times_gtk(_self, times);
-}
-static void update_times(AWeatherGui *self, GisViewer *viewer, char *site)
-{
-	g_debug("AWeatherGui: update_times - site=%s", site);
-	if (gis_viewer_get_offline(self->viewer)) {
-		GList *times = NULL;
-		gchar *path = g_build_filename(g_get_user_cache_dir(),
-				"libgis", "nexrad", "level2", site, NULL);
-		GDir *dir = g_dir_open(path, 0, NULL);
-		if (dir) {
-			const gchar *name;
-			while ((name = g_dir_read_name(dir))) {
-				times = g_list_prepend(times, g_strdup(name));
-			}
-			g_dir_close(dir);
-		}
-		g_free(path);
-		update_times_gtk(self, times);
-	} else {
-		gchar *base  = gis_prefs_get_string(self->prefs, "aweather/nexrad_url", NULL);
-		gchar *local = g_strdup_printf("%s/dir.list", site);
-		gchar *uri   = g_strconcat(base, "/", local, NULL);
-		gchar *path  = gis_http_fetch(self->http, uri, local, GIS_REFRESH, NULL, NULL);
-		update_times_online_cb(path, TRUE, self);
-		/* update_times_gtk from update_times_online_cb */
-	}
-}
-/* FIXME: This is redundent with the radar plugin
- *        Make a shared wsr88d file? */
-static void on_gis_location_changed(GisViewer *viewer,
-		gdouble lat, gdouble lon, gdouble elev,
-		gpointer _self)
-{
-	AWeatherGui *self = AWEATHER_GUI(_self);
-	gdouble min_dist = EARTH_R / 5;
-	city_t *city, *min_city = NULL;
-	for (city = cities; city->type; city++) {
-		if (city->type != LOCATION_CITY)
-			continue;
-		gdouble city_loc[3] = {};
-		gdouble eye_loc[3]  = {lat, lon, elev};
-		lle2xyz(city->lat, city->lon, city->elev,
-				&city_loc[0], &city_loc[1], &city_loc[2]);
-		lle2xyz(lat, lon, elev,
-				&eye_loc[0], &eye_loc[1], &eye_loc[2]);
-		gdouble dist = distd(city_loc, eye_loc);
-		if (dist < min_dist) {
-			min_dist = dist;
-			min_city = city;
-		}
-	}
-	static city_t *last_city = NULL;
-	if (min_city && min_city != last_city) {
-		update_site_widget(self->viewer, min_city->code, self);
-		update_times(self, viewer, min_city->code);
-	}
-	last_city = min_city;
-}
-static void on_gis_refresh(GisViewer *viewer, gpointer _self)
-{
-	AWeatherGui *self = AWEATHER_GUI(_self);
-	gdouble lat, lon, elev;
-	gis_viewer_get_location(self->viewer, &lat, &lon, &elev);
-	/* Hack to update times */
-	on_gis_location_changed(self->viewer, lat, lon, elev, self);
 }
 
 
@@ -512,7 +327,6 @@ static void aweather_gui_init(AWeatherGui *self)
 	}
 
 	/* Misc, helpers */
-	site_setup(self);
 	time_setup(self);
 	prefs_setup(self);
 
@@ -523,13 +337,6 @@ static void aweather_gui_init(AWeatherGui *self)
 	g_signal_connect_swapped(self->viewer, "offline",
 			G_CALLBACK(gtk_toggle_action_set_active),
 			aweather_gui_get_object(self, "offline"));
-
-	/* deprecated site stuff */
-	self->http = gis_http_new("/nexrad/level2/");
-	g_signal_connect(self->viewer, "location-changed",
-			G_CALLBACK(on_gis_location_changed), self);
-	g_signal_connect(self->viewer, "refresh",
-			G_CALLBACK(on_gis_refresh), self);
 }
 static GObject *aweather_gui_constructor(GType gtype, guint n_properties,
 		GObjectConstructParam *properties)
@@ -561,10 +368,6 @@ static void aweather_gui_dispose(GObject *_self)
 	if (self->prefs) {
 		g_object_unref(self->prefs);
 		self->prefs = NULL;
-	}
-	if (self->http) {
-		gis_http_free(self->http);
-		self->http = NULL;
 	}
 	G_OBJECT_CLASS(aweather_gui_parent_class)->dispose(_self);
 }

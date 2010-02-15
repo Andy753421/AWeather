@@ -43,9 +43,6 @@ struct _AWeatherGui {
 	GisPlugins   *plugins;
 	GisPrefs     *prefs;
 	GtkListStore *gtk_plugins;
-
-	/* Deprecated */
-	GisHttp *http;
 };
 
 struct _AWeatherGuiClass {

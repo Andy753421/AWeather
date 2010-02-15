@@ -2,26 +2,20 @@
 <interface>
   <requires lib="gtk+" version="2.16"/>
   <!-- interface-naming-policy project-wide -->
-  <object class="GtkListStore" id="times">
-    <columns>
-      <!-- column-name time -->
-      <column type="gchararray"/>
-    </columns>
-  </object>
-  <object class="GtkTreeStore" id="sites">
-    <columns>
-      <!-- column-name label -->
-      <column type="gchararray"/>
-      <!-- column-name code -->
-      <column type="gchararray"/>
-    </columns>
-  </object>
   <object class="GtkListStore" id="plugins">
     <columns>
       <!-- column-name plugin -->
       <column type="gchararray"/>
       <!-- column-name enabled -->
       <column type="gboolean"/>
+    </columns>
+  </object>
+  <object class="GtkListStore" id="times">
+    <columns>
+      <!-- column-name time -->
+      <column type="glong"/>
+      <!-- column-name string -->
+      <column type="gchararray"/>
     </columns>
   </object>
   <object class="GtkWindow" id="main_window">
@@ -261,29 +255,21 @@
                     <property name="orientation">vertical</property>
                     <property name="spacing">5</property>
                     <child>
-                      <object class="GtkExpander" id="main_site_0">
+                      <object class="GtkExpander" id="main_date_0">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
-                        <property name="expanded">True</property>
                         <property name="use_markup">True</property>
                         <child>
-                          <object class="GtkComboBox" id="main_site">
+                          <object class="GtkCalendar" id="main_date_cal">
                             <property name="visible">True</property>
-                            <property name="model">sites</property>
-                            <property name="add_tearoffs">True</property>
-                            <signal name="changed" handler="on_site_changed"/>
-                            <child>
-                              <object class="GtkCellRendererText" id="main_site_rend"/>
-                              <attributes>
-                                <attribute name="text">0</attribute>
-                              </attributes>
-                            </child>
+                            <property name="can_focus">True</property>
+                            <signal name="day_selected" handler="on_time_changed"/>
                           </object>
                         </child>
                         <child type="label">
-                          <object class="GtkLabel" id="main_site_label">
+                          <object class="GtkLabel" id="main_date_label">
                             <property name="visible">True</property>
-                            <property name="label" translatable="yes">&lt;b&gt;Site&lt;/b&gt;</property>
+                            <property name="label" translatable="yes">&lt;b&gt;Date&lt;/b&gt;</property>
                             <property name="use_markup">True</property>
                           </object>
                         </child>
@@ -459,7 +445,6 @@
                                 <child>
                                   <object class="GtkComboBox" id="prefs_general_site">
                                     <property name="visible">True</property>
-                                    <property name="model">sites</property>
                                     <signal name="changed" handler="on_initial_site_changed"/>
                                     <child>
                                       <object class="GtkCellRendererText" id="prefs_general_site_rend"/>
