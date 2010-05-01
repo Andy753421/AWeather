@@ -7,8 +7,10 @@ AC_CONFIG_MACRO_DIR([m4])
 
 # Check for required programs
 AC_PROG_CC
+gl_EARLY
 AC_PROG_LIBTOOL
 PKG_PROG_PKG_CONFIG
+gl_INIT
 
 # Check for required packages
 PKG_CHECK_MODULES(GLIB, glib-2.0)
@@ -22,6 +24,7 @@ AC_SUBST(RSL_LIBS)
 # Output 
 AC_CONFIG_FILES([
 	Makefile
+	lib/Makefile
 	src/Makefile
 	src/plugins/Makefile
 	data/Makefile

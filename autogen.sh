@@ -1,10 +1,12 @@
 #!/bin/sh
 
+gnulib-tool --no-vc-files --import strptime
+
 libtoolize
-aclocal
+aclocal -I m4
+autoconf
 autoheader
 automake -a -c
-autoconf
 
 # Run configure
 ./configure "$@"

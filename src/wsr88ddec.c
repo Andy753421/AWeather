@@ -67,8 +67,8 @@ int main(int argc, char **argv)
 		return 0;
 	}
 
-	FILE *input  = fopen(argv[1], "r");
-	FILE *output = fopen(argv[2], "w+");
+	FILE *input  = fopen(argv[1], "rb");
+	FILE *output = fopen(argv[2], "wb+");
 	if (!input)  g_error("error opening input");
 	if (!output) g_error("error opening output");
 

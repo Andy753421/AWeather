@@ -1,6 +1,9 @@
 *.bz2
 *.gz
 *~
+/arg-nonnull.h
+/c++defs.h
+/warn-on-use.h
 Makefile
 Makefile.in
 aclocal.m4
@@ -18,6 +21,7 @@ depcomp
 gmon.out
 gtk-doc.make
 install-sh
+lib
 libtool
 local
 ltmain.sh
