@@ -18,6 +18,8 @@
 #ifndef __LOCATION_H__
 #define __LOCATION_H__
 
+#include "gis-util.h"
+
 enum {
 	LOCATION_END,
 	LOCATION_CITY,
@@ -28,9 +30,8 @@ typedef struct {
 	int type;
 	char *code;
 	char *label;
-	double lat;
-	double lon;
-	double elev;
+	GisPoint pos;
+	gdouble lod;
 } city_t;
 
 extern city_t cities[];

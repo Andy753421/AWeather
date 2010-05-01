@@ -100,7 +100,8 @@ int main(int argc, char *argv[])
 	/* set locaiton */
 	for (city_t *city = cities; city->type; city++)
 		if (city->type == LOCATION_CITY && g_str_equal(city->code, site)) {
-			gis_viewer_set_location(gui->viewer, city->lat, city->lon, EARTH_R/20);
+			gis_viewer_set_location(gui->viewer,
+				city->pos.lat, city->pos.lon, EARTH_R/25);
 			break;
 		}
 

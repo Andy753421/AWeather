@@ -290,7 +290,7 @@ static void _on_location_changed(GisViewer *viewer,
 			continue;
 		gdouble city_loc[3] = {};
 		gdouble eye_loc[3]  = {lat, lon, elev};
-		lle2xyz(city->lat, city->lon, city->elev,
+		lle2xyz(city->pos.lat, city->pos.lon, city->pos.elev,
 				&city_loc[0], &city_loc[1], &city_loc[2]);
 		lle2xyz(lat, lon, elev,
 				&eye_loc[0], &eye_loc[1], &eye_loc[2]);
@@ -329,9 +329,8 @@ GisPluginRadar *gis_plugin_radar_new(GisViewer *viewer, GisPrefs *prefs)
 			continue;
 		g_debug("Adding marker for %s %s", city->code, city->label);
 		GisMarker *marker = gis_marker_new(city->label);
-		gis_point_set_lle(gis_object_center(GIS_OBJECT(marker)),
-				city->lat, city->lon, city->elev);
-		GIS_OBJECT(marker)->lod = EARTH_R/2;
+		GIS_OBJECT(marker)->center = city->pos;
+		GIS_OBJECT(marker)->lod    = EARTH_R*city->lod;
 		gis_viewer_add(self->viewer, GIS_OBJECT(marker), GIS_LEVEL_OVERLAY, FALSE);
 	}
 
