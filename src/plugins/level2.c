@@ -200,6 +200,7 @@ static gboolean _set_sweep_cb(gpointer _self)
 		glDeleteTextures(1, &self->sweep_tex);
 	_load_sweep_gl(self->sweep, self->sweep_colors, &self->sweep_tex);
 	gtk_widget_queue_draw(GTK_WIDGET(self->viewer));
+	g_object_unref(self);
 	return FALSE;
 }
 void aweather_level2_set_sweep(AWeatherLevel2 *self,
@@ -221,6 +222,7 @@ void aweather_level2_set_sweep(AWeatherLevel2 *self,
 	if (!self->sweep_colors) return;
 
 	/* Load data */
+	g_object_ref(self);
 	g_idle_add(_set_sweep_cb, self);
 }
 
@@ -276,8 +278,19 @@ static void aweather_level2_init(AWeatherLevel2 *self)
 	GIS_CALLBACK(self)->callback  = _draw_radar;
 	GIS_CALLBACK(self)->user_data = self;
 }
-
+static void aweather_level2_dispose(GObject *_self)
+{
+	g_debug("AWeatherLevel2: dispose - %p", _self);
+	G_OBJECT_CLASS(aweather_level2_parent_class)->dispose(_self);
+}
+static void aweather_level2_finalize(GObject *_self)
+{
+	g_debug("AWeatherLevel2: finalize - %p", _self);
+	G_OBJECT_CLASS(aweather_level2_parent_class)->finalize(_self);
+}
 static void aweather_level2_class_init(AWeatherLevel2Class *klass)
 {
+	G_OBJECT_CLASS(klass)->finalize = aweather_level2_finalize;
+	G_OBJECT_CLASS(klass)->dispose  = aweather_level2_dispose;
 }
 

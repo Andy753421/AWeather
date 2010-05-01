@@ -18,6 +18,7 @@
 #include <config.h>
 #include <gtk/gtk.h>
 #include <gtk/gtkgl.h>
+#include <glib/gstdio.h>
 
 #include <gis.h>
 
@@ -29,8 +30,13 @@ static gint log_levels = 0;
 static void log_func(const gchar *log_domain, GLogLevelFlags log_level,
               const gchar *message, gpointer udata)
 {
-	if (log_level & log_levels)
-		g_log_default_handler(log_domain, log_level, message, udata);
+	if (log_level & log_levels) {
+		if (log_level == G_LOG_LEVEL_DEBUG)
+			g_fprintf(stderr, "DEBUG: (%p) %s\n",
+					g_thread_self(), message);
+		else
+			g_log_default_handler(log_domain, log_level, message, udata);
+	}
 }
 
 static void on_log_level_changed(GtkSpinButton *spinner, AWeatherGui *self)
@@ -68,6 +74,7 @@ int main(int argc, char *argv[])
 	/* Init */
 	GError *error = NULL;
 	g_thread_init(NULL);
+	gdk_threads_init();
 	if (!gtk_init_with_args(&argc, &argv, "aweather", entries, NULL, &error)) {
 		g_print("%s\n", error->message);
 		g_error_free(error);
@@ -81,7 +88,8 @@ int main(int argc, char *argv[])
 	g_log_set_handler(NULL, G_LOG_LEVEL_MASK, log_func, NULL);
 
 	/* Set up AWeather */
-	AWeatherGui *gui    = aweather_gui_new();
+	gdk_threads_enter();
+	AWeatherGui *gui = aweather_gui_new();
 
 	gint     prefs_debug   = gis_prefs_get_integer(gui->prefs, "aweather/log_level", NULL);
 	gchar   *prefs_site    = gis_prefs_get_string(gui->prefs,  "aweather/initial_site", NULL);
@@ -107,5 +115,6 @@ int main(int argc, char *argv[])
 
 	gtk_widget_show_all(GTK_WIDGET(gui));
 	gtk_main();
+	gdk_threads_leave();
 	return 0;
 }
