@@ -74,7 +74,6 @@ static void _load_sweep_gl(Sweep *sweep, AWeatherColormap *colormap, guint *tex)
 	int height, width;
 	guint8 *data;
 	_bscan_sweep(sweep, colormap, &data, &width, &height);
-	glGenTextures(1, tex);
 	glBindTexture(GL_TEXTURE_2D, *tex);
 	glPixelStorei(GL_PACK_ALIGNMENT, 1);
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
@@ -145,7 +144,6 @@ static void _draw_radar(GisCallback *_self, gpointer _viewer)
 
 	/* Draw the rays */
 	glBindTexture(GL_TEXTURE_2D, self->sweep_tex);
-	g_message("Tex = %d", self->sweep_tex);
 	glBegin(GL_TRIANGLE_STRIP);
 	for (int ri = 0; ri <= sweep->h.nrays; ri++) {
 		Ray  *ray = NULL;
@@ -196,8 +194,8 @@ static gboolean _set_sweep_cb(gpointer _self)
 {
 	g_debug("AWeatherLevel2: _set_sweep_cb");
 	AWeatherLevel2 *self = _self;
-	if (self->sweep_tex)
-		glDeleteTextures(1, &self->sweep_tex);
+	if (!self->sweep_tex)
+		 glGenTextures(1, &self->sweep_tex);
 	_load_sweep_gl(self->sweep, self->sweep_colors, &self->sweep_tex);
 	gtk_widget_queue_draw(GTK_WIDGET(self->viewer));
 	g_object_unref(self);
@@ -370,7 +368,11 @@ static void aweather_level2_dispose(GObject *_self)
 }
 static void aweather_level2_finalize(GObject *_self)
 {
+	AWeatherLevel2 *self = AWEATHER_LEVEL2(_self);
 	g_debug("AWeatherLevel2: finalize - %p", _self);
+	RSL_free_radar(self->radar);
+	if (self->sweep_tex)
+		glDeleteTextures(1, &self->sweep_tex);
 	G_OBJECT_CLASS(aweather_level2_parent_class)->finalize(_self);
 }
 static void aweather_level2_class_init(AWeatherLevel2Class *klass)

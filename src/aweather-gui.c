@@ -153,6 +153,18 @@ void on_offline(GtkToggleAction *action, AWeatherGui *self)
 	gis_viewer_set_offline(self->viewer, value);
 }
 
+void on_initial_site_changed(GtkComboBox *combo, AWeatherGui *self)
+{
+	gchar *code;
+	GtkTreeIter iter;
+	GtkTreeModel *model = gtk_combo_box_get_model(combo);
+	gtk_combo_box_get_active_iter(combo, &iter);
+	gtk_tree_model_get(model, &iter, 0, &code, -1);
+	g_debug("AWeatherGui: on_initial_site_changed - code=%s", code);
+	gis_prefs_set_string(self->prefs, "aweather/initial_site", code);
+	g_free(code);
+}
+
 void on_nexrad_url_changed(GtkEntry *entry, AWeatherGui *self)
 {
 	const gchar *text = gtk_entry_get_text(entry);
@@ -172,6 +184,34 @@ int on_log_level_changed(GtkSpinButton *spinner, AWeatherGui *self)
 /*****************
  * Setup helpers *
  *****************/
+static void combo_sensitive(GtkCellLayout *cell_layout, GtkCellRenderer *cell,
+		GtkTreeModel *tree_model, GtkTreeIter *iter, gpointer data)
+{
+	gboolean sensitive = !gtk_tree_model_iter_has_child(tree_model, iter);
+	g_object_set(cell, "sensitive", sensitive, NULL);
+}
+static void site_setup(AWeatherGui *self)
+{
+	GtkTreeIter state, city;
+	GtkTreeStore *store = GTK_TREE_STORE(aweather_gui_get_object(self, "sites"));
+	for (int i = 0; cities[i].type; i++) {
+		if (cities[i].type == LOCATION_STATE) {
+			gtk_tree_store_append(store, &state, NULL);
+			gtk_tree_store_set   (store, &state, 0, cities[i].code,
+					                     1, cities[i].name, -1);
+		} else {
+			gtk_tree_store_append(store, &city, &state);
+			gtk_tree_store_set   (store, &city, 0, cities[i].code,
+				                            1, cities[i].name, -1);
+		}
+	}
+
+	GtkWidget *combo    = aweather_gui_get_widget(self, "prefs_general_site");
+	GObject   *renderer = aweather_gui_get_object(self, "prefs_general_site_rend");
+	gtk_cell_layout_set_cell_data_func(GTK_CELL_LAYOUT(combo),
+			GTK_CELL_RENDERER(renderer), combo_sensitive, NULL, NULL);
+}
+
 static void prefs_setup(AWeatherGui *self)
 {
 	/* Set values */
@@ -186,7 +226,7 @@ static void prefs_setup(AWeatherGui *self)
 	if (is) {
 		GtkTreeModel *model = gtk_combo_box_get_model(GTK_COMBO_BOX(isw));
 		GtkTreeIter iter;
-		if (gtk_tree_model_find_string(model, &iter, NULL, 1, is))
+		if (gtk_tree_model_find_string(model, &iter, NULL, 0, is))
 			gtk_combo_box_set_active_iter(GTK_COMBO_BOX(isw), &iter);
 	}
 
@@ -203,13 +243,6 @@ static void prefs_setup(AWeatherGui *self)
 	gtk_tree_view_append_column(tview, col2);
 	g_signal_connect(rend2, "toggled", G_CALLBACK(on_plugin_toggled), self);
 	gtk_tree_view_set_model(GTK_TREE_VIEW(tview), GTK_TREE_MODEL(self->gtk_plugins));
-}
-
-static void combo_sensitive(GtkCellLayout *cell_layout, GtkCellRenderer *cell,
-		GtkTreeModel *tree_model, GtkTreeIter *iter, gpointer data)
-{
-	gboolean sensitive = !gtk_tree_model_iter_has_child(tree_model, iter);
-	g_object_set(cell, "sensitive", sensitive, NULL);
 }
 
 static void time_setup(AWeatherGui *self)
@@ -355,6 +388,7 @@ static void aweather_gui_init(AWeatherGui *self)
 	}
 
 	/* Misc, helpers */
+	site_setup(self);
 	time_setup(self);
 	prefs_setup(self);
 
@@ -377,21 +411,13 @@ static void aweather_gui_dispose(GObject *_self)
 {
 	g_debug("AWeatherGui: dispose");
 	AWeatherGui *self = AWEATHER_GUI(_self);
-	if (self->builder) {
-		/* Reparent to avoid double unrefs */
-		GtkWidget *body   = aweather_gui_get_widget(self, "main_body");
-		GtkWidget *window = aweather_gui_get_widget(self, "main_window");
-		gtk_widget_reparent(body, window);
-		g_object_unref(self->builder);
-		self->builder = NULL;
-	}
-	if (self->viewer) {
-		g_object_unref(self->viewer);
-		self->viewer = NULL;
-	}
 	if (self->plugins) {
 		gis_plugins_free(self->plugins);
 		self->plugins = NULL;
+	}
+	if (self->builder) {
+		g_object_unref(self->builder);
+		self->builder = NULL;
 	}
 	if (self->prefs) {
 		g_object_unref(self->prefs);

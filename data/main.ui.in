@@ -20,6 +20,14 @@
       <column type="gint"/>
     </columns>
   </object>
+  <object class="GtkTreeStore" id="sites">
+    <columns>
+      <!-- column-name code -->
+      <column type="gchararray"/>
+      <!-- column-name name -->
+      <column type="gchararray"/>
+    </columns>
+  </object>
   <object class="GtkWindow" id="main_window">
     <property name="title" translatable="yes">AWeather</property>
     <child>
@@ -445,11 +453,12 @@
                                 <child>
                                   <object class="GtkComboBox" id="prefs_general_site">
                                     <property name="visible">True</property>
+                                    <property name="model">sites</property>
                                     <signal name="changed" handler="on_initial_site_changed"/>
                                     <child>
                                       <object class="GtkCellRendererText" id="prefs_general_site_rend"/>
                                       <attributes>
-                                        <attribute name="text">0</attribute>
+                                        <attribute name="text">1</attribute>
                                       </attributes>
                                     </child>
                                   </object>
@@ -893,9 +902,9 @@ The hypothetical commands `show w' and `show c' should show the appropriate part
   </object>
   <object class="GtkSizeGroup" id="prefs_general_size">
     <widgets>
-      <widget name="prefs_general_site_label"/>
-      <widget name="prefs_general_url_label"/>
       <widget name="prefs_general_log_label"/>
+      <widget name="prefs_general_url_label"/>
+      <widget name="prefs_general_site_label"/>
     </widgets>
   </object>
   <object class="GtkAdjustment" id="prefs_general_log_adj">

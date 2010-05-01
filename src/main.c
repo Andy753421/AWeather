@@ -46,6 +46,20 @@ static void on_log_level_changed(GtkSpinButton *spinner, AWeatherGui *self)
 	log_levels = (1 << (value+1))-1;
 }
 
+gboolean set_location(gpointer _gui)
+{
+	AWeatherGui *gui = _gui;
+	gchar *site = g_object_get_data(G_OBJECT(gui), "site");
+	for (city_t *city = cities; city->type; city++) {
+		if (city->type == LOCATION_CITY && g_str_equal(city->code, site)) {
+			gis_viewer_set_location(gui->viewer,
+				city->pos.lat, city->pos.lon, EARTH_R/25);
+			break;
+		}
+	}
+	return FALSE;
+}
+
 
 /********
  * Main *
@@ -105,16 +119,12 @@ int main(int argc, char *argv[])
 	GObject *action = aweather_gui_get_object(gui, "prefs_general_log");
 	g_signal_connect(action, "changed", G_CALLBACK(on_log_level_changed), NULL);
 
-	/* set locaiton */
-	for (city_t *city = cities; city->type; city++)
-		if (city->type == LOCATION_CITY && g_str_equal(city->code, site)) {
-			gis_viewer_set_location(gui->viewer,
-				city->pos.lat, city->pos.lon, EARTH_R/25);
-			break;
-		}
+	g_object_set_data(G_OBJECT(gui), "site", site);
+	g_idle_add(set_location, gui);
 
 	gtk_widget_show_all(GTK_WIDGET(gui));
 	gtk_main();
 	gdk_threads_leave();
+	gdk_display_close(gdk_display_get_default());
 	return 0;
 }

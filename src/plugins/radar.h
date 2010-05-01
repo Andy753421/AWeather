@@ -45,6 +45,7 @@ struct _GisPluginRadar {
 	GisPrefs   *prefs;
 	GtkWidget  *config;
 	AWeatherColormap *colormap;
+	gpointer    *hud_ref;
 
 	GHashTable *sites;
 	GisHttp    *sites_http;
