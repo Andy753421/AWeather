@@ -27,9 +27,9 @@ enum {
 };
 
 typedef struct {
-	int type;
-	char *code;
-	char *label;
+	gint type;
+	gchar *code;
+	gchar *name;
 	GisPoint pos;
 	gdouble lod;
 } city_t;

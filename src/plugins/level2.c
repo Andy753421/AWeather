@@ -229,7 +229,7 @@ void aweather_level2_set_sweep(AWeatherLevel2 *self,
 AWeatherLevel2 *aweather_level2_new(GisViewer *viewer,
 		AWeatherColormap *colormap, Radar *radar)
 {
-	g_debug("AWeatherLevel2: new");
+	g_debug("AWeatherLevel2: new - %s", radar->h.radar_name);
 	AWeatherLevel2 *self = g_object_new(AWEATHER_TYPE_LEVEL2, NULL);
 	self->viewer   = viewer;
 	self->radar    = radar;
@@ -250,7 +250,7 @@ AWeatherLevel2 *aweather_level2_new_from_file(GisViewer *viewer,
 		struct stat files, raws;
 		g_stat(file, &files);
 		g_stat(raw,  &raws);
-		if (files.st_mtime < raws.st_mtime)
+		if (files.st_mtime > raws.st_mtime)
 			if (!_decompress_radar(file, raw))
 				return NULL;
 	} else {
@@ -268,6 +268,91 @@ AWeatherLevel2 *aweather_level2_new_from_file(GisViewer *viewer,
 	return aweather_level2_new(viewer, colormaps, radar);
 }
 
+static void _on_sweep_clicked(GtkRadioButton *button, gpointer _level2)
+{
+	AWeatherLevel2 *level2 = _level2;
+	gint type = (gint)g_object_get_data(G_OBJECT(button), "type");
+	gint elev = (gint)g_object_get_data(G_OBJECT(button), "elev");
+	aweather_level2_set_sweep(level2, type, (float)elev/100);
+	//self->colormap = level2->sweep_colors;
+}
+
+GtkWidget *aweather_level2_get_config(AWeatherLevel2 *level2)
+{
+	Radar *radar = level2->radar;
+	g_debug("AWeatherLevel2: get_config - %p, %p", level2, radar);
+	/* Clear existing items */
+	gdouble elev;
+	guint rows = 1, cols = 1, cur_cols;
+	gchar row_label_str[64], col_label_str[64], button_str[64];
+	GtkWidget *row_label, *col_label, *button = NULL, *elev_box = NULL;
+	GtkWidget *table = gtk_table_new(rows, cols, FALSE);
+
+	/* Add date */
+	gchar *date_str = g_strdup_printf("<b><i>%04d-%02d-%02d %02d:%02d</i></b>",
+			radar->h.year, radar->h.month, radar->h.day,
+			radar->h.hour, radar->h.minute);
+	GtkWidget *date_label = gtk_label_new(date_str);
+	gtk_label_set_use_markup(GTK_LABEL(date_label), TRUE);
+	gtk_table_attach(GTK_TABLE(table), date_label,
+			0,1, 0,1, GTK_FILL,GTK_FILL, 5,0);
+	g_free(date_str);
+
+	for (guint vi = 0; vi < radar->h.nvolumes; vi++) {
+		Volume *vol = radar->v[vi];
+		if (vol == NULL) continue;
+		rows++; cols = 1; elev = 0;
+
+		/* Row label */
+		g_snprintf(row_label_str, 64, "<b>%s:</b>", vol->h.type_str);
+		row_label = gtk_label_new(row_label_str);
+		gtk_label_set_use_markup(GTK_LABEL(row_label), TRUE);
+		gtk_misc_set_alignment(GTK_MISC(row_label), 1, 0.5);
+		gtk_table_attach(GTK_TABLE(table), row_label,
+				0,1, rows-1,rows, GTK_FILL,GTK_FILL, 5,0);
+
+		for (guint si = 0; si < vol->h.nsweeps; si++) {
+			Sweep *sweep = vol->sweep[si];
+			if (sweep == NULL || sweep->h.elev == 0) continue;
+			if (sweep->h.elev != elev) {
+				cols++;
+				elev = sweep->h.elev;
+
+				/* Column label */
+				g_object_get(table, "n-columns", &cur_cols, NULL);
+				if (cols >  cur_cols) {
+					g_snprintf(col_label_str, 64, "<b>%.2f°</b>", elev);
+					col_label = gtk_label_new(col_label_str);
+					gtk_label_set_use_markup(GTK_LABEL(col_label), TRUE);
+					gtk_widget_set_size_request(col_label, 50, -1);
+					gtk_table_attach(GTK_TABLE(table), col_label,
+							cols-1,cols, 0,1, GTK_FILL,GTK_FILL, 0,0);
+				}
+
+				elev_box = gtk_hbox_new(TRUE, 0);
+				gtk_table_attach(GTK_TABLE(table), elev_box,
+						cols-1,cols, rows-1,rows, GTK_FILL,GTK_FILL, 0,0);
+			}
+
+
+			/* Button */
+			g_snprintf(button_str, 64, "%3.2f", elev);
+			button = gtk_radio_button_new_with_label_from_widget(
+					GTK_RADIO_BUTTON(button), button_str);
+			gtk_widget_set_size_request(button, -1, 26);
+			//button = gtk_radio_button_new_from_widget(GTK_RADIO_BUTTON(button));
+			//gtk_widget_set_size_request(button, -1, 22);
+			g_object_set(button, "draw-indicator", FALSE, NULL);
+			gtk_box_pack_end(GTK_BOX(elev_box), button, TRUE, TRUE, 0);
+
+			g_object_set_data(G_OBJECT(button), "level2", (gpointer)level2);
+			g_object_set_data(G_OBJECT(button), "type",   (gpointer)vi);
+			g_object_set_data(G_OBJECT(button), "elev",   (gpointer)(int)(elev*100));
+			g_signal_connect(button, "clicked", G_CALLBACK(_on_sweep_clicked), level2);
+		}
+	}
+	return table;
+}
 
 /****************
  * GObject code *
@@ -293,4 +378,3 @@ static void aweather_level2_class_init(AWeatherLevel2Class *klass)
 	G_OBJECT_CLASS(klass)->finalize = aweather_level2_finalize;
 	G_OBJECT_CLASS(klass)->dispose  = aweather_level2_dispose;
 }
-

@@ -60,4 +60,6 @@ AWeatherLevel2 *aweather_level2_new_from_file(GisViewer *viewer,
 void aweather_level2_set_sweep(AWeatherLevel2 *level2,
 		int type, float elev);
 
+GtkWidget *aweather_level2_get_config(AWeatherLevel2 *level2);
+
 #endif

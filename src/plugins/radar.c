@@ -15,6 +15,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#define _XOPEN_SOURCE
+#include <time.h>
 #include <config.h>
 #include <glib/gstdio.h>
 #include <gtk/gtk.h>
@@ -30,9 +32,299 @@
 #include "level2.h"
 #include "../aweather-location.h"
 
-/* Drawing functions */
+void _gtk_bin_set_child(GtkBin *bin, GtkWidget *new)
+{
+	GtkWidget *old = gtk_bin_get_child(bin);
+	if (old)
+		gtk_widget_destroy(old);
+	gtk_container_add(GTK_CONTAINER(bin), new);
+	gtk_widget_show_all(new);
+}
+
+static gchar *_find_nearest(time_t time, GList *files,
+		gsize offset, gchar *format)
+{
+	g_debug("GisPluginRadar: _find_nearest");
+	time_t  nearest_time = 0;
+	char   *nearest_file = NULL;
+
+	struct tm tm = {};
+	for (GList *cur = files; cur; cur = cur->next) {
+		gchar *file = cur->data;
+		g_message("file=%s", file);
+		strptime(file+offset, format, &tm);
+		if (ABS(time - mktime(&tm)) <
+		    ABS(time - nearest_time)) {
+			nearest_file = file;
+			nearest_time = mktime(&tm);
+		}
+	}
+
+	g_debug("GisPluginRadar: _find_nearest = %s", nearest_file);
+	if (nearest_file)
+		return g_strdup(nearest_file);
+	else
+		return NULL;
+}
+
+
+/**************
+ * RadarSites *
+ **************/
+typedef enum {
+	STATUS_UNLOADED,
+	STATUS_LOADING,
+	STATUS_LOADED,
+} RadarSiteStatus;
+struct _RadarSite {
+	/* Information */
+	gchar     *code;   // Site name. e.g. KLSX
+	gchar     *name;   // Site name. e.g. St. Louis
+	GisPoint   pos;    // LLE positions of antena 
+	GisMarker *marker; // Map marker for libgis
+
+	/* Stuff from the parents */
+	GisViewer     *viewer;
+	GisHttp       *http;
+	GisPrefs      *prefs;
+	GtkWidget     *pconfig;
+
+	/* When loaded */
+	RadarSiteStatus status;     // Loading status for the site
+	GtkWidget      *config;
+	AWeatherLevel2 *level2;     // The Level2 structure for the current volume
+	gpointer        level2_ref; // GisViewer reference to the added radar
+
+	/* Internal data */
+	time_t   time;        // Current timestamp of the level2
+	gchar   *message;     // Error message set while updating
+	guint    time_id;     // "time-changed"     callback ID
+	guint    refresh_id;  // "refresh"          callback ID
+	guint    location_id; // "locaiton-changed" callback ID
+};
+
+/* format: http://mesonet.agron.iastate.edu/data/nexrd2/raw/KABR/KABR_20090510_0323 */
+void _site_update_loading(gchar *file, goffset cur,
+		goffset total, gpointer _site)
+{
+	RadarSite *site = _site;
+	GtkWidget *progress_bar = gtk_bin_get_child(GTK_BIN(site->config));
+	double percent = (double)cur/total;
+	gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(progress_bar), MIN(percent, 1.0));
+	gchar *msg = g_strdup_printf("Loading... %5.1f%% (%.2f/%.2f MB)",
+			percent*100, (double)cur/1000000, (double)total/1000000);
+	gtk_progress_bar_set_text(GTK_PROGRESS_BAR(progress_bar), msg);
+	g_free(msg);
+}
+gboolean _site_update_end(gpointer _site)
+{
+	RadarSite *site = _site;
+	if (site->message) {
+		g_warning("GisPluginRadar: _update_end - %s", site->message);
+		_gtk_bin_set_child(GTK_BIN(site->config), gtk_label_new(site->message));
+	} else {
+		_gtk_bin_set_child(GTK_BIN(site->config),
+				aweather_level2_get_config(site->level2));
+	}
+	site->status = STATUS_LOADED;
+	return FALSE;
+}
+gpointer _site_update_thread(gpointer _site)
+{
+	RadarSite *site = _site;
+	g_debug("GisPluginRadar: _update - %s", site->code);
+	site->status = STATUS_LOADING;
+	site->message = NULL;
+
+	gboolean offline = gis_viewer_get_offline(site->viewer);
+	gchar *nexrad_url = gis_prefs_get_string(site->prefs,
+			"aweather/nexrad_url", NULL);
+
+	/* Remove old volume */
+	g_debug("GisPluginRadar: _update - remove - %s", site->code);
+	if (site->level2_ref) {
+		gis_viewer_remove(site->viewer, site->level2_ref);
+		site->level2_ref = NULL;
+	}
+
+	/* Find nearest volume (temporally) */
+	g_debug("GisPluginRadar: _update - find nearest - %s", site->code);
+	gchar *dir_list = g_strconcat(nexrad_url, "/", site->code,
+			"/", "dir.list", NULL);
+	GList *files = gis_http_available(site->http,
+			"^K\\w{3}_\\d{8}_\\d{4}$", site->code,
+			"\\d+ (.*)", (offline ? NULL : dir_list));
+	g_free(dir_list);
+	gchar *nearest = _find_nearest(site->time, files, 5, "%Y%m%d_%H%M");
+	g_list_foreach(files, (GFunc)g_free, NULL);
+	g_list_free(files);
+	if (!nearest) {
+		site->message = "No suitable files found";
+		goto out;
+	}
+
+	/* Fetch new volume */
+	g_debug("GisPluginRadar: _update - fetch");
+	gchar *local = g_strconcat(site->code, "/", nearest, NULL);
+	gchar *uri   = g_strconcat(nexrad_url, "/", local,   NULL);
+	gchar *file = gis_http_fetch(site->http, uri, local,
+			offline ? GIS_LOCAL : GIS_UPDATE,
+			_site_update_loading, site);
+	g_free(local);
+	g_free(uri);
+	if (!file) {
+		site->message = "Fetch failed";
+		goto out;
+	}
+
+	/* Load and add new volume */
+	g_debug("GisPluginRadar: _update - load - %s", site->code);
+	site->level2 = aweather_level2_new_from_file(
+			site->viewer, colormaps, file, site->code);
+	if (!site->level2) {
+		site->message = "Load failed";
+		goto out;
+	}
+	site->level2_ref = gis_viewer_add(site->viewer,
+			GIS_OBJECT(site->level2), GIS_LEVEL_WORLD, TRUE);
+
+out:
+	g_idle_add(_site_update_end, site);
+	return NULL;
+}
+void _site_update(RadarSite *site)
+{
+	site->time = gis_viewer_get_time(site->viewer);
+	g_debug("GisPluginRadar: _on_time_changed %s - %d",
+			site->code, (gint)site->time);
+
+	/* Add a progress bar */
+	GtkWidget *progress = gtk_progress_bar_new();
+	gtk_progress_bar_set_text(GTK_PROGRESS_BAR(progress), "Loading...");
+	_gtk_bin_set_child(GTK_BIN(site->config), progress);
+
+	/* Fork loading right away so updating the
+	 * list of times doesn't take too long */
+	g_thread_create(_site_update_thread, site, FALSE, NULL);
+}
+
+/* RadarSite methods */
+void radar_site_unload(RadarSite *site)
+{
+	g_debug("GisPluginRadar: radar_site_unload %s", site->code);
+
+	if (site->status == STATUS_LOADING)
+		return; // Abort if it's still loading
+
+	g_signal_handler_disconnect(site->viewer, site->time_id);
+	g_signal_handler_disconnect(site->viewer, site->refresh_id);
+
+	/* Remove tab */
+	gtk_widget_destroy(site->config);
+
+	/* Remove radar */
+	if (site->level2_ref) {
+		gis_viewer_remove(site->viewer, site->level2_ref);
+		site->level2_ref = NULL;
+	}
+
+	site->status = STATUS_UNLOADED;
+}
+
+void radar_site_load(RadarSite *site)
+{
+	g_debug("GisPluginRadar: radar_site_load %s", site->code);
+	site->status = STATUS_LOADING;
+
+	/* Add tab page */
+	site->config = gtk_alignment_new(0, 0, 1, 1);
+	GtkWidget *tab   = gtk_hbox_new(FALSE, 0);
+	GtkWidget *close = gtk_button_new();
+	GtkWidget *label = gtk_label_new(site->name);
+	gtk_container_add(GTK_CONTAINER(close),
+			gtk_image_new_from_stock(GTK_STOCK_CLOSE,
+				GTK_ICON_SIZE_MENU));
+	gtk_button_set_relief(GTK_BUTTON(close), GTK_RELIEF_NONE);
+	g_signal_connect_swapped(close, "clicked",
+			G_CALLBACK(radar_site_unload), site);
+	gtk_box_pack_start(GTK_BOX(tab), label, TRUE, TRUE, 0);
+	gtk_box_pack_end(GTK_BOX(tab), close, FALSE, FALSE, 0);
+	gtk_notebook_append_page(GTK_NOTEBOOK(site->pconfig),
+			site->config, tab);
+	gtk_widget_show_all(site->config);
+	gtk_widget_show_all(tab);
+
+	/* Set up radar loading */
+	site->time_id = g_signal_connect_swapped(site->viewer, "time-changed",
+			G_CALLBACK(_site_update), site);
+	site->refresh_id = g_signal_connect_swapped(site->viewer, "refresh",
+			G_CALLBACK(_site_update), site);
+	_site_update(site);
+}
+
+void _site_on_location_changed(GisViewer *viewer,
+		gdouble lat, gdouble lon, gdouble elev,
+		gpointer _site)
+{
+	static gdouble min_dist = EARTH_R / 20;
+	RadarSite *site = _site;
+
+	/* Calculate distance, could cache xyz values */
+	gdouble eye_xyz[3], site_xyz[3];
+	lle2xyz(lat, lon, elev, &eye_xyz[0], &eye_xyz[1], &eye_xyz[2]);
+	lle2xyz(site->pos.lat, site->pos.lon, site->pos.elev,
+			&site_xyz[0], &site_xyz[1], &site_xyz[2]);
+	gdouble dist = distd(site_xyz, eye_xyz);
+
+	/* Load or unload the site if necessasairy */
+	if (dist <= min_dist && dist < elev*1.25 && site->status == STATUS_UNLOADED)
+		radar_site_load(site);
+	else if (dist > 2*min_dist &&  site->status != STATUS_UNLOADED)
+		radar_site_unload(site);
+}
+
+RadarSite *radar_site_new(city_t *city, GtkWidget *pconfig,
+		GisViewer *viewer, GisPrefs *prefs, GisHttp *http)
+{
+	RadarSite *site = g_new0(RadarSite, 1);
+	site->viewer  = g_object_ref(viewer);
+	site->prefs   = g_object_ref(prefs);
+	site->http    = http;
+	site->code    = g_strdup(city->code);
+	site->name    = g_strdup(city->name);
+	site->pos     = city->pos;
+	site->pconfig = pconfig;
+
+	/* Add marker */
+	site->marker = gis_marker_new(city->name);
+	GIS_OBJECT(site->marker)->center = site->pos;
+	GIS_OBJECT(site->marker)->lod    = EARTH_R*city->lod;
+	gis_viewer_add(site->viewer, GIS_OBJECT(site->marker),
+			GIS_LEVEL_OVERLAY, FALSE);
+
+	/* Connect signals */
+	site->location_id  =
+		g_signal_connect(viewer, "location-changed",
+			G_CALLBACK(_site_on_location_changed), site);
+	return site;
+}
+
+void radar_site_free(RadarSite *site)
+{
+	radar_site_unload(site);
+	/* Stuff? */
+	g_object_unref(site->viewer);
+	g_free(site->code);
+	g_free(site);
+}
+
+
+/******************
+ * GisPluginRadar *
+ ******************/
 static void _draw_hud(GisCallback *callback, gpointer _self)
 {
+	/* TODO */
 	GisPluginRadar *self = GIS_PLUGIN_RADAR(_self);
 	if (!self->colormap)
 		return;
@@ -58,260 +350,7 @@ static void _draw_hud(GisCallback *callback, gpointer _self)
 	glEnd();
 }
 
-
-/***************
- * GUI loading *
- ***************/
-/* Clear the config area */ 
-static void _load_gui_clear(GisPluginRadar *self)
-{
-	GtkWidget *child = gtk_bin_get_child(GTK_BIN(self->config_body));
-	if (child)
-		gtk_widget_destroy(child);
-}
-
-/* Setup a loading screen in the tab */
-static void _load_gui_pre(GisPluginRadar *self)
-{
-	g_debug("GisPluginRadar: _load_gui_pre");
-
-	/* Set up progress bar */
-	_load_gui_clear(self);
-	GtkWidget *vbox = gtk_vbox_new(FALSE, 10);
-	gtk_container_set_border_width(GTK_CONTAINER(vbox), 10);
-	self->progress_bar   = gtk_progress_bar_new();
-	self->progress_label = gtk_label_new("Loading radar...");
-	gtk_box_pack_start(GTK_BOX(vbox), self->progress_bar,   FALSE, FALSE, 0);
-	gtk_box_pack_start(GTK_BOX(vbox), self->progress_label, FALSE, FALSE, 0);
-	gtk_container_add(GTK_CONTAINER(self->config_body), vbox);
-	gtk_widget_show_all(self->config_body);
-}
-
-/* Update pogress bar of loading screen */
-static void _load_gui_update(char *path, goffset cur, goffset total, gpointer _self)
-{
-	GisPluginRadar *self = GIS_PLUGIN_RADAR(_self);
-	double percent = (double)cur/total;
-
-	//g_debug("GisPluginRadar: cache_chunk_cb - %lld/%lld = %.2f%%",
-	//		cur, total, percent*100);
-
-	gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(self->progress_bar), MIN(percent, 1.0));
-
-	gchar *msg = g_strdup_printf("Loading radar... %5.1f%% (%.2f/%.2f MB)",
-			percent*100, (double)cur/1000000, (double)total/1000000);
-	gtk_label_set_text(GTK_LABEL(self->progress_label), msg);
-	g_free(msg);
-}
-
-/* Update pogress bar of loading screen */
-static void _load_gui_error(GisPluginRadar *self, gchar *error)
-{
-	gchar *msg = g_strdup_printf(
-			"GisPluginRadar: error loading radar - %s", error);
-	g_warning("%s", msg);
-	_load_gui_clear(self);
-	gtk_container_add(GTK_CONTAINER(self->config_body), gtk_label_new(msg));
-	gtk_widget_show_all(self->config_body);
-	g_free(msg);
-}
-
-/* Clear loading screen and add sweep selectors */
-static void _on_sweep_clicked(GtkRadioButton *button, gpointer _self);
-static void _load_gui_success(GisPluginRadar *self, AWeatherLevel2 *level2)
-{
-	Radar *radar = level2->radar;
-	g_debug("GisPluginRadar: _load_gui_success - %p", radar);
-	/* Clear existing items */
-	_load_gui_clear(self);
-
-	gdouble elev;
-	guint rows = 1, cols = 1, cur_cols;
-	gchar row_label_str[64], col_label_str[64], button_str[64];
-	GtkWidget *row_label, *col_label, *button = NULL, *elev_box = NULL;
-	GtkWidget *table = gtk_table_new(rows, cols, FALSE);
-
-	for (guint vi = 0; vi < radar->h.nvolumes; vi++) {
-		Volume *vol = radar->v[vi];
-		if (vol == NULL) continue;
-		rows++; cols = 1; elev = 0;
-
-		/* Row label */
-		g_snprintf(row_label_str, 64, "<b>%s:</b>", vol->h.type_str);
-		row_label = gtk_label_new(row_label_str);
-		gtk_label_set_use_markup(GTK_LABEL(row_label), TRUE);
-		gtk_misc_set_alignment(GTK_MISC(row_label), 1, 0.5);
-		gtk_table_attach(GTK_TABLE(table), row_label,
-				0,1, rows-1,rows, GTK_FILL,GTK_FILL, 5,0);
-
-		for (guint si = 0; si < vol->h.nsweeps; si++) {
-			Sweep *sweep = vol->sweep[si];
-			if (sweep == NULL || sweep->h.elev == 0) continue;
-			if (sweep->h.elev != elev) {
-				cols++;
-				elev = sweep->h.elev;
-
-				/* Column label */
-				g_object_get(table, "n-columns", &cur_cols, NULL);
-				if (cols >  cur_cols) {
-					g_snprintf(col_label_str, 64, "<b>%.2f°</b>", elev);
-					col_label = gtk_label_new(col_label_str);
-					gtk_label_set_use_markup(GTK_LABEL(col_label), TRUE);
-					gtk_widget_set_size_request(col_label, 50, -1);
-					gtk_table_attach(GTK_TABLE(table), col_label,
-							cols-1,cols, 0,1, GTK_FILL,GTK_FILL, 0,0);
-				}
-
-				elev_box = gtk_hbox_new(TRUE, 0);
-				gtk_table_attach(GTK_TABLE(table), elev_box,
-						cols-1,cols, rows-1,rows, GTK_FILL,GTK_FILL, 0,0);
-			}
-
-
-			/* Button */
-			g_snprintf(button_str, 64, "%3.2f", elev);
-			button = gtk_radio_button_new_with_label_from_widget(
-					GTK_RADIO_BUTTON(button), button_str);
-			gtk_widget_set_size_request(button, -1, 26);
-			//button = gtk_radio_button_new_from_widget(GTK_RADIO_BUTTON(button));
-			//gtk_widget_set_size_request(button, -1, 22);
-			g_object_set(button, "draw-indicator", FALSE, NULL);
-			gtk_box_pack_end(GTK_BOX(elev_box), button, TRUE, TRUE, 0);
-
-			g_object_set_data(G_OBJECT(button), "level2", (gpointer)level2);
-			g_object_set_data(G_OBJECT(button), "type",   (gpointer)vi);
-			g_object_set_data(G_OBJECT(button), "elev",   (gpointer)(int)(elev*100));
-			g_signal_connect(button, "clicked", G_CALLBACK(_on_sweep_clicked), self);
-		}
-	}
-	gtk_container_add(GTK_CONTAINER(self->config_body), table);
-	gtk_widget_show_all(table);
-}
-
-static gchar *_download_radar(GisPluginRadar *self, const gchar *site, const gchar *time)
-{
-	g_debug("GisPluginRadar: _download_radar - %s, %s", site, time);
-
-	/* format: http://mesonet.agron.iastate.edu/data/nexrd2/raw/KABR/KABR_20090510_0323 */
-	gchar *base  = gis_prefs_get_string(self->prefs, "aweather/nexrad_url", NULL);
-	gchar *local = g_strdup_printf("%s/%s_%s", site, site, time);
-	gchar *uri   = g_strconcat(base, "/", local, NULL);
-	GisCacheType mode = gis_viewer_get_offline(self->viewer) ? GIS_LOCAL : GIS_UPDATE;
-	gchar *file  =  gis_http_fetch(self->http, uri, local, mode, _load_gui_update, self);
-	g_free(base);
-	g_free(local);
-	g_free(uri);
-	return file;
-}
-
-struct SetRadarData {
-	GisPluginRadar *self;
-	gchar *site;
-	gchar *time;
-};
-static gpointer _set_radar_cb(gpointer _data)
-{
-	g_debug("GisPluginRadar: _set_radar_cb");
-	struct SetRadarData *data = _data;
-	GisPluginRadar *self = data->self;
-
-	_load_gui_pre(self);
-	if (self->radar) {
-		gis_viewer_remove(self->viewer, self->radar);
-		self->radar = NULL;
-	}
-	gchar *file = _download_radar(self, data->site, data->time);
-	if (!file) {
-		_load_gui_error(self, "Download failed");
-		goto out;
-	}
-	AWeatherLevel2 *level2 = aweather_level2_new_from_file(
-			self->viewer, colormaps, file, data->site);
-	if (!level2) {
-		_load_gui_error(self, "Loading radar failed");
-		//g_remove(file);
-		goto out;
-	}
-	self->colormap = level2->sweep_colors;
-	self->radar = gis_viewer_add(self->viewer, GIS_OBJECT(level2), GIS_LEVEL_WORLD, TRUE);
-	_load_gui_success(self, level2);
-
-out:
-	g_free(file);
-	g_free(data->site);
-	g_free(data->time);
-	g_free(data);
-	g_mutex_unlock(self->load_mutex);
-	return NULL;
-}
-static void _set_radar(GisPluginRadar *self, const gchar *site, const gchar *time)
-{
-	if (!site || !time)
-		return;
-	struct SetRadarData *data = g_new(struct SetRadarData, 1);
-	data->self = self;
-	data->site = g_strdup(site);
-	data->time = g_strdup(time);
-	if (g_mutex_trylock(self->load_mutex))
-		g_thread_create(_set_radar_cb, data, FALSE, NULL);
-}
-
-/*************
- * Callbacks *
- *************/
-static void _on_sweep_clicked(GtkRadioButton *button, gpointer _self)
-{
-	GisPluginRadar *self   = GIS_PLUGIN_RADAR(_self);
-	AWeatherLevel2 *level2 = g_object_get_data(G_OBJECT(button), "level2");
-	gint type = (gint)g_object_get_data(G_OBJECT(button), "type");
-	gint elev = (gint)g_object_get_data(G_OBJECT(button), "elev");
-	aweather_level2_set_sweep(level2, type, (float)elev/100);
-	self->colormap = level2->sweep_colors;
-}
-
-static void _on_time_changed(GisViewer *viewer, const char *time, gpointer _self)
-{
-	g_debug("GisPluginRadar: _on_time_changed");
-	GisPluginRadar *self = GIS_PLUGIN_RADAR(_self);
-	self->cur_time = g_strdup(time);
-	_set_radar(self, self->cur_site, self->cur_time);
-}
-
-static void _on_location_changed(GisViewer *viewer,
-		gdouble lat, gdouble lon, gdouble elev,
-		gpointer _self)
-{
-	g_debug("GisPluginRadar: _on_location_changed");
-	GisPluginRadar *self = GIS_PLUGIN_RADAR(_self);
-	gdouble min_dist = EARTH_R / 5;
-	city_t *city, *min_city = NULL;
-	for (city = cities; city->type; city++) {
-		if (city->type != LOCATION_CITY)
-			continue;
-		gdouble city_loc[3] = {};
-		gdouble eye_loc[3]  = {lat, lon, elev};
-		lle2xyz(city->pos.lat, city->pos.lon, city->pos.elev,
-				&city_loc[0], &city_loc[1], &city_loc[2]);
-		lle2xyz(lat, lon, elev,
-				&eye_loc[0], &eye_loc[1], &eye_loc[2]);
-		gdouble dist = distd(city_loc, eye_loc);
-		if (dist < min_dist) {
-			min_dist = dist;
-			min_city = city;
-		}
-	}
-	static city_t *last_city = NULL;
-	if (min_city && min_city != last_city){
-		self->cur_site = min_city->code;
-		_set_radar(self, self->cur_site, self->cur_time);
-	}
-	last_city = min_city;
-}
-
-
-/***********
- * Methods *
- ***********/
+/* Methods */
 GisPluginRadar *gis_plugin_radar_new(GisViewer *viewer, GisPrefs *prefs)
 {
 	/* TODO: move to constructor if possible */
@@ -319,23 +358,19 @@ GisPluginRadar *gis_plugin_radar_new(GisViewer *viewer, GisPrefs *prefs)
 	GisPluginRadar *self = g_object_new(GIS_TYPE_PLUGIN_RADAR, NULL);
 	self->viewer = viewer;
 	self->prefs  = prefs;
-	self->time_changed_id = g_signal_connect(viewer, "time-changed",
-			G_CALLBACK(_on_time_changed), self);
-	self->location_changed_id = g_signal_connect(viewer, "location-changed",
-			G_CALLBACK(_on_location_changed), self);
 
+	/* Load HUD */
+	GisCallback *hud_cb = gis_callback_new(_draw_hud, self);
+	gis_viewer_add(viewer, GIS_OBJECT(hud_cb), GIS_LEVEL_HUD, FALSE);
+
+	/* Load radar sites */
 	for (city_t *city = cities; city->type; city++) {
 		if (city->type != LOCATION_CITY)
 			continue;
-		g_debug("Adding marker for %s %s", city->code, city->label);
-		GisMarker *marker = gis_marker_new(city->label);
-		GIS_OBJECT(marker)->center = city->pos;
-		GIS_OBJECT(marker)->lod    = EARTH_R*city->lod;
-		gis_viewer_add(self->viewer, GIS_OBJECT(marker), GIS_LEVEL_OVERLAY, FALSE);
+		RadarSite *site = radar_site_new(city, self->config,
+				self->viewer, self->prefs, self->sites_http);
+		g_hash_table_insert(self->sites, city->code, site);
 	}
-
-	GisCallback *hud_cb = gis_callback_new(_draw_hud, self);
-	gis_viewer_add(viewer, GIS_OBJECT(hud_cb), GIS_LEVEL_HUD, FALSE);
 
 	return self;
 }
@@ -343,14 +378,10 @@ GisPluginRadar *gis_plugin_radar_new(GisViewer *viewer, GisPrefs *prefs)
 static GtkWidget *gis_plugin_radar_get_config(GisPlugin *_self)
 {
 	GisPluginRadar *self = GIS_PLUGIN_RADAR(_self);
-	return self->config_body;
+	return self->config;
 }
 
-
-/****************
- * GObject code *
- ****************/
-/* Plugin init */
+/* GObject code */
 static void gis_plugin_radar_plugin_init(GisPluginInterface *iface);
 G_DEFINE_TYPE_WITH_CODE(GisPluginRadar, gis_plugin_radar, G_TYPE_OBJECT,
 		G_IMPLEMENT_INTERFACE(GIS_TYPE_PLUGIN,
@@ -361,22 +392,19 @@ static void gis_plugin_radar_plugin_init(GisPluginInterface *iface)
 	/* Add methods to the interface */
 	iface->get_config = gis_plugin_radar_get_config;
 }
-/* Class/Object init */
 static void gis_plugin_radar_init(GisPluginRadar *self)
 {
 	g_debug("GisPluginRadar: class_init");
 	/* Set defaults */
-	self->http = gis_http_new("/nexrad/level2/");
-	self->config_body = gtk_alignment_new(0, 0, 1, 1);
-	self->load_mutex = g_mutex_new();
-	gtk_container_set_border_width(GTK_CONTAINER(self->config_body), 5);
-	gtk_container_add(GTK_CONTAINER(self->config_body), gtk_label_new("No radar loaded"));
+	self->sites_http = gis_http_new(G_DIR_SEPARATOR_S "nexrad" G_DIR_SEPARATOR_S "level2" G_DIR_SEPARATOR_S);
+	self->sites      = g_hash_table_new(g_str_hash, g_str_equal);
+	self->config     = gtk_notebook_new();
+	gtk_notebook_set_tab_pos(GTK_NOTEBOOK(self->config), GTK_POS_LEFT);
 }
 static void gis_plugin_radar_dispose(GObject *gobject)
 {
 	g_debug("GisPluginRadar: dispose");
 	GisPluginRadar *self = GIS_PLUGIN_RADAR(gobject);
-	g_signal_handler_disconnect(self->viewer, self->time_changed_id);
 	/* Drop references */
 	G_OBJECT_CLASS(gis_plugin_radar_parent_class)->dispose(gobject);
 }
@@ -385,8 +413,9 @@ static void gis_plugin_radar_finalize(GObject *gobject)
 	g_debug("GisPluginRadar: finalize");
 	GisPluginRadar *self = GIS_PLUGIN_RADAR(gobject);
 	/* Free data */
-	gis_http_free(self->http);
-	g_mutex_free(self->load_mutex);
+	gis_http_free(self->sites_http);
+	g_hash_table_destroy(self->sites);
+	gtk_widget_destroy(self->config);
 	G_OBJECT_CLASS(gis_plugin_radar_parent_class)->finalize(gobject);
 
 }

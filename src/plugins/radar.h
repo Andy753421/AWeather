@@ -34,29 +34,19 @@
 typedef struct _GisPluginRadar        GisPluginRadar;
 typedef struct _GisPluginRadarClass   GisPluginRadarClass;
 
+typedef struct _RadarSite  RadarSite;
+
 struct _GisPluginRadar {
 	GObject parent_instance;
 
 	/* instance members */
-	GisViewer *viewer;
-	GisPrefs  *prefs;
-	GisHttp   *http;
-
-	/* Signals */
-	guint      time_changed_id;
-	guint      location_changed_id;
-
-	/* Tab area */
-	GtkWidget *config_body;
-	GtkWidget *progress_bar;
-	GtkWidget *progress_label;
-
-	/* Radar lists */
-	GMutex    *load_mutex;
+	GisViewer  *viewer;
+	GisPrefs   *prefs;
+	GtkWidget  *config;
 	AWeatherColormap *colormap;
-	gpointer   radar;
-	gchar     *cur_site;
-	gchar     *cur_time;
+
+	GHashTable *sites;
+	GisHttp    *sites_http;
 };
 
 struct _GisPluginRadarClass {
