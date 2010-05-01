@@ -12,10 +12,12 @@
   </object>
   <object class="GtkListStore" id="times">
     <columns>
-      <!-- column-name time -->
-      <column type="glong"/>
       <!-- column-name string -->
       <column type="gchararray"/>
+      <!-- column-name hour -->
+      <column type="gint"/>
+      <!-- column-name min -->
+      <column type="gint"/>
     </columns>
   </object>
   <object class="GtkWindow" id="main_window">
@@ -263,7 +265,6 @@
                           <object class="GtkCalendar" id="main_date_cal">
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
-                            <signal name="day_selected" handler="on_time_changed"/>
                           </object>
                         </child>
                         <child type="label">
@@ -297,7 +298,6 @@
                                 <property name="can_focus">True</property>
                                 <property name="model">times</property>
                                 <property name="headers_visible">False</property>
-                                <signal name="row_activated" handler="on_time_changed"/>
                               </object>
                             </child>
                           </object>

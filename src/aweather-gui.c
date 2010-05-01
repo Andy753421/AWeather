@@ -87,16 +87,25 @@ void on_plugin_toggled(GtkCellRendererToggle *cell, gchar *path_str, AWeatherGui
 	g_free(name);
 }
 
-void on_time_changed(GtkTreeView *view, GtkTreePath *path,
-		GtkTreeViewColumn *column, AWeatherGui *self)
+void on_time_changed(AWeatherGui *self)
 {
-	gchar *time;
-	GtkTreeIter iter;
-	GtkTreeModel *model = gtk_tree_view_get_model(view);
+	g_debug("AWeatherGui: on_time_changed");
+	struct tm tm = {};
+
+	GtkWidget *cal = aweather_gui_get_widget(self, "main_date_cal");
+	gtk_calendar_get_date(GTK_CALENDAR(cal), (guint*)&tm.tm_year,
+			(guint*)&tm.tm_mon, (guint*)&tm.tm_mday);
+	tm.tm_year -= 1900;
+
+	GtkTreeIter   iter;
+	GtkTreePath  *path  = NULL;
+	GtkWidget    *view  = aweather_gui_get_widget(self, "main_time");
+	GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(view));
+	gtk_tree_view_get_cursor(GTK_TREE_VIEW(view), &path, NULL);
 	gtk_tree_model_get_iter(model, &iter, path);
-	gtk_tree_model_get(model, &iter, 0, &time, -1);
-	//gis_viewer_set_time(self->viewer, time);
-	g_free(time);
+	gtk_tree_model_get(model, &iter, 1, &tm.tm_hour, 2, &tm.tm_min, -1);
+
+	gis_viewer_set_time(self->viewer, mktime(&tm));
 }
 
 static gboolean gtk_tree_model_find_string(GtkTreeModel *model,
@@ -122,17 +131,18 @@ static gboolean gtk_tree_model_find_string(GtkTreeModel *model,
 	return FALSE;
 }
 
-static void update_time_widget(GisViewer *viewer, const char *time, AWeatherGui *self)
+static void update_time_widget(GisViewer *viewer, time_t time, AWeatherGui *self)
 {
-	g_debug("AWeatherGui: update_time_widget - time=%s", time);
-	GtkTreeView  *tview = GTK_TREE_VIEW(aweather_gui_get_widget(self, "main_time"));
-	GtkTreeModel *model = GTK_TREE_MODEL(gtk_tree_view_get_model(tview));
-	GtkTreeIter iter;
-	if (gtk_tree_model_find_string(model, &iter, NULL, 0, time)) {
-		GtkTreePath *path = gtk_tree_model_get_path(model, &iter);
-		gtk_tree_view_set_cursor(tview, path, NULL, FALSE);
-		gtk_tree_path_free(path);
-	}
+	g_debug("AWeatherGui: update_time_widget - time=%u", (guint)time);
+	// FIXME
+	//GtkTreeView  *tview = GTK_TREE_VIEW(aweather_gui_get_widget(self, "main_time"));
+	//GtkTreeModel *model = GTK_TREE_MODEL(gtk_tree_view_get_model(tview));
+	//GtkTreeIter iter;
+	//if (gtk_tree_model_find_string(model, &iter, NULL, 0, time)) {
+	//	GtkTreePath *path = gtk_tree_model_get_path(model, &iter);
+	//	gtk_tree_view_set_cursor(tview, path, NULL, FALSE);
+	//	gtk_tree_path_free(path);
+	//}
 }
 
 /* Prefs callbacks */
@@ -204,14 +214,32 @@ static void combo_sensitive(GtkCellLayout *cell_layout, GtkCellRenderer *cell,
 
 static void time_setup(AWeatherGui *self)
 {
-	GtkTreeView       *tview = GTK_TREE_VIEW(aweather_gui_get_widget(self, "main_time"));
-	GtkCellRenderer   *rend  = gtk_cell_renderer_text_new();
-	GtkTreeViewColumn *col   = gtk_tree_view_column_new_with_attributes(
+	/* Setup UI */
+	GtkCalendar       *cal  = GTK_CALENDAR(aweather_gui_get_widget(self, "main_date_cal"));
+	GtkTreeView       *view = GTK_TREE_VIEW(aweather_gui_get_widget(self, "main_time"));
+	GtkCellRenderer   *rend = gtk_cell_renderer_text_new();
+	GtkTreeViewColumn *col  = gtk_tree_view_column_new_with_attributes(
 					"Time", rend, "text", 0, NULL);
-
-	gtk_tree_view_append_column(tview, col);
+	gtk_tree_view_append_column(view, col);
 	g_object_set(rend, "size-points", 8.0, NULL);
 
+	/* Add times */
+	GtkListStore *store = GTK_LIST_STORE(aweather_gui_get_object(self, "times"));
+	for (int hour = 0; hour < 24; hour++) {
+		for (int min = 0; min < 60; min += 10) {
+			GtkTreeIter iter;
+			gchar *str = g_strdup_printf("%02d:%02d", hour, min);
+			gtk_list_store_append(store, &iter);
+			gtk_list_store_set(store, &iter, 0, str, 1, hour, 2, min, -1);
+			g_free(str);
+		}
+	}
+
+	/* Connect signals */
+	g_signal_connect_swapped(cal,  "day-selected-double-click",
+			G_CALLBACK(on_time_changed), self);
+	g_signal_connect_swapped(view, "row-activated",
+			G_CALLBACK(on_time_changed), self);
 	g_signal_connect(self->viewer, "time-changed",
 			G_CALLBACK(update_time_widget), self);
 }
