@@ -319,6 +319,179 @@ void radar_site_free(RadarSite *site)
 }
 
 
+/**************
+ * RadarConus *
+ **************/
+struct _RadarConus {
+	GisViewer  *viewer;
+	GisTile    *tile;
+	GisHttp    *http;
+	GtkWidget  *config;
+	time_t      time;
+	GdkPixbuf  *pixbuf;
+	gchar      *message;
+	gchar      *nearest;
+};
+
+void _conus_update_loading(gchar *file, goffset cur,
+		goffset total, gpointer _conus)
+{
+	RadarConus *conus = _conus;
+	GtkWidget *progress_bar = gtk_bin_get_child(GTK_BIN(conus->config));
+	double percent = (double)cur/total;
+	gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(progress_bar), MIN(percent, 1.0));
+	gchar *msg = g_strdup_printf("Loading... %5.1f%% (%.2f/%.2f MB)",
+			percent*100, (double)cur/1000000, (double)total/1000000);
+	gtk_progress_bar_set_text(GTK_PROGRESS_BAR(progress_bar), msg);
+	g_free(msg);
+}
+
+gboolean _conus_update_end(gpointer _conus)
+{
+	RadarConus *conus = _conus;
+
+	guchar    *pixels = gdk_pixbuf_get_pixels(conus->pixbuf);
+	gboolean   alpha  = gdk_pixbuf_get_has_alpha(conus->pixbuf);
+	gint       width  = gdk_pixbuf_get_width(conus->pixbuf);
+	gint       height = gdk_pixbuf_get_height(conus->pixbuf);
+
+	if (!conus->tile->data) {
+		conus->tile->data = g_new0(guint, 1);
+		glGenTextures(1, conus->tile->data);
+	}
+
+	guint *tex = conus->tile->data;
+	glBindTexture(GL_TEXTURE_2D, *tex);
+
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+	glPixelStorei(GL_PACK_ALIGNMENT, 1);
+	glTexImage2D(GL_TEXTURE_2D, 0, 4, width, height, 0,
+			(alpha ? GL_RGBA : GL_RGB), GL_UNSIGNED_BYTE, pixels);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+	glFlush();
+
+	/* finish */
+	_gtk_bin_set_child(GTK_BIN(conus->config),
+			gtk_label_new(conus->nearest));
+	gtk_widget_queue_draw(GTK_WIDGET(conus->viewer));
+	g_object_unref(conus->pixbuf);
+
+	return FALSE;
+}
+
+gpointer _conus_update_thread(gpointer _conus)
+{
+	RadarConus *conus = _conus;
+
+	/* Find nearest */
+	gboolean offline = gis_viewer_get_offline(conus->viewer);
+	gchar *conus_url = "http://radar.weather.gov/Conus/RadarImg/";
+	GList *files = gis_http_available(conus->http,
+			"^Conus_[^\"]*_N0Ronly.gif$", "",
+			NULL, (offline ? NULL : conus_url));
+	conus->nearest = _find_nearest(conus->time, files, 6, "%Y%m%d_%H%M");
+	g_list_foreach(files, (GFunc)g_free, NULL);
+	g_list_free(files);
+	if (!conus->nearest) {
+		conus->message = "No suitable files";
+		goto out;
+	}
+
+	/* Fetch the image */
+	gchar *uri     = g_strconcat(conus_url, conus->nearest, NULL);
+	gchar *path    = gis_http_fetch(conus->http, uri, conus->nearest, GIS_ONCE,
+			_conus_update_loading, conus);
+	if (!path) {
+		conus->message = "Fetch failed";
+		goto out;
+	}
+
+	/* Load the image to a pixbuf */
+	GError *error = NULL;
+	conus->pixbuf = gdk_pixbuf_new_from_file(path, &error);
+	if (!gdk_pixbuf_get_has_alpha(conus->pixbuf)) {
+		GdkPixbuf *tmp = gdk_pixbuf_add_alpha(conus->pixbuf, TRUE, 0xff, 0xff, 0xff);
+		g_object_unref(conus->pixbuf);
+		conus->pixbuf = tmp;
+	}
+
+	/* Map the pixbuf's alpha values */
+	const guchar colormap[][2][4] = {
+		{{0x04, 0xe9, 0xe7}, {0x04, 0xe9, 0xe7, 0x30}},
+		{{0x01, 0x9f, 0xf4}, {0x01, 0x9f, 0xf4, 0x60}},
+		{{0x03, 0x00, 0xf4}, {0x03, 0x00, 0xf4, 0x90}},
+	};
+	guchar *pixels = gdk_pixbuf_get_pixels(conus->pixbuf);
+	gint    height = gdk_pixbuf_get_height(conus->pixbuf);
+	gint    width  = gdk_pixbuf_get_width(conus->pixbuf);
+	for (int i = 0; i < width*height; i++) {
+		for (int j = 0; j < G_N_ELEMENTS(colormap); j++) {
+			if (pixels[i*4+0] > 0xe0 &&
+			    pixels[i*4+1] > 0xe0 &&
+			    pixels[i*4+2] > 0xe0) {
+				pixels[i*4+3] = 0x00;
+				break;
+			}
+			if (pixels[i*4+0] == colormap[j][0][0] &&
+			    pixels[i*4+1] == colormap[j][0][1] &&
+			    pixels[i*4+2] == colormap[j][0][2]) {
+				pixels[i*4+0] = colormap[j][1][0];
+				pixels[i*4+1] = colormap[j][1][1];
+				pixels[i*4+2] = colormap[j][1][2];
+				pixels[i*4+3] = colormap[j][1][3];
+				break;
+			}
+		}
+	}
+
+out:
+	g_idle_add(_conus_update_end, conus);
+	return NULL;
+}
+
+void _conus_update(RadarConus *conus)
+{
+	conus->time = gis_viewer_get_time(conus->viewer);
+	g_debug("GisPluginRadar: _conus_update - %d",
+			(gint)conus->time);
+
+	/* Add a progress bar */
+	GtkWidget *progress = gtk_progress_bar_new();
+	gtk_progress_bar_set_text(GTK_PROGRESS_BAR(progress), "Loading...");
+	_gtk_bin_set_child(GTK_BIN(conus->config), progress);
+
+	g_thread_create(_conus_update_thread, conus, FALSE, NULL);
+}
+
+RadarConus *radar_conus_new(GtkWidget *pconfig,
+		GisViewer *viewer, GisHttp *http)
+{
+	RadarConus *conus = g_new0(RadarConus, 1);
+	conus->viewer  = g_object_ref(viewer);
+	conus->http    = http;
+	conus->config  = gtk_alignment_new(0, 0, 1, 1);
+	conus->tile    = gis_tile_new(NULL,
+			50.406626367301044,   50.406626367301044-0.017971305190311*1600,
+			-127.620375523875420+0.017971305190311*3400, -127.620375523875420);
+	conus->tile->zindex = 1;
+	g_signal_connect_swapped(viewer, "time-changed", G_CALLBACK(_conus_update), conus);
+	g_signal_connect_swapped(viewer, "refresh",      G_CALLBACK(_conus_update), conus);
+	gis_viewer_add(viewer, GIS_OBJECT(conus->tile), GIS_LEVEL_WORLD, TRUE);
+	gtk_notebook_append_page(GTK_NOTEBOOK(pconfig), conus->config, gtk_label_new("Conus"));
+	_conus_update(conus);
+	return conus;
+}
+
+void radar_conus_free(RadarConus *conus)
+{
+	g_object_unref(conus->viewer);
+	g_free(conus);
+}
+
+
 /******************
  * GisPluginRadar *
  ******************/
@@ -363,6 +536,9 @@ GisPluginRadar *gis_plugin_radar_new(GisViewer *viewer, GisPrefs *prefs)
 	GisCallback *hud_cb = gis_callback_new(_draw_hud, self);
 	gis_viewer_add(viewer, GIS_OBJECT(hud_cb), GIS_LEVEL_HUD, FALSE);
 
+	/* Load Conus */
+	self->conus = radar_conus_new(self->config, self->viewer, self->conus_http);
+
 	/* Load radar sites */
 	for (city_t *city = cities; city->type; city++) {
 		if (city->type != LOCATION_CITY)
@@ -397,6 +573,7 @@ static void gis_plugin_radar_init(GisPluginRadar *self)
 	g_debug("GisPluginRadar: class_init");
 	/* Set defaults */
 	self->sites_http = gis_http_new(G_DIR_SEPARATOR_S "nexrad" G_DIR_SEPARATOR_S "level2" G_DIR_SEPARATOR_S);
+	self->conus_http = gis_http_new(G_DIR_SEPARATOR_S "nexrad" G_DIR_SEPARATOR_S "conus" G_DIR_SEPARATOR_S);
 	self->sites      = g_hash_table_new(g_str_hash, g_str_equal);
 	self->config     = gtk_notebook_new();
 	gtk_notebook_set_tab_pos(GTK_NOTEBOOK(self->config), GTK_POS_LEFT);
@@ -413,6 +590,7 @@ static void gis_plugin_radar_finalize(GObject *gobject)
 	g_debug("GisPluginRadar: finalize");
 	GisPluginRadar *self = GIS_PLUGIN_RADAR(gobject);
 	/* Free data */
+	gis_http_free(self->conus_http);
 	gis_http_free(self->sites_http);
 	g_hash_table_destroy(self->sites);
 	gtk_widget_destroy(self->config);

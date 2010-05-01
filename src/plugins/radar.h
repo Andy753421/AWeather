@@ -34,6 +34,7 @@
 typedef struct _GisPluginRadar        GisPluginRadar;
 typedef struct _GisPluginRadarClass   GisPluginRadarClass;
 
+typedef struct _RadarConus RadarConus;
 typedef struct _RadarSite  RadarSite;
 
 struct _GisPluginRadar {
@@ -47,6 +48,9 @@ struct _GisPluginRadar {
 
 	GHashTable *sites;
 	GisHttp    *sites_http;
+
+	RadarConus *conus;
+	GisHttp    *conus_http;
 };
 
 struct _GisPluginRadarClass {
