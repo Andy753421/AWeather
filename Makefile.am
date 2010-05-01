@@ -1,6 +1,6 @@
 SUBDIRS = src data docs
 
-ACLOCAL_AMFLAGS=-I m4
+ACLOCAL_AMFLAGS = -I m4
 
 MAINTAINERCLEANFILES = aclocal.m4 compile config.guess config.h.in config.sub \
 		       configure depcomp gtk-doc.make install-sh ltmain.sh \

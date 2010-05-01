@@ -604,4 +604,3 @@ static void gis_plugin_radar_class_init(GisPluginRadarClass *klass)
 	gobject_class->dispose  = gis_plugin_radar_dispose;
 	gobject_class->finalize = gis_plugin_radar_finalize;
 }
-

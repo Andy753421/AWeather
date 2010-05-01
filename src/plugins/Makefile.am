@@ -1,5 +1,5 @@
-AM_CFLAGS   = -Wall --std=gnu99  -I../
-AM_CPPFLAGS = $(GIS_CFLAGS)
+AM_CFLAGS   = -Wall --std=gnu99 $(GIS_CFLAGS)
+AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/lib
 AM_LDFLAGS  = -module -avoid-version -no-undefined
 LIBS        = $(GIS_LIBS)
 
