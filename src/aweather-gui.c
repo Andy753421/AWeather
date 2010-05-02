@@ -347,31 +347,21 @@ void aweather_gui_deattach_plugin(AWeatherGui *self, const gchar *name)
 /****************
  * GObject code *
  ****************/
-G_DEFINE_TYPE(AWeatherGui, aweather_gui, GTK_TYPE_WINDOW);
-static void aweather_gui_init(AWeatherGui *self)
+static void aweather_gui_parser_finished(GtkBuildable *_self, GtkBuilder *builder)
 {
-	g_debug("AWeatherGui: init");
+	g_debug("AWeatherGui: parser finished");
+	AWeatherGui *self = AWEATHER_GUI(_self);
+	self->builder = builder;
 
 	/* Simple things */
 	gchar *config   = g_build_filename(g_get_user_config_dir(), PACKAGE, "config.ini", NULL);
 	gchar *defaults = g_build_filename(PKGDATADIR, "defaults.ini", NULL);
 	self->prefs   = gis_prefs_new(config, defaults);
 	self->plugins = gis_plugins_new(PLUGINSDIR, self->prefs);
-	self->viewer  = gis_opengl_new(self->plugins, self->prefs);
+	self->viewer  = GIS_VIEWER(aweather_gui_get_widget(self, "main_viewer"));
+	gis_viewer_setup(self->viewer, self->plugins, self->prefs);
 	g_free(config);
 	g_free(defaults);
-
-	/* Setup window */
-	self->builder = gtk_builder_new();
-	GError *error = NULL;
-	if (!gtk_builder_add_from_file(self->builder, PKGDATADIR "/main.ui", &error))
-		g_error("Failed to create gtk builder: %s", error->message);
-	gtk_widget_reparent(aweather_gui_get_widget(self, "main_body"), GTK_WIDGET(self));
-	GtkWidget *paned = aweather_gui_get_widget(self, "main_paned");
-	gtk_widget_destroy(gtk_paned_get_child1(GTK_PANED(paned)));
-	gtk_paned_pack1(GTK_PANED(paned), GTK_WIDGET(self->viewer), TRUE, FALSE);
-	gtk_widget_set_size_request(GTK_WIDGET(self->viewer), 600, 400);
-	gtk_widget_show_all(GTK_WIDGET(self));
 
 	/* Plugins */
 	GtkTreeIter iter;
@@ -401,10 +391,22 @@ static void aweather_gui_init(AWeatherGui *self)
 			G_CALLBACK(gtk_toggle_action_set_active),
 			aweather_gui_get_object(self, "offline"));
 }
+static void aweather_gui_buildable_init(GtkBuildableIface *iface)
+{
+	iface->parser_finished = aweather_gui_parser_finished;
+}
+G_DEFINE_TYPE_WITH_CODE(AWeatherGui, aweather_gui, GTK_TYPE_WINDOW,
+		G_IMPLEMENT_INTERFACE(GTK_TYPE_BUILDABLE,
+			aweather_gui_buildable_init));
+static void aweather_gui_init(AWeatherGui *self)
+{
+	g_debug("AWeatherGui: init");
+	/* Do all the real work in parser_finished */
+}
 static GObject *aweather_gui_constructor(GType gtype, guint n_properties,
 		GObjectConstructParam *properties)
 {
-	g_debug("aweather_gui: constructor");
+	g_debug("AWeatherGui: constructor");
 	GObjectClass *parent_class = G_OBJECT_CLASS(aweather_gui_parent_class);
 	return parent_class->constructor(gtype, n_properties, properties);
 }
@@ -430,7 +432,6 @@ static void aweather_gui_finalize(GObject *_self)
 {
 	g_debug("AWeatherGui: finalize");
 	G_OBJECT_CLASS(aweather_gui_parent_class)->finalize(_self);
-	gtk_main_quit();
 
 }
 static void aweather_gui_class_init(AWeatherGuiClass *klass)

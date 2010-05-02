@@ -103,7 +103,12 @@ int main(int argc, char *argv[])
 
 	/* Set up AWeather */
 	gdk_threads_enter();
-	AWeatherGui *gui = aweather_gui_new();
+	GIS_TYPE_OPENGL; // Pre-load the type for gtkbuilder
+	GtkBuilder *builder = gtk_builder_new();
+	if (!gtk_builder_add_from_file(builder, PKGDATADIR "/main.ui", &error))
+		g_error("Failed to create gtk builder: %s", error->message);
+	AWeatherGui *gui = AWEATHER_GUI(gtk_builder_get_object(builder, "main_window"));
+	g_signal_connect(gui, "destroy", gtk_main_quit, NULL);
 
 	gint     prefs_debug   = gis_prefs_get_integer(gui->prefs, "aweather/log_level", NULL);
 	gchar   *prefs_site    = gis_prefs_get_string(gui->prefs,  "aweather/initial_site", NULL);
