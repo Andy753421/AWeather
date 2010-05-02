@@ -8,6 +8,7 @@ AC_CONFIG_MACRO_DIR([m4])
 # Check for required programs
 AC_PROG_CC
 gl_EARLY
+LT_PROG_RC
 AC_PROG_LIBTOOL
 PKG_PROG_PKG_CONFIG
 gl_INIT
@@ -21,11 +22,22 @@ AC_CHECK_LIB(rsl, RSL_wsr88d_to_radar, RSL_LIBS="-lrsl")
 AM_CONDITIONAL(HAVE_RSL, test "$RSL_LIBS" != "")
 AC_SUBST(RSL_LIBS)
 
+# Test for Windows vs. Unix
+case "${host}" in
+	*mingw32*) WIN32="yes" ;;
+	*)         WIN32="no"  ;;
+esac
+if test "$WIN32" = yes; then
+	ac_default_prefix="/"
+fi
+AM_CONDITIONAL([WIN32], test "$WIN32" = "yes")
+
 # Output 
 AC_CONFIG_FILES([
 	Makefile
 	lib/Makefile
 	src/Makefile
+	src/resource.rc
 	src/plugins/Makefile
 	data/Makefile
 	data/main.ui

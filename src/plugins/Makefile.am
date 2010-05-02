@@ -1,7 +1,6 @@
 AM_CFLAGS   = -Wall --std=gnu99 $(GIS_CFLAGS)
 AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/lib
 AM_LDFLAGS  = -module -avoid-version -no-undefined
-LIBS        = $(GIS_LIBS)
 
 pluginsdir  = $(pkglibdir)
 
@@ -14,8 +13,8 @@ radar_la_SOURCES = \
 	level2.c level2.h \
 	../aweather-colormap.c \
 	../aweather-location.c
-radar_la_LIBADD  = $(addprefix $(top_srcdir)/lib/,$(gl_LTLIBOBJS))
-radar_la_LDFLAGS = $(AM_LDFLAGS) $(RSL_LIBS)
+radar_la_LIBADD  = $(RSL_LIBS) $(GIS_LIBS) \
+		   $(addprefix $(top_srcdir)/lib/,$(gl_LTLIBOBJS))
 endif
 
 test:

@@ -1,6 +1,9 @@
 *.bz2
 *.gz
+*.exe
 *~
+gtk/
+build/
 /arg-nonnull.h
 /c++defs.h
 /warn-on-use.h

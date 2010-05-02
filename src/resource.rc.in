@@ -1,0 +1,33 @@
+#include <winver.h>
+#include "resource.h"
+
+VS_VERSION_INFO VERSIONINFO
+  FILEVERSION    1,0,0,1
+  PRODUCTVERSION 1,0,0,1
+  FILEFLAGSMASK  0
+  FILEFLAGS      0
+  FILEOS         VOS__WINDOWS32
+  FILETYPE       VFT_APP
+  FILESUBTYPE    VFT2_UNKNOWN
+  BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+      BLOCK "040904B0"
+      BEGIN
+        VALUE "CompanyName",      "Andy Spencer"
+        VALUE "FileDescription",  "AWeather"
+        VALUE "FileVersion",      "@VERSION@"
+        VALUE "InternalName",     "@PACKAGE@"
+        VALUE "LegalCopyright",   "Copyright (C) 2008-2010 Andy Spencer"
+        VALUE "OriginalFilename", "@ORIGINAL_FILENAME@"
+        VALUE "ProductName",      "AWeather"
+        VALUE "ProductVersion",   "@VERSION@"
+      END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+      VALUE "Translation", 0x409, 1200
+    END
+  END
+
+AWEATHER_ICON ICON "../data/aweather.ico"

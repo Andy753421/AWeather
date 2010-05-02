@@ -11,6 +11,20 @@ EXTRA_DIST = m4/gnulib-cache.m4
 test: all
 	(cd src && make test)
 
+build: all
+	export DESTDIR="`pwd`/build"; \
+	make -C ../aweather-win32 install; \
+	make -C ../libgis-win32 install; \
+	make -C ../rsl-win32 install;
+
+installers: $(PACKAGE)-$(VERSION).exe $(PACKAGE)-$(VERSION)-gtk.exe
+
+$(PACKAGE)-$(VERSION).exe: build
+	makensis -DVERSION=$(VERSION) aweather.nsi
+
+$(PACKAGE)-$(VERSION)-gtk.exe: build
+	makensis -DVERSION=$(VERSION) -DUSE_GTK aweather.nsi
+
 release: all dist
 	@echo -en "\nRelease $(PACKAGE)-$(VERSION) (y/n): "
 	@read ans && [ "$$ans" != "y" ] && exit 1 || exit 0

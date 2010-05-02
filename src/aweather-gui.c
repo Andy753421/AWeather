@@ -29,7 +29,7 @@
 /*************
  * Callbacks *
  *************/
-gboolean on_gui_key_press(GtkWidget *widget, GdkEventKey *event, AWeatherGui *self)
+G_MODULE_EXPORT gboolean on_gui_key_press(GtkWidget *widget, GdkEventKey *event, AWeatherGui *self)
 {
 	g_debug("AWeatherGui: on_gui_key_press - key=%x, state=%x",
 			event->keyval, event->state);
@@ -49,27 +49,27 @@ gboolean on_gui_key_press(GtkWidget *widget, GdkEventKey *event, AWeatherGui *se
 	return FALSE;
 }
 
-void on_quit(GtkMenuItem *menu, AWeatherGui *self)
+G_MODULE_EXPORT void on_quit(GtkMenuItem *menu, AWeatherGui *self)
 {
 	gtk_widget_destroy(GTK_WIDGET(self));
 }
 
-void on_zoomin(GtkAction *action, AWeatherGui *self)
+G_MODULE_EXPORT void on_zoomin(GtkAction *action, AWeatherGui *self)
 {
 	gis_viewer_zoom(self->viewer, 3./4);
 }
 
-void on_zoomout(GtkAction *action, AWeatherGui *self)
+G_MODULE_EXPORT void on_zoomout(GtkAction *action, AWeatherGui *self)
 {
 	gis_viewer_zoom(self->viewer, 4./3);
 }
 
-void on_refresh(GtkAction *action, AWeatherGui *self)
+G_MODULE_EXPORT void on_refresh(GtkAction *action, AWeatherGui *self)
 {
 	gis_viewer_refresh(self->viewer);
 }
 
-void on_plugin_toggled(GtkCellRendererToggle *cell, gchar *path_str, AWeatherGui *self)
+G_MODULE_EXPORT void on_plugin_toggled(GtkCellRendererToggle *cell, gchar *path_str, AWeatherGui *self)
 {
 	GtkWidget    *tview = aweather_gui_get_widget(self, "prefs_plugins_view");
 	GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(tview));
@@ -87,7 +87,7 @@ void on_plugin_toggled(GtkCellRendererToggle *cell, gchar *path_str, AWeatherGui
 	g_free(name);
 }
 
-void on_time_changed(AWeatherGui *self)
+G_MODULE_EXPORT void on_time_changed(AWeatherGui *self)
 {
 	g_debug("AWeatherGui: on_time_changed");
 	struct tm tm = {};
@@ -146,14 +146,14 @@ static void update_time_widget(GisViewer *viewer, time_t time, AWeatherGui *self
 }
 
 /* Prefs callbacks */
-void on_offline(GtkToggleAction *action, AWeatherGui *self)
+G_MODULE_EXPORT void on_offline(GtkToggleAction *action, AWeatherGui *self)
 {
 	gboolean value = gtk_toggle_action_get_active(action);
 	g_debug("AWeatherGui: on_offline - offline=%d", value);
 	gis_viewer_set_offline(self->viewer, value);
 }
 
-void on_initial_site_changed(GtkComboBox *combo, AWeatherGui *self)
+G_MODULE_EXPORT void on_initial_site_changed(GtkComboBox *combo, AWeatherGui *self)
 {
 	gchar *code;
 	GtkTreeIter iter;
@@ -165,14 +165,14 @@ void on_initial_site_changed(GtkComboBox *combo, AWeatherGui *self)
 	g_free(code);
 }
 
-void on_nexrad_url_changed(GtkEntry *entry, AWeatherGui *self)
+G_MODULE_EXPORT void on_nexrad_url_changed(GtkEntry *entry, AWeatherGui *self)
 {
 	const gchar *text = gtk_entry_get_text(entry);
 	g_debug("AWeatherGui: on_nexrad_url_changed - url=%s", text);
 	gis_prefs_set_string(self->prefs, "aweather/nexrad_url", text);
 }
 
-int on_log_level_changed(GtkSpinButton *spinner, AWeatherGui *self)
+G_MODULE_EXPORT int on_log_level_changed(GtkSpinButton *spinner, AWeatherGui *self)
 {
 	gint value = gtk_spin_button_get_value_as_int(spinner);
 	g_debug("AWeatherGui: on_log_level_changed - %p, level=%d", self, value);
@@ -370,6 +370,7 @@ static void aweather_gui_init(AWeatherGui *self)
 	GtkWidget *paned = aweather_gui_get_widget(self, "main_paned");
 	gtk_widget_destroy(gtk_paned_get_child1(GTK_PANED(paned)));
 	gtk_paned_pack1(GTK_PANED(paned), GTK_WIDGET(self->viewer), TRUE, FALSE);
+	gtk_widget_set_size_request(GTK_WIDGET(self->viewer), 600, 400);
 	gtk_widget_show_all(GTK_WIDGET(self));
 
 	/* Plugins */

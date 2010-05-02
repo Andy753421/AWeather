@@ -1,0 +1,1 @@
+#define AWEATHER_ICON 104

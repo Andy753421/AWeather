@@ -4,6 +4,7 @@
 *.o
 *.so
 *.prof
+*.rc
 .deps
 .libs
 gmon.*
