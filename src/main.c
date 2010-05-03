@@ -103,7 +103,9 @@ int main(int argc, char *argv[])
 
 	/* Set up AWeather */
 	gdk_threads_enter();
-	GIS_TYPE_OPENGL; // Pre-load the type for gtkbuilder
+	/* Pre-load some type for gtkbuilder */
+	GIS_TYPE_OPENGL;
+	AWEATHER_TYPE_GUI;
 	GtkBuilder *builder = gtk_builder_new();
 	if (!gtk_builder_add_from_file(builder, PKGDATADIR "/main.ui", &error))
 		g_error("Failed to create gtk builder: %s", error->message);
