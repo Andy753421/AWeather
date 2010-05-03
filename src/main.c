@@ -68,7 +68,7 @@ int main(int argc, char *argv[])
 {
 	/* Defaults */
 	gint     debug   = 6;
-	gchar   *site    = "KIND";
+	gchar   *site    = "";
 	gboolean offline = FALSE;
 
 	/* Arguments */

@@ -194,6 +194,8 @@ static void site_setup(AWeatherGui *self)
 {
 	GtkTreeIter state, city;
 	GtkTreeStore *store = GTK_TREE_STORE(aweather_gui_get_object(self, "sites"));
+	gtk_tree_store_append(store, &state, NULL);
+	gtk_tree_store_set   (store, &state, 0, "", 1, "None", -1);
 	for (int i = 0; cities[i].type; i++) {
 		if (cities[i].type == LOCATION_STATE) {
 			gtk_tree_store_append(store, &state, NULL);
