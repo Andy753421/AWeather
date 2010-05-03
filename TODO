@@ -1,24 +1,25 @@
 Road plan
 ---------
-0.4 - Beta
+0.4 - Beta:
   * Man page with key commands
   * UI docs??
   * GTK docs
 
   * Fix 2^x texture sizes in Radar plugin
   * Fix double refresh in RadarConus
+  * Change "X" on radar tab to visibility toggle
 
-0.x - Misc
+0.x - Misc:
   * Fix all memory leaks
   * Pre-load textures and polys in OpenGL
 
-0.x - Volume scans
+0.x - Volume scans:
   * Display iso surfaces of volume scans
 
-0.x - Animation
+0.x - Animation:
   * Loop though times
 
-0.x - More data
+0.x - More data:
   * Derived from Level 2:
     * Composite reflectivity
     * Storm relative motion
@@ -26,3 +27,5 @@ Road plan
   * Warning/watch boxes
   * Fronts
   * Air pressure
+
+# vim: ft=txt
