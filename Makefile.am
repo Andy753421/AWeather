@@ -16,6 +16,7 @@ build: all
 	make -C ../aweather-win32 install; \
 	make -C ../libgis-win32 install; \
 	make -C ../rsl-win32 install;
+	touch $@
 
 installers: $(PACKAGE)-$(VERSION).exe $(PACKAGE)-$(VERSION)-gtk.exe
 
