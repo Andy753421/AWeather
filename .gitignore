@@ -2,7 +2,9 @@
 *.gz
 *.exe
 *~
-gtk/
+gtk
+pkg
+gtk-*/
 build/
 /arg-nonnull.h
 /c++defs.h

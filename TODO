@@ -1,10 +1,12 @@
 Road plan
 ---------
 0.4 - Beta
-  * CONUS (composite) radar images
   * Man page with key commands
   * UI docs??
   * GTK docs
+
+  * Fix 2^x texture sizes in Radar plugin
+  * Fix double refresh in RadarConus
 
 0.x - Misc
   * Fix all memory leaks
