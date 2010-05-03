@@ -660,7 +660,7 @@ static void gis_plugin_radar_init(GisPluginRadar *self)
 	self->sites      = g_hash_table_new_full(g_str_hash, g_str_equal,
 				NULL, (GDestroyNotify)radar_site_free);
 	self->config     = gtk_notebook_new();
-	gtk_notebook_set_tab_pos(GTK_NOTEBOOK(self->config), GTK_POS_TOP);
+	gtk_notebook_set_tab_pos(GTK_NOTEBOOK(self->config), GTK_POS_LEFT);
 }
 static void gis_plugin_radar_dispose(GObject *gobject)
 {
