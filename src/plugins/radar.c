@@ -344,11 +344,10 @@ struct _RadarConus {
 	GtkWidget   *config;
 	time_t       time;
 	const gchar *message;
-	gchar       *nearest;
 
+	gchar       *path;
 	GisTile     *tile[2];
 	gpointer    *tile_ref[2];
-	guchar      *pixels[2];
 
 	guint        time_id;     // "time-changed"     callback ID
 	guint        refresh_id;  // "refresh"          callback ID
@@ -367,96 +366,41 @@ void _conus_update_loading(gchar *file, goffset cur,
 	g_free(msg);
 }
 
-gboolean _conus_update_end(gpointer _conus)
+/* Copy images to graphics memory */
+static void _conus_update_end_copy(GisTile *tile, guchar *pixels)
 {
-	RadarConus *conus = _conus;
-	g_debug("GisPluginRadar: _conus_update_end");
-
-	for (int i = 0; i < 2; i++) {
-		GisTile  *tile   = conus->tile[i];
-		guchar   *pixels = conus->pixels[i];
-
-		if (!tile->data) {
-			tile->data = g_new0(guint, 1);
-			glGenTextures(1, tile->data);
-		}
-
-		guint *tex = tile->data;
-		glBindTexture(GL_TEXTURE_2D, *tex);
-
-		glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-		glPixelStorei(GL_PACK_ALIGNMENT, 1);
-		glTexImage2D(GL_TEXTURE_2D, 0, 4, 2048, 2048, 0,
-				GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-		glTexSubImage2D(GL_TEXTURE_2D, 0, 1,1, CONUS_WIDTH/2,CONUS_HEIGHT,
-				GL_RGBA, GL_UNSIGNED_BYTE, pixels);
-		tile->coords.n = 1.0/(CONUS_WIDTH/2);
-		tile->coords.w = 1.0/ CONUS_HEIGHT;
-		tile->coords.s = tile->coords.n +  CONUS_HEIGHT   / 2048.0;
-		tile->coords.e = tile->coords.w + (CONUS_WIDTH/2) / 2048.0;
-		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
-		glFlush();
-
-		g_free(pixels);
+	if (!tile->data) {
+		tile->data = g_new0(guint, 1);
+		glGenTextures(1, tile->data);
 	}
 
-	/* finish */
-	_gtk_bin_set_child(GTK_BIN(conus->config),
-			gtk_label_new(conus->nearest));
-	gtk_widget_queue_draw(GTK_WIDGET(conus->viewer));
-	g_free(conus->nearest);
+	guint *tex = tile->data;
+	glBindTexture(GL_TEXTURE_2D, *tex);
 
-	return FALSE;
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+	glPixelStorei(GL_PACK_ALIGNMENT, 1);
+	glTexImage2D(GL_TEXTURE_2D, 0, 4, 2048, 2048, 0,
+			GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+	glTexSubImage2D(GL_TEXTURE_2D, 0, 1,1, CONUS_WIDTH/2,CONUS_HEIGHT,
+			GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+	tile->coords.n = 1.0/(CONUS_WIDTH/2);
+	tile->coords.w = 1.0/ CONUS_HEIGHT;
+	tile->coords.s = tile->coords.n +  CONUS_HEIGHT   / 2048.0;
+	tile->coords.e = tile->coords.w + (CONUS_WIDTH/2) / 2048.0;
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+	glFlush();
 }
 
-gpointer _conus_update_thread(gpointer _conus)
+/* Split the pixbuf into east and west halves (with 2K sides)
+ * Also map the pixbuf's alpha values */
+static void _conus_update_end_split(guchar *pixels, guchar *west, guchar *east,
+		gint width, gint height, gint pxsize)
 {
-	RadarConus *conus = _conus;
-
-	/* Find nearest */
-	g_debug("GisPluginRadar: _conus_update_thread - nearest");
-	gboolean offline = gis_viewer_get_offline(conus->viewer);
-	gchar *conus_url = "http://radar.weather.gov/Conus/RadarImg/";
-	GList *files = gis_http_available(conus->http,
-			"^Conus_[^\"]*_N0Ronly.gif$", "",
-			NULL, (offline ? NULL : conus_url));
-	conus->nearest = _find_nearest(conus->time, files, 6, "%Y%m%d_%H%M");
-	g_list_foreach(files, (GFunc)g_free, NULL);
-	g_list_free(files);
-	if (!conus->nearest) {
-		conus->message = "No suitable files";
-		goto out;
-	}
-
-	/* Fetch the image */
-	g_debug("GisPluginRadar: _conus_update_thread - fetch");
-	gchar *uri     = g_strconcat(conus_url, conus->nearest, NULL);
-	gchar *path    = gis_http_fetch(conus->http, uri, conus->nearest, GIS_ONCE,
-			_conus_update_loading, conus);
-	g_free(uri);
-	if (!path) {
-		conus->message = "Fetch failed";
-		goto out;
-	}
-
-	/* Load and split the pixbuf into two 2K data segments */
-	g_debug("GisPluginRadar: _conus_update_thread - load");
-	GError *error = NULL;
-	GdkPixbuf *pixbuf = gdk_pixbuf_new_from_file(path, &error);
-	guchar    *pixels = gdk_pixbuf_get_pixels(pixbuf);
-	gint       width  = gdk_pixbuf_get_width(pixbuf);
-	gint       height = gdk_pixbuf_get_height(pixbuf);
-	gint       pxsize = gdk_pixbuf_get_has_alpha(pixbuf) ? 4 : 3;
-	g_free(path);
-
-	/* Split the pixbuf into east and west halves (with 2K sides)
-	 * Also map the pixbuf's alpha values */
 	g_debug("GisPluginRadar: _conus_update_thread - split");
-	conus->pixels[0] = g_malloc(4*(width/2)*height);
-	conus->pixels[1] = g_malloc(4*(width/2)*height);
+	guchar *out[] = {west,east};
 	const guchar alphamap[][4] = {
 		{0x04, 0xe9, 0xe7, 0x30},
 		{0x01, 0x9f, 0xf4, 0x60},
@@ -467,7 +411,7 @@ gpointer _conus_update_thread(gpointer _conus)
 		gint subx = x % (width/2);
 		gint idx  = x / (width/2);
 		guchar *src = &pixels[(y*width+x)*pxsize];
-		guchar *dst = &conus->pixels[idx][(y*(width/2)+subx)*4];
+		guchar *dst = &out[idx][(y*(width/2)+subx)*4];
 		if (src[0] > 0xe0 &&
 		    src[1] > 0xe0 &&
 		    src[2] > 0xe0) {
@@ -484,7 +428,82 @@ gpointer _conus_update_thread(gpointer _conus)
 					dst[3] = alphamap[j][3];
 		}
 	}
+}
+
+gboolean _conus_update_end(gpointer _conus)
+{
+	RadarConus *conus = _conus;
+	g_debug("GisPluginRadar: _conus_update_end");
+
+	/* Check error status */
+	if (conus->message) {
+		g_warning("GisPluginRadar: _conus_update_end - %s", conus->message);
+		_gtk_bin_set_child(GTK_BIN(conus->config), gtk_label_new(conus->message));
+		return FALSE;
+	}
+
+	/* Load and pixbuf */
+	GError *error = NULL;
+	GdkPixbuf *pixbuf = gdk_pixbuf_new_from_file(conus->path, &error);
+	guchar    *pixels = gdk_pixbuf_get_pixels(pixbuf);
+	gint       width  = gdk_pixbuf_get_width(pixbuf);
+	gint       height = gdk_pixbuf_get_height(pixbuf);
+	gint       pxsize = gdk_pixbuf_get_has_alpha(pixbuf) ? 4 : 3;
+
+	/* Split pixels into east/west parts */
+	guchar *pixels_west = g_malloc(4*(width/2)*height);
+	guchar *pixels_east = g_malloc(4*(width/2)*height);
+	_conus_update_end_split(pixels, pixels_west, pixels_east,
+			width, height, pxsize);
 	g_object_unref(pixbuf);
+
+	/* Copy pixels to graphics memory */
+	_conus_update_end_copy(conus->tile[0], pixels_west);
+	_conus_update_end_copy(conus->tile[1], pixels_east);
+	g_free(pixels_west);
+	g_free(pixels_east);
+
+	/* Update GUI */
+	gchar *label = g_path_get_basename(conus->path);
+	_gtk_bin_set_child(GTK_BIN(conus->config), gtk_label_new(label));
+	gtk_widget_queue_draw(GTK_WIDGET(conus->viewer));
+	g_free(conus->path);
+	g_free(label);
+
+	return FALSE;
+}
+
+gpointer _conus_update_thread(gpointer _conus)
+{
+	RadarConus *conus = _conus;
+	conus->message = NULL;
+
+	/* Find nearest */
+	g_debug("GisPluginRadar: _conus_update_thread - nearest");
+	gboolean offline = gis_viewer_get_offline(conus->viewer);
+	gchar *conus_url = "http://radar.weather.gov/Conus/RadarImg/";
+	GList *files = gis_http_available(conus->http,
+			"^Conus_[^\"]*_N0Ronly.gif$", "",
+			NULL, (offline ? NULL : conus_url));
+	gchar *nearest = _find_nearest(conus->time, files, 6, "%Y%m%d_%H%M");
+	g_list_foreach(files, (GFunc)g_free, NULL);
+	g_list_free(files);
+	if (!nearest) {
+		conus->message = "No suitable files";
+		goto out;
+	}
+
+	/* Fetch the image */
+	g_debug("GisPluginRadar: _conus_update_thread - fetch");
+	gchar *uri  = g_strconcat(conus_url, nearest, NULL);
+	conus->path = gis_http_fetch(conus->http, uri, nearest, GIS_ONCE,
+			_conus_update_loading, conus);
+	g_free(nearest);
+	g_free(uri);
+	if (!conus->path) {
+		conus->message = "Fetch failed";
+		goto out;
+	}
 
 out:
 	g_debug("GisPluginRadar: _conus_update_thread - done");
