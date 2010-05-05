@@ -32,6 +32,21 @@
 #include "level2.h"
 #include "../aweather-location.h"
 
+GtkWidget *_gtk_check_label_new(const gchar *text, gboolean state,
+		GCallback on_clicked, gpointer user_data)
+{
+	GtkWidget *hbox  = gtk_hbox_new(FALSE, 0);
+	GtkWidget *check = gtk_check_button_new();
+	GtkWidget *label = gtk_label_new(text);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(check), state);
+	g_signal_connect_swapped(check , "clicked",
+			G_CALLBACK(on_clicked), user_data);
+	gtk_box_pack_start(GTK_BOX(hbox), label, TRUE, TRUE, 0);
+	gtk_box_pack_end(GTK_BOX(hbox), check , FALSE, FALSE, 0);
+	gtk_widget_show_all(hbox);
+	return hbox;
+}
+
 void _gtk_bin_set_child(GtkBin *bin, GtkWidget *new)
 {
 	GtkWidget *old = gtk_bin_get_child(bin);
@@ -88,6 +103,7 @@ struct _RadarSite {
 	GtkWidget     *pconfig;
 
 	/* When loaded */
+	gboolean        hidden;
 	RadarSiteStatus status;     // Loading status for the site
 	GtkWidget      *config;
 	AWeatherLevel2 *level2;     // The Level2 structure for the current volume
@@ -130,7 +146,7 @@ gboolean _site_update_end(gpointer _site)
 gpointer _site_update_thread(gpointer _site)
 {
 	RadarSite *site = _site;
-	g_debug("GisPluginRadar: _update - %s", site->city->code);
+	g_debug("GisPluginRadar: _site_update_thread - %s", site->city->code);
 	site->status = STATUS_LOADING;
 	site->message = NULL;
 
@@ -138,15 +154,8 @@ gpointer _site_update_thread(gpointer _site)
 	gchar *nexrad_url = gis_prefs_get_string(site->prefs,
 			"aweather/nexrad_url", NULL);
 
-	/* Remove old volume */
-	g_debug("GisPluginRadar: _update - remove - %s", site->city->code);
-	if (site->level2_ref) {
-		gis_viewer_remove(site->viewer, site->level2_ref);
-		site->level2_ref = NULL;
-	}
-
 	/* Find nearest volume (temporally) */
-	g_debug("GisPluginRadar: _update - find nearest - %s", site->city->code);
+	g_debug("GisPluginRadar: _site_update_thread - find nearest - %s", site->city->code);
 	gchar *dir_list = g_strconcat(nexrad_url, "/", site->city->code,
 			"/", "dir.list", NULL);
 	GList *files = gis_http_available(site->http,
@@ -162,7 +171,7 @@ gpointer _site_update_thread(gpointer _site)
 	}
 
 	/* Fetch new volume */
-	g_debug("GisPluginRadar: _update - fetch");
+	g_debug("GisPluginRadar: _site_update_thread - fetch");
 	gchar *local = g_strconcat(site->city->code, "/", nearest, NULL);
 	gchar *uri   = g_strconcat(nexrad_url, "/", local,   NULL);
 	gchar *file = gis_http_fetch(site->http, uri, local,
@@ -178,9 +187,10 @@ gpointer _site_update_thread(gpointer _site)
 	}
 
 	/* Load and add new volume */
-	g_debug("GisPluginRadar: _update - load - %s", site->city->code);
+	g_debug("GisPluginRadar: _site_update_thread - load - %s", site->city->code);
 	site->level2 = aweather_level2_new_from_file(
 			site->viewer, colormaps, file, site->city->code);
+	GIS_OBJECT(site->level2)->hidden = site->hidden;
 	g_free(file);
 	if (!site->level2) {
 		site->message = "Load failed";
@@ -196,13 +206,20 @@ out:
 void _site_update(RadarSite *site)
 {
 	site->time = gis_viewer_get_time(site->viewer);
-	g_debug("GisPluginRadar: _on_time_changed %s - %d",
+	g_debug("GisPluginRadar: _site_update %s - %d",
 			site->city->code, (gint)site->time);
 
 	/* Add a progress bar */
 	GtkWidget *progress = gtk_progress_bar_new();
 	gtk_progress_bar_set_text(GTK_PROGRESS_BAR(progress), "Loading...");
 	_gtk_bin_set_child(GTK_BIN(site->config), progress);
+
+	/* Remove old volume */
+	g_debug("GisPluginRadar: _site_update - remove - %s", site->city->code);
+	if (site->level2_ref) {
+		gis_viewer_remove(site->viewer, site->level2_ref);
+		site->level2_ref = NULL;
+	}
 
 	/* Fork loading right away so updating the
 	 * list of times doesn't take too long */
@@ -235,6 +252,15 @@ void radar_site_unload(RadarSite *site)
 	site->status = STATUS_UNLOADED;
 }
 
+void radar_site_toggle(RadarSite *site)
+{
+	site->hidden = !site->hidden;
+	if (site->level2) {
+		GIS_OBJECT(site->level2)->hidden = site->hidden;
+		gtk_widget_queue_draw(GTK_WIDGET(site->viewer));
+	}
+}
+
 void radar_site_load(RadarSite *site)
 {
 	g_debug("GisPluginRadar: radar_site_load %s", site->city->code);
@@ -242,21 +268,10 @@ void radar_site_load(RadarSite *site)
 
 	/* Add tab page */
 	site->config = gtk_alignment_new(0, 0, 1, 1);
-	GtkWidget *tab   = gtk_hbox_new(FALSE, 0);
-	GtkWidget *close = gtk_button_new();
-	GtkWidget *label = gtk_label_new(site->city->name);
-	gtk_container_add(GTK_CONTAINER(close),
-			gtk_image_new_from_stock(GTK_STOCK_CLOSE,
-				GTK_ICON_SIZE_MENU));
-	gtk_button_set_relief(GTK_BUTTON(close), GTK_RELIEF_NONE);
-	g_signal_connect_swapped(close, "clicked",
-			G_CALLBACK(radar_site_unload), site);
-	gtk_box_pack_start(GTK_BOX(tab), label, TRUE, TRUE, 0);
-	gtk_box_pack_end(GTK_BOX(tab), close, FALSE, FALSE, 0);
-	gtk_notebook_append_page(GTK_NOTEBOOK(site->pconfig),
-			site->config, tab);
+	gtk_notebook_append_page(GTK_NOTEBOOK(site->pconfig), site->config,
+			_gtk_check_label_new(site->city->name, !site->hidden,
+				G_CALLBACK(radar_site_toggle), site));
 	gtk_widget_show_all(site->config);
-	gtk_widget_show_all(tab);
 
 	/* Set up radar loading */
 	site->time_id = g_signal_connect_swapped(site->viewer, "time-changed",
@@ -399,7 +414,7 @@ static void _conus_update_end_copy(GisTile *tile, guchar *pixels)
 static void _conus_update_end_split(guchar *pixels, guchar *west, guchar *east,
 		gint width, gint height, gint pxsize)
 {
-	g_debug("GisPluginRadar: _conus_update_thread - split");
+	g_debug("GisPluginRadar: _conus_update_end_split");
 	guchar *out[] = {west,east};
 	const guchar alphamap[][4] = {
 		{0x04, 0xe9, 0xe7, 0x30},
@@ -525,6 +540,15 @@ void _conus_update(RadarConus *conus)
 	g_thread_create(_conus_update_thread, conus, FALSE, NULL);
 }
 
+void radar_conus_toggle(RadarConus *conus)
+{
+	GIS_OBJECT(conus->tile[0])->hidden =
+		!GIS_OBJECT(conus->tile[0])->hidden;
+	GIS_OBJECT(conus->tile[1])->hidden =
+		!GIS_OBJECT(conus->tile[1])->hidden;
+	gtk_widget_queue_draw(GTK_WIDGET(conus->viewer));
+}
+
 RadarConus *radar_conus_new(GtkWidget *pconfig,
 		GisViewer *viewer, GisHttp *http)
 {
@@ -550,7 +574,9 @@ RadarConus *radar_conus_new(GtkWidget *pconfig,
 	conus->refresh_id = g_signal_connect_swapped(viewer, "refresh",
 			G_CALLBACK(_conus_update), conus);
 
-	gtk_notebook_append_page(GTK_NOTEBOOK(pconfig), conus->config, gtk_label_new("Conus"));
+	gtk_notebook_append_page(GTK_NOTEBOOK(pconfig), conus->config,
+			_gtk_check_label_new("Conus", TRUE,
+				G_CALLBACK(radar_conus_toggle), conus));
 	_conus_update(conus);
 	return conus;
 }

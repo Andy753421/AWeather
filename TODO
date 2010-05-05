@@ -1,13 +1,8 @@
 Road plan
 ---------
 0.4 - Beta:
-  * Man page with key commands
-  * UI docs??
-  * GTK docs
-
   * Fix 2^x texture sizes in Radar plugin
   * Fix double refresh in RadarConus
-  * Change "X" on radar tab to visibility toggle
 
 0.x - Misc:
   * Fix all memory leaks
