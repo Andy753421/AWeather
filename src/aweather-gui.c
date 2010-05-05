@@ -49,6 +49,16 @@ G_MODULE_EXPORT gboolean on_gui_key_press(GtkWidget *widget, GdkEventKey *event,
 	return FALSE;
 }
 
+G_MODULE_EXPORT void on_help_contents(GtkMenuItem *menu, AWeatherGui *self)
+{
+	GError *err = NULL;
+	const gchar *uri = "file://" HTMLDIR "/aweather.html";
+	gtk_show_uri(NULL, uri, GDK_CURRENT_TIME, &err);
+	if (err)
+		g_warning("Unable to open help page: %s - %s", uri, err->message);
+	g_error_free(err);
+}
+
 G_MODULE_EXPORT void on_quit(GtkMenuItem *menu, AWeatherGui *self)
 {
 	gtk_widget_destroy(GTK_WIDGET(self));

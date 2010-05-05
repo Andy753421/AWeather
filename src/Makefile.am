@@ -8,6 +8,7 @@ aweather_SOURCES  = main.c \
 	aweather-gui.c      aweather-gui.h \
 	aweather-location.c aweather-location.h
 aweather_CPPFLAGS = \
+	-DHTMLDIR="\"$(dots)$(htmldir)\"" \
 	-DPKGDATADIR="\"$(dots)$(pkgdatadir)\"" \
 	-DPLUGINSDIR="\"$(dots)$(pkglibdir)\""
 aweather_LDADD    = $(GIS_LIBS)
