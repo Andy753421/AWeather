@@ -359,6 +359,7 @@ struct _RadarConus {
 	GtkWidget   *config;
 	time_t       time;
 	const gchar *message;
+	GStaticMutex loading;
 
 	gchar       *path;
 	GisTile     *tile[2];
@@ -454,7 +455,7 @@ gboolean _conus_update_end(gpointer _conus)
 	if (conus->message) {
 		g_warning("GisPluginRadar: _conus_update_end - %s", conus->message);
 		_gtk_bin_set_child(GTK_BIN(conus->config), gtk_label_new(conus->message));
-		return FALSE;
+		goto out;
 	}
 
 	/* Load and pixbuf */
@@ -482,9 +483,11 @@ gboolean _conus_update_end(gpointer _conus)
 	gchar *label = g_path_get_basename(conus->path);
 	_gtk_bin_set_child(GTK_BIN(conus->config), gtk_label_new(label));
 	gtk_widget_queue_draw(GTK_WIDGET(conus->viewer));
-	g_free(conus->path);
 	g_free(label);
 
+out:
+	g_free(conus->path);
+	g_static_mutex_unlock(&conus->loading);
 	return FALSE;
 }
 
@@ -528,6 +531,8 @@ out:
 
 void _conus_update(RadarConus *conus)
 {
+	if (!g_static_mutex_trylock(&conus->loading))
+		return;
 	conus->time = gis_viewer_get_time(conus->viewer);
 	g_debug("GisPluginRadar: _conus_update - %d",
 			(gint)conus->time);
@@ -556,6 +561,7 @@ RadarConus *radar_conus_new(GtkWidget *pconfig,
 	conus->viewer  = g_object_ref(viewer);
 	conus->http    = http;
 	conus->config  = gtk_alignment_new(0, 0, 1, 1);
+	g_static_mutex_init(&conus->loading);
 
 	gdouble south =  CONUS_NORTH - CONUS_DEG_PER_PX*CONUS_HEIGHT;
 	gdouble east  =  CONUS_WEST  + CONUS_DEG_PER_PX*CONUS_WIDTH;
