@@ -258,7 +258,9 @@ AWeatherLevel2 *aweather_level2_new_from_file(GisViewer *viewer,
 
 	/* Load the radar file */
 	RSL_read_these_sweeps("all", NULL);
+	g_message("read start");
 	Radar *radar = RSL_wsr88d_to_radar(raw, (gchar*)site);
+	g_message("read done");
 	g_free(raw);
 	if (!radar)
 		return NULL;

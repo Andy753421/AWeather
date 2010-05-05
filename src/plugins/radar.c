@@ -147,7 +147,6 @@ gpointer _site_update_thread(gpointer _site)
 {
 	RadarSite *site = _site;
 	g_debug("GisPluginRadar: _site_update_thread - %s", site->city->code);
-	site->status = STATUS_LOADING;
 	site->message = NULL;
 
 	gboolean offline = gis_viewer_get_offline(site->viewer);
@@ -190,12 +189,12 @@ gpointer _site_update_thread(gpointer _site)
 	g_debug("GisPluginRadar: _site_update_thread - load - %s", site->city->code);
 	site->level2 = aweather_level2_new_from_file(
 			site->viewer, colormaps, file, site->city->code);
-	GIS_OBJECT(site->level2)->hidden = site->hidden;
 	g_free(file);
 	if (!site->level2) {
 		site->message = "Load failed";
 		goto out;
 	}
+	GIS_OBJECT(site->level2)->hidden = site->hidden;
 	site->level2_ref = gis_viewer_add(site->viewer,
 			GIS_OBJECT(site->level2), GIS_LEVEL_WORLD, TRUE);
 
@@ -205,6 +204,10 @@ out:
 }
 void _site_update(RadarSite *site)
 {
+	if (site->status == STATUS_LOADING)
+		return;
+	site->status = STATUS_LOADING;
+
 	site->time = gis_viewer_get_time(site->viewer);
 	g_debug("GisPluginRadar: _site_update %s - %d",
 			site->city->code, (gint)site->time);
@@ -264,7 +267,6 @@ void radar_site_toggle(RadarSite *site)
 void radar_site_load(RadarSite *site)
 {
 	g_debug("GisPluginRadar: radar_site_load %s", site->city->code);
-	site->status = STATUS_LOADING;
 
 	/* Add tab page */
 	site->config = gtk_alignment_new(0, 0, 1, 1);
