@@ -8,6 +8,7 @@ aweather_SOURCES  = main.c \
 	aweather-gui.c      aweather-gui.h \
 	aweather-location.c aweather-location.h
 aweather_CPPFLAGS = \
+	-DBROWSER="\"$(browser)\"" \
 	-DHTMLDIR="\"$(dots)$(htmldir)\"" \
 	-DPKGDATADIR="\"$(dots)$(pkgdatadir)\"" \
 	-DPLUGINSDIR="\"$(dots)$(pkglibdir)\""
@@ -20,6 +21,9 @@ if WIN32
 AM_LDFLAGS       += -mwindows 
 aweather_SOURCES += resource.rc
 dots              = ..
+browser           = "open"
+else
+browser           = "xdg-open"
 endif
 
 .rc.o: ../data/aweather.ico

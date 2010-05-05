@@ -52,11 +52,13 @@ G_MODULE_EXPORT gboolean on_gui_key_press(GtkWidget *widget, GdkEventKey *event,
 G_MODULE_EXPORT void on_help_contents(GtkMenuItem *menu, AWeatherGui *self)
 {
 	GError *err = NULL;
-	const gchar *uri = "file://" HTMLDIR "/aweather.html";
-	gtk_show_uri(NULL, uri, GDK_CURRENT_TIME, &err);
-	if (err)
-		g_warning("Unable to open help page: %s - %s", uri, err->message);
-	g_error_free(err);
+	gchar *argv[] = {BROWSER, HTMLDIR "/aweather.html", NULL};
+	g_spawn_async(NULL, argv, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL, NULL, &err);
+	if (err) {
+		g_warning("Unable to open help page: %s - %s",
+				argv[1], err->message);
+		g_error_free(err);
+	}
 }
 
 G_MODULE_EXPORT void on_quit(GtkMenuItem *menu, AWeatherGui *self)
