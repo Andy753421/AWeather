@@ -465,12 +465,18 @@ gboolean _conus_update_end(gpointer _conus)
 	/* Load and pixbuf */
 	GError *error = NULL;
 	GdkPixbuf *pixbuf = gdk_pixbuf_new_from_file(conus->path, &error);
-	guchar    *pixels = gdk_pixbuf_get_pixels(pixbuf);
-	gint       width  = gdk_pixbuf_get_width(pixbuf);
-	gint       height = gdk_pixbuf_get_height(pixbuf);
-	gint       pxsize = gdk_pixbuf_get_has_alpha(pixbuf) ? 4 : 3;
+	if (!pixbuf || error) {
+		g_warning("GisPluginRadar: _conus_update_end - error loading pixbuf");
+		_gtk_bin_set_child(GTK_BIN(conus->config), gtk_label_new("Error loading pixbuf"));
+		g_remove(conus->path);
+		goto out;
+	}
 
 	/* Split pixels into east/west parts */
+	guchar *pixels = gdk_pixbuf_get_pixels(pixbuf);
+	gint    width  = gdk_pixbuf_get_width(pixbuf);
+	gint    height = gdk_pixbuf_get_height(pixbuf);
+	gint    pxsize = gdk_pixbuf_get_has_alpha(pixbuf) ? 4 : 3;
 	guchar *pixels_west = g_malloc(4*(width/2)*height);
 	guchar *pixels_east = g_malloc(4*(width/2)*height);
 	_conus_update_end_split(pixels, pixels_west, pixels_east,
