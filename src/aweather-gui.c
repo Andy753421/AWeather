@@ -264,28 +264,26 @@ static void prefs_setup(AWeatherGui *self)
 
 static void time_setup(AWeatherGui *self)
 {
-	/* Setup UI */
-	GtkCalendar       *cal  = GTK_CALENDAR(aweather_gui_get_widget(self, "main_date_cal"));
-	GtkTreeView       *view = GTK_TREE_VIEW(aweather_gui_get_widget(self, "main_time"));
-	GtkCellRenderer   *rend = gtk_cell_renderer_text_new();
-	GtkTreeViewColumn *col  = gtk_tree_view_column_new_with_attributes(
-					"Time", rend, "text", 0, NULL);
-	gtk_tree_view_append_column(view, col);
-	g_object_set(rend, "size-points", 8.0, NULL);
-
 	/* Add times */
-	GtkListStore *store = GTK_LIST_STORE(aweather_gui_get_object(self, "times"));
+	GtkTreeStore *store = GTK_TREE_STORE(aweather_gui_get_object(self, "times"));
 	for (int hour = 0; hour < 24; hour++) {
-		for (int min = 0; min < 60; min += 10) {
-			GtkTreeIter iter;
-			gchar *str = g_strdup_printf("%02d:%02d", hour, min);
-			gtk_list_store_append(store, &iter);
-			gtk_list_store_set(store, &iter, 0, str, 1, hour, 2, min, -1);
+		GtkTreeIter hour_iter;
+		gchar *str = g_strdup_printf("%02d:00Z", hour);
+		gtk_tree_store_append(store, &hour_iter, NULL);
+		gtk_tree_store_set(store, &hour_iter, 0, str, 1, hour, 2, 0, -1);
+		g_free(str);
+		for (int min = 5; min < 60; min += 5) {
+			GtkTreeIter min_iter;
+			gchar *str = g_strdup_printf("%02d:%02dZ", hour, min);
+			gtk_tree_store_append(store, &min_iter, &hour_iter);
+			gtk_tree_store_set(store, &min_iter, 0, str, 1, hour, 2, min, -1);
 			g_free(str);
 		}
 	}
 
 	/* Connect signals */
+	GtkWidget *cal  = aweather_gui_get_widget(self, "main_date_cal");
+	GtkWidget *view = aweather_gui_get_widget(self, "main_time");
 	g_signal_connect_swapped(cal,  "day-selected-double-click",
 			G_CALLBACK(on_time_changed), self);
 	g_signal_connect_swapped(view, "row-activated",

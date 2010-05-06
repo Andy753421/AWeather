@@ -11,7 +11,15 @@
       <column type="gboolean"/>
     </columns>
   </object>
-  <object class="GtkListStore" id="times">
+  <object class="GtkTreeStore" id="sites">
+    <columns>
+      <!-- column-name code -->
+      <column type="gchararray"/>
+      <!-- column-name name -->
+      <column type="gchararray"/>
+    </columns>
+  </object>
+  <object class="GtkTreeStore" id="times">
     <columns>
       <!-- column-name string -->
       <column type="gchararray"/>
@@ -19,14 +27,6 @@
       <column type="gint"/>
       <!-- column-name min -->
       <column type="gint"/>
-    </columns>
-  </object>
-  <object class="GtkTreeStore" id="sites">
-    <columns>
-      <!-- column-name code -->
-      <column type="gchararray"/>
-      <!-- column-name name -->
-      <column type="gchararray"/>
     </columns>
   </object>
   <object class="AWeatherGui" id="main_window">
@@ -321,6 +321,17 @@
                                 <property name="can_focus">True</property>
                                 <property name="model">times</property>
                                 <property name="headers_visible">False</property>
+                                <child>
+                                  <object class="GtkTreeViewColumn" id="main_time_text">
+                                    <property name="title">Time</property>
+                                    <child>
+                                      <object class="GtkCellRendererText" id="main_time_rend"/>
+                                      <attributes>
+                                        <attribute name="text">0</attribute>
+                                      </attributes>
+                                    </child>
+                                  </object>
+                                </child>
                               </object>
                             </child>
                           </object>
