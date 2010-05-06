@@ -320,7 +320,8 @@ RadarSite *radar_site_new(city_t *city, GtkWidget *pconfig,
 	RadarSite *site = g_new0(RadarSite, 1);
 	site->viewer  = g_object_ref(viewer);
 	site->prefs   = g_object_ref(prefs);
-	site->http    = http;
+	//site->http    = http;
+	site->http    = gis_http_new(G_DIR_SEPARATOR_S "nexrad" G_DIR_SEPARATOR_S "level2" G_DIR_SEPARATOR_S);
 	site->city    = city;
 	site->pconfig = pconfig;
 
@@ -340,6 +341,7 @@ void radar_site_free(RadarSite *site)
 	gis_viewer_remove(site->viewer, site->marker_ref);
 	if (site->location_id)
 		g_signal_handler_disconnect(site->viewer, site->location_id);
+	gis_http_free(site->http);
 	g_object_unref(site->viewer);
 	g_object_unref(site->prefs);
 	g_free(site);
