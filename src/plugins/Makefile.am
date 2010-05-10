@@ -12,7 +12,9 @@ radar_la_SOURCES = \
 	radar.c  radar.h \
 	level2.c level2.h \
 	../aweather-colormap.c \
-	../aweather-location.c
+	../aweather-colormap.h \
+	../aweather-location.c \
+	../aweather-location.h
 radar_la_LIBADD  = $(RSL_LIBS) $(GIS_LIBS) \
 		   $(addprefix $(top_srcdir)/lib/,$(gl_LTLIBOBJS))
 endif

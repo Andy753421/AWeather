@@ -1,6 +1,8 @@
 man1_MANS = aweather.1
 html_DATA = aweather.html
 
+EXTRA_DIST = $(man1_MANS) $(html_DATA)
+
 %.html: %.ad
 	asciidoc $<
 
