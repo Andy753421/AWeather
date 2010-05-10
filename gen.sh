@@ -4,5 +4,5 @@ PKG_CONFIG_PATH="../libgis/src/" \
 ./autogen.sh \
 	"--datadir=$dir/data" \
 	"--libdir=$dir/src/plugins" \
-	CFLAGS="-g -Werror -Wno-unused $CFLAGS" \
+	CFLAGS="-g -Werror $CFLAGS" \
 	LDFLAGS="-Wl,-z,defs"
