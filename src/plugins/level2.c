@@ -68,19 +68,29 @@ static void _bscan_sweep(Sweep *sweep, AWeatherColormap *colormap,
 }
 
 /* Load a sweep into an OpenGL texture */
-static void _load_sweep_gl(Sweep *sweep, AWeatherColormap *colormap, guint *tex)
+static void _load_sweep_gl(AWeatherLevel2 *self)
 {
 	g_debug("AWeatherLevel2: _load_sweep_gl");
-	int height, width;
 	guint8 *data;
-	_bscan_sweep(sweep, colormap, &data, &width, &height);
-	glBindTexture(GL_TEXTURE_2D, *tex);
+	gint width, height;
+	_bscan_sweep(self->sweep, self->sweep_colors, &data, &width, &height);
+	gint tex_width  = pow(2, ceil(log(width )/log(2)));
+	gint tex_height = pow(2, ceil(log(height)/log(2)));
+	self->sweep_coords[0] = (double)width  / tex_width;
+	self->sweep_coords[1] = (double)height / tex_height;
+
+	if (!self->sweep_tex)
+		 glGenTextures(1, &self->sweep_tex);
+	glBindTexture(GL_TEXTURE_2D, self->sweep_tex);
 	glPixelStorei(GL_PACK_ALIGNMENT, 1);
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, tex_width, tex_height, 0,
+			GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+	glTexSubImage2D(GL_TEXTURE_2D, 0, 0,0, width,height,
+			GL_RGBA, GL_UNSIGNED_BYTE, data);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0,
-			GL_RGBA, GL_UNSIGNED_BYTE, data);
+
 	g_free(data);
 }
 
@@ -143,6 +153,8 @@ static void _draw_radar(GisCallback *_self, gpointer _viewer)
 	glColor4f(1,1,1,1);
 
 	/* Draw the rays */
+	gdouble xscale = self->sweep_coords[0];
+	gdouble yscale = self->sweep_coords[1];
 	glBindTexture(GL_TEXTURE_2D, self->sweep_tex);
 	glBegin(GL_TRIANGLE_STRIP);
 	for (int ri = 0; ri <= sweep->h.nrays; ri++) {
@@ -165,13 +177,13 @@ static void _draw_radar(GisCallback *_self, gpointer _viewer)
 
 		/* (find middle of bin) / scale for opengl */
 		// near left
-		glTexCoord2f(0.0, (double)ri/sweep->h.nrays-0.01);
+		glTexCoord2f(0.0, ((double)ri/sweep->h.nrays)*yscale);
 		glVertex3f(lx*near_dist, ly*near_dist, 2.0);
 
 		// far  left
 		// todo: correct range-height function
 		double height = sin(deg2rad(ray->h.elev)) * far_dist;
-		glTexCoord2f(1.0, (double)ri/sweep->h.nrays-0.01);
+		glTexCoord2f(xscale, ((double)ri/sweep->h.nrays)*yscale);
 		glVertex3f(lx*far_dist,  ly*far_dist, height);
 	}
 	glEnd();
@@ -194,9 +206,7 @@ static gboolean _set_sweep_cb(gpointer _self)
 {
 	g_debug("AWeatherLevel2: _set_sweep_cb");
 	AWeatherLevel2 *self = _self;
-	if (!self->sweep_tex)
-		 glGenTextures(1, &self->sweep_tex);
-	_load_sweep_gl(self->sweep, self->sweep_colors, &self->sweep_tex);
+	_load_sweep_gl(self);
 	gtk_widget_queue_draw(GTK_WIDGET(self->viewer));
 	g_object_unref(self);
 	return FALSE;

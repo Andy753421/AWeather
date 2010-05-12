@@ -1,8 +1,5 @@
 Road plan
 ---------
-0.4 - Beta:
-  * Fix 2^x texture sizes in Radar plugin
-
 0.x - Misc:
   * Fix all memory leaks
   * Pre-load textures and polys in OpenGL

@@ -41,6 +41,7 @@ struct _AWeatherLevel2 {
 	/* Private */
 	Sweep            *sweep;
 	AWeatherColormap *sweep_colors;
+	gdouble           sweep_coords[2];
 	guint             sweep_tex;
 };
 
