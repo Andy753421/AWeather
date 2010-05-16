@@ -17,9 +17,17 @@ wsr88ddec         = wsr88ddec.c
 wsr88ddec_LDADD   = $(GLIB_LIBS) -lbz2
 
 if WIN32
-AM_LDFLAGS       += -mwindows 
-aweather_SOURCES += resource.rc
-dots              = ..
+dots = ..
+
+wsr88ddec_LDFLAGS     = -mwindows
+
+aweather_SOURCES     += resource.rc
+aweather_LDFLAGS      = -mwindows
+
+bin_PROGRAMS         += aweather-dbg
+aweather_dbg_SOURCES  = $(aweather_SOURCES)
+aweather_dbg_CPPFLAGS = $(aweather_CPPFLAGS)
+aweather_dbg_LDADD    = $(aweather_LDADD)
 endif
 
 .rc.o: ../data/aweather.ico

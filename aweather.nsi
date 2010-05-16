@@ -66,7 +66,7 @@ sectionEnd
 
 Section "Desktop Icons"
 	setOutPath $INSTDIR\bin
-	CreateShortCut "$DESKTOP\AWeather.exe.lnk" "$INSTDIR\bin\aweather.exe" "" "$INSTDIR\bin\aweather.exe" 0
+	CreateShortCut "$DESKTOP\AWeather.lnk" "$INSTDIR\bin\aweather.exe" "" "$INSTDIR\bin\aweather.exe" 0
 SectionEnd
 
 Section "Start Menu Shortcuts"
@@ -74,6 +74,7 @@ Section "Start Menu Shortcuts"
 	CreateDirectory "$SMPROGRAMS\AWeather"
 	CreateShortCut  "$SMPROGRAMS\AWeather\Uninstall AWeather.lnk" "$INSTDIR\uninstaller.exe"  "" "$INSTDIR\uninstaller.exe"  0
 	CreateShortCut  "$SMPROGRAMS\AWeather\AWeather.lnk"           "$INSTDIR\bin\aweather.exe" "" "$INSTDIR\bin\aweather.exe" 0
+	CreateShortCut  "$SMPROGRAMS\AWeather\AWeather (debug).lnk" "cmd.exe" "/K aweather-dbg.exe -d 7" "$INSTDIR\bin\aweather-dbg.exe" 0
 SectionEnd
 
 section "Uninstall"
