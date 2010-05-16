@@ -1,3 +1,5 @@
+#!/bin/bash
+
 #Grab command line arguments
 OLDVERSION=$1
 VERSION=$2
