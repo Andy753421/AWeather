@@ -50,15 +50,24 @@
                       <object class="GtkCheckMenuItem" id="main_menu_file_offline">
                         <property name="visible">True</property>
                         <property name="tooltip_text" translatable="yes">Work offline</property>
-                        <property name="use_action_appearance">True</property>
                         <property name="related_action">offline</property>
+                        <property name="use_action_appearance">True</property>
                       </object>
                     </child>
                     <child>
                       <object class="GtkImageMenuItem" id="main_menu_file_prefs">
                         <property name="visible">True</property>
-                        <property name="use_action_appearance">True</property>
                         <property name="related_action">prefs</property>
+                        <property name="use_action_appearance">True</property>
+                        <property name="use_underline">True</property>
+                        <property name="use_stock">True</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkImageMenuItem" id="main_menu_file_cleancache">
+                        <property name="visible">True</property>
+                        <property name="related_action">cleancache</property>
+                        <property name="use_action_appearance">True</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
                       </object>
@@ -71,8 +80,8 @@
                     <child>
                       <object class="GtkImageMenuItem" id="main_menu_file_quit">
                         <property name="visible">True</property>
-                        <property name="use_action_appearance">True</property>
                         <property name="related_action">quit</property>
+                        <property name="use_action_appearance">True</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
                       </object>
@@ -92,8 +101,8 @@
                     <child>
                       <object class="GtkImageMenuItem" id="main_menu_view_zoomin">
                         <property name="visible">True</property>
-                        <property name="use_action_appearance">True</property>
                         <property name="related_action">zoomin</property>
+                        <property name="use_action_appearance">True</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
                       </object>
@@ -101,8 +110,8 @@
                     <child>
                       <object class="GtkImageMenuItem" id="main_menu_view_zoomout">
                         <property name="visible">True</property>
-                        <property name="use_action_appearance">True</property>
                         <property name="related_action">zoomout</property>
+                        <property name="use_action_appearance">True</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
                       </object>
@@ -115,8 +124,8 @@
                     <child>
                       <object class="GtkImageMenuItem" id="main_menu_view_refresh">
                         <property name="visible">True</property>
-                        <property name="use_action_appearance">True</property>
                         <property name="related_action">refresh</property>
+                        <property name="use_action_appearance">True</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
                       </object>
@@ -136,11 +145,10 @@
                     <child>
                       <object class="GtkImageMenuItem" id="main_menu_help_contents">
                         <property name="visible">True</property>
-                        <property name="use_action_appearance">True</property>
                         <property name="related_action">contents</property>
+                        <property name="use_action_appearance">True</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
-                        <signal name="activate" handler="on_help_contents"/>
                       </object>
                     </child>
                     <child>
@@ -151,8 +159,8 @@
                     <child>
                       <object class="GtkImageMenuItem" id="main_menu_help_about">
                         <property name="visible">True</property>
-                        <property name="use_action_appearance">True</property>
                         <property name="related_action">about</property>
+                        <property name="use_action_appearance">True</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
                       </object>
@@ -174,8 +182,8 @@
             <child>
               <object class="GtkToolButton" id="main_tb_zoomin">
                 <property name="visible">True</property>
-                <property name="use_action_appearance">True</property>
                 <property name="related_action">zoomin</property>
+                <property name="use_action_appearance">True</property>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -185,8 +193,8 @@
             <child>
               <object class="GtkToolButton" id="main_tb_zoomout">
                 <property name="visible">True</property>
-                <property name="use_action_appearance">True</property>
                 <property name="related_action">zoomout</property>
+                <property name="use_action_appearance">True</property>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -205,8 +213,8 @@
             <child>
               <object class="GtkToggleToolButton" id="main_tb_offline">
                 <property name="visible">True</property>
-                <property name="use_action_appearance">True</property>
                 <property name="related_action">offline</property>
+                <property name="use_action_appearance">True</property>
                 <property name="label" translatable="yes">toolbutton3</property>
                 <property name="use_underline">True</property>
               </object>
@@ -218,8 +226,8 @@
             <child>
               <object class="GtkToolButton" id="main_tb_refresh">
                 <property name="visible">True</property>
-                <property name="use_action_appearance">True</property>
                 <property name="related_action">refresh</property>
+                <property name="use_action_appearance">True</property>
                 <property name="use_underline">True</property>
               </object>
               <packing>
@@ -239,8 +247,8 @@
             <child>
               <object class="GtkToolButton" id="main_tb_prefs">
                 <property name="visible">True</property>
-                <property name="use_action_appearance">True</property>
                 <property name="related_action">prefs</property>
+                <property name="use_action_appearance">True</property>
                 <property name="label" translatable="yes">toolbutton1</property>
                 <property name="use_underline">True</property>
               </object>
@@ -926,9 +934,9 @@ The hypothetical commands `show w' and `show c' should show the appropriate part
   </object>
   <object class="GtkSizeGroup" id="prefs_general_size">
     <widgets>
-      <widget name="prefs_general_site_label"/>
-      <widget name="prefs_general_url_label"/>
       <widget name="prefs_general_log_label"/>
+      <widget name="prefs_general_url_label"/>
+      <widget name="prefs_general_site_label"/>
     </widgets>
   </object>
   <object class="GtkAdjustment" id="prefs_general_log_adj">
@@ -940,5 +948,13 @@ The hypothetical commands `show w' and `show c' should show the appropriate part
     <property name="short_label">Contents</property>
     <property name="tooltip">AWeather Reference Manual</property>
     <property name="stock_id">gtk-help</property>
+    <signal name="activate" handler="on_contents"/>
+  </object>
+  <object class="GtkAction" id="cleancache">
+    <property name="label">Clean cache</property>
+    <property name="short_label">Clean cache</property>
+    <property name="tooltip">Clean out old cached files</property>
+    <property name="stock_id">gtk-clear</property>
+    <signal name="activate" handler="on_cleancache"/>
   </object>
 </interface>

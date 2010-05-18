@@ -14,6 +14,9 @@ pixmapdir = $(datadir)/pixmaps
 dist_pixmap_DATA = aweather.png
 endif
 
+glade:
+	GLADE_CATALOG_PATH=. glade-3 main.ui.in
+
 .svg.png:
 	rsvg -w 48 -h 48 $< $@
 .png.ico:

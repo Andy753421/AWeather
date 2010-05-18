@@ -18,6 +18,7 @@
 #include <config.h>
 #include <gtk/gtk.h>
 #include <gdk/gdkkeysyms.h>
+#include <glib/gstdio.h>
 #include <math.h>
 
 #include <gis.h>
@@ -49,7 +50,36 @@ G_MODULE_EXPORT gboolean on_gui_key_press(GtkWidget *widget, GdkEventKey *event,
 	return FALSE;
 }
 
-G_MODULE_EXPORT void on_help_contents(GtkMenuItem *menu, AWeatherGui *self)
+static void cleancache_r(gchar *path)
+{
+	GDir *dir = g_dir_open(path, 0, NULL);
+	if (!dir)
+		return;
+	const gchar *child;
+	while ((child = g_dir_read_name(dir))) {
+		gchar *child_path = g_build_filename(path, child, NULL);
+		if (g_file_test(child_path, G_FILE_TEST_IS_DIR)) {
+			cleancache_r(child_path);
+		} else {
+			struct stat st;
+			g_stat(child_path, &st);
+			if (st.st_atime < time(NULL)-60*60*24)
+				g_remove(child_path);
+		}
+		g_free(child_path);
+	}
+	g_dir_close(dir);
+	g_rmdir(path);
+}
+G_MODULE_EXPORT void on_cleancache(GtkMenuItem *menu, AWeatherGui *self)
+{
+	g_debug("AWeatherGui: on_cleancache");
+	/* Todo: move this to libgis */
+	gchar *cache = g_build_filename(g_get_user_cache_dir(), "libgis", NULL);
+	cleancache_r(cache);
+}
+
+G_MODULE_EXPORT void on_contents(GtkMenuItem *menu, AWeatherGui *self)
 {
 	GError *err = NULL;
 	gchar *path = g_strdup(HTMLDIR "/aweather.html");
