@@ -135,7 +135,7 @@ G_MODULE_EXPORT void on_plugin_toggled(GtkCellRendererToggle *cell, gchar *path_
 G_MODULE_EXPORT void on_time_changed(AWeatherGui *self)
 {
 	g_debug("AWeatherGui: on_time_changed");
-	struct tm tm = {};
+	struct tm tm = {.tm_isdst = -1};
 
 	GtkWidget *cal = aweather_gui_get_widget(self, "main_date_cal");
 	gtk_calendar_get_date(GTK_CALENDAR(cal), (guint*)&tm.tm_year,
