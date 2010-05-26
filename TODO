@@ -1,5 +1,8 @@
 Road plan
 ---------
+0.4.x - Bug fixes:
+  * Fix MESA issues
+
 0.x - Misc:
   * Fix all memory leaks
   * Pre-load textures and polys in OpenGL
