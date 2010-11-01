@@ -130,7 +130,7 @@ static gboolean _decompress_radar(const gchar *file, const gchar *raw)
 /*********************
  * Drawing functions *
  *********************/
-static void _draw_radar(GisCallback *_self, gpointer _viewer)
+void aweather_level2_draw(GisObject *_self, GisOpenGL *opengl)
 {
 	AWeatherLevel2 *self = AWEATHER_LEVEL2(_self);
 	if (!self->sweep || !self->sweep_tex)
@@ -142,7 +142,7 @@ static void _draw_radar(GisCallback *_self, gpointer _viewer)
 	gdouble lat  = (double)h->latd + (double)h->latm/60 + (double)h->lats/(60*60);
 	gdouble lon  = (double)h->lond + (double)h->lonm/60 + (double)h->lons/(60*60);
 	gdouble elev = h->height;
-	gis_viewer_center_position(self->viewer, lat, lon, elev);
+	gis_viewer_center_position(GIS_VIEWER(opengl), lat, lon, elev);
 
 	glDisable(GL_ALPHA_TEST);
 	glDisable(GL_CULL_FACE);
@@ -367,16 +367,9 @@ GtkWidget *aweather_level2_get_config(AWeatherLevel2 *level2)
 /****************
  * GObject code *
  ****************/
-G_DEFINE_TYPE(AWeatherLevel2, aweather_level2, GIS_TYPE_CALLBACK);
+G_DEFINE_TYPE(AWeatherLevel2, aweather_level2, GIS_TYPE_OBJECT);
 static void aweather_level2_init(AWeatherLevel2 *self)
 {
-	GIS_CALLBACK(self)->callback  = _draw_radar;
-	GIS_CALLBACK(self)->user_data = self;
-}
-static void aweather_level2_dispose(GObject *_self)
-{
-	g_debug("AWeatherLevel2: dispose - %p", _self);
-	G_OBJECT_CLASS(aweather_level2_parent_class)->dispose(_self);
 }
 static void aweather_level2_finalize(GObject *_self)
 {
@@ -390,5 +383,5 @@ static void aweather_level2_finalize(GObject *_self)
 static void aweather_level2_class_init(AWeatherLevel2Class *klass)
 {
 	G_OBJECT_CLASS(klass)->finalize = aweather_level2_finalize;
-	G_OBJECT_CLASS(klass)->dispose  = aweather_level2_dispose;
+	GIS_OBJECT_CLASS(klass)->draw   = aweather_level2_draw;
 }

@@ -33,7 +33,7 @@ typedef struct _AWeatherLevel2      AWeatherLevel2;
 typedef struct _AWeatherLevel2Class AWeatherLevel2Class;
 
 struct _AWeatherLevel2 {
-	GisCallback       parent;
+	GisObject         parent;
 	GisViewer        *viewer;
 	Radar            *radar;
 	AWeatherColormap *colormap;
@@ -46,7 +46,7 @@ struct _AWeatherLevel2 {
 };
 
 struct _AWeatherLevel2Class {
-	GisCallbackClass parent_class;
+	GisObjectClass parent_class;
 };
 
 GType aweather_level2_get_type(void);

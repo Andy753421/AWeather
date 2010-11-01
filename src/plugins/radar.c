@@ -620,7 +620,7 @@ void radar_conus_free(RadarConus *conus)
 /******************
  * GisPluginRadar *
  ******************/
-static void _draw_hud(GisCallback *callback, gpointer _self)
+static void _draw_hud(GisCallback *callback, GisOpenGL *opengl, gpointer _self)
 {
 	/* TODO */
 	GisPluginRadar *self = GIS_PLUGIN_RADAR(_self);
