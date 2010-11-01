@@ -622,10 +622,8 @@ void radar_conus_free(RadarConus *conus)
  ******************/
 static void _draw_hud(GisCallback *callback, GisOpenGL *opengl, gpointer _self)
 {
-	/* TODO */
-	GisPluginRadar *self = GIS_PLUGIN_RADAR(_self);
-	if (!self->colormap)
-		return;
+	/* TODO, pick correct colormaps */
+	AWeatherColormap *colormap = &colormaps[0];
 
 	g_debug("GisPluginRadar: _draw_hud");
 	/* Print the color table */
@@ -639,7 +637,7 @@ static void _draw_hud(GisCallback *callback, GisOpenGL *opengl, gpointer _self)
 	glBegin(GL_QUADS);
 	int i;
 	for (i = 0; i < 256; i++) {
-		glColor4ubv(self->colormap->data[i]);
+		glColor4ubv(colormap->data[i]);
 		glVertex3f(-1.0, (float)((i  ) - 256/2)/(256/2), 0.0); // bot left
 		glVertex3f(-1.0, (float)((i+1) - 256/2)/(256/2), 0.0); // top left
 		glVertex3f(-0.9, (float)((i+1) - 256/2)/(256/2), 0.0); // top right
