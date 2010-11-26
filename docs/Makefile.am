@@ -1,7 +1,8 @@
-man1_MANS = aweather.1
+man1_MANS = aweather.1 wsr88ddec.1
 html_DATA = aweather.html
 
-EXTRA_DIST = $(man1_MANS) $(html_DATA)
+EXTRA_DIST = $(man1_MANS) $(html_DATA) \
+	     aweather.ad wsr88ddec.ad
 
 %.html: %.ad
 	asciidoc $<
