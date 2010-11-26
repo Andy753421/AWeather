@@ -1,0 +1,26 @@
+wsr88ddec(1)
+============
+Andy Spencer <andy753421@gmail.com>
+
+NAME
+----
+wsr88ddec - WSR88D/NEXRAD Decompression Program
+
+SYNOPSIS
+--------
+*wsr88ddec* 'INPUT' 'OUTPUT'
+
+DESCRIPTION
+-----------
+wsr88ddec is a small helper program that decompresses a WSR88D Level 2 data
+file using libbz2. The WSR88D files use a custom container format which causes
+the regular bunzip to fail.
+
+EXAMPLES
+--------
+Decompress a KHTX (Knoxville) data file.::
+`$ wsr88ddec KHTX_20101126_0242 KHTX_20101126_0242.raw`
+
+SEE ALSO
+--------
+aweather(1)
