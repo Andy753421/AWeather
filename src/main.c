@@ -20,7 +20,7 @@
 #include <gtk/gtkgl.h>
 #include <glib/gstdio.h>
 
-#include <gis.h>
+#include <grits.h>
 
 #include "aweather-gui.h"
 #include "aweather-location.h"
@@ -52,7 +52,7 @@ gboolean set_location(gpointer _gui)
 	gchar *site = g_object_get_data(G_OBJECT(gui), "site");
 	for (city_t *city = cities; city->type; city++) {
 		if (city->type == LOCATION_CITY && g_str_equal(city->code, site)) {
-			gis_viewer_set_location(gui->viewer,
+			grits_viewer_set_location(gui->viewer,
 				city->pos.lat, city->pos.lon, EARTH_R/25);
 			break;
 		}
@@ -104,7 +104,7 @@ int main(int argc, char *argv[])
 	/* Set up AWeather */
 	gdk_threads_enter();
 	/* Pre-load some type for gtkbuilder */
-	GIS_TYPE_OPENGL;
+	GRITS_TYPE_OPENGL;
 	AWEATHER_TYPE_GUI;
 	GtkBuilder *builder = gtk_builder_new();
 	if (!gtk_builder_add_from_file(builder, PKGDATADIR "/main.ui", &error))
@@ -112,15 +112,15 @@ int main(int argc, char *argv[])
 	AWeatherGui *gui = AWEATHER_GUI(gtk_builder_get_object(builder, "main_window"));
 	g_signal_connect(gui, "destroy", gtk_main_quit, NULL);
 
-	gint     prefs_debug   = gis_prefs_get_integer(gui->prefs, "aweather/log_level", NULL);
-	gchar   *prefs_site    = gis_prefs_get_string(gui->prefs,  "aweather/initial_site", NULL);
-	gboolean prefs_offline = gis_prefs_get_boolean(gui->prefs, "gis/offline", NULL);
+	gint     prefs_debug   = grits_prefs_get_integer(gui->prefs, "aweather/log_level", NULL);
+	gchar   *prefs_site    = grits_prefs_get_string(gui->prefs,  "aweather/initial_site", NULL);
+	gboolean prefs_offline = grits_prefs_get_boolean(gui->prefs, "grits/offline", NULL);
 
 	debug   = (opt_debug   ?: prefs_debug   ?: debug);
 	site    = (opt_site    ?: prefs_site    ?: site);
 	offline = (opt_offline ?: prefs_offline ?: offline);
 
-	gis_viewer_set_offline(gui->viewer, offline);
+	grits_viewer_set_offline(gui->viewer, offline);
 	log_levels = (1 << (debug+1))-1;
 
 	GObject *action = aweather_gui_get_object(gui, "prefs_general_log");

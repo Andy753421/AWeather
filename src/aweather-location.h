@@ -18,7 +18,7 @@
 #ifndef __LOCATION_H__
 #define __LOCATION_H__
 
-#include "gis-util.h"
+#include "grits-util.h"
 
 enum {
 	LOCATION_END,
@@ -30,7 +30,7 @@ typedef struct {
 	gint type;
 	gchar *code;
 	gchar *name;
-	GisPoint pos;
+	GritsPoint pos;
 	gdouble lod;
 } city_t;
 

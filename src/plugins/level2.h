@@ -18,7 +18,7 @@
 #ifndef __AWEATHER_LEVEL2_H__
 #define __AWEATHER_LEVEL2_H__
 
-#include <gis.h>
+#include <grits.h>
 #include "aweather-colormap.h"
 
 /* Level2 */
@@ -33,8 +33,8 @@ typedef struct _AWeatherLevel2      AWeatherLevel2;
 typedef struct _AWeatherLevel2Class AWeatherLevel2Class;
 
 struct _AWeatherLevel2 {
-	GisCallback       parent;
-	GisViewer        *viewer;
+	GritsCallback     parent;
+	GritsViewer      *viewer;
 	Radar            *radar;
 	AWeatherColormap *colormap;
 
@@ -46,15 +46,15 @@ struct _AWeatherLevel2 {
 };
 
 struct _AWeatherLevel2Class {
-	GisCallbackClass parent_class;
+	GritsCallbackClass parent_class;
 };
 
 GType aweather_level2_get_type(void);
 
-AWeatherLevel2 *aweather_level2_new(GisViewer *viewer,
+AWeatherLevel2 *aweather_level2_new(GritsViewer *viewer,
 		AWeatherColormap *colormap, Radar *radar);
 
-AWeatherLevel2 *aweather_level2_new_from_file(GisViewer *viewer,
+AWeatherLevel2 *aweather_level2_new_from_file(GritsViewer *viewer,
 		AWeatherColormap *colormap,
 		const gchar *file, const gchar *site);
 

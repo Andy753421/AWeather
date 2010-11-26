@@ -21,7 +21,7 @@
 #include <glib/gstdio.h>
 #include <math.h>
 
-#include <gis.h>
+#include <grits.h>
 
 #include "aweather-gui.h"
 #include "aweather-location.h"
@@ -37,7 +37,7 @@ G_MODULE_EXPORT gboolean on_gui_key_press(GtkWidget *widget, GdkEventKey *event,
 	if (event->keyval == GDK_q)
 		gtk_widget_destroy(GTK_WIDGET(self));
 	else if (event->keyval == GDK_r && event->state & GDK_CONTROL_MASK)
-		gis_viewer_refresh(self->viewer);
+		grits_viewer_refresh(self->viewer);
 	else if (event->keyval == GDK_Tab || event->keyval == GDK_ISO_Left_Tab) {
 		GtkNotebook *tabs = GTK_NOTEBOOK(aweather_gui_get_widget(self, "main_tabs"));
 		gint num_tabs = gtk_notebook_get_n_pages(tabs);
@@ -74,8 +74,8 @@ static void cleancache_r(gchar *path)
 G_MODULE_EXPORT void on_cleancache(GtkMenuItem *menu, AWeatherGui *self)
 {
 	g_debug("AWeatherGui: on_cleancache");
-	/* Todo: move this to libgis */
-	gchar *cache = g_build_filename(g_get_user_cache_dir(), "libgis", NULL);
+	/* Todo: move this to grits */
+	gchar *cache = g_build_filename(g_get_user_cache_dir(), "grits", NULL);
 	cleancache_r(cache);
 }
 
@@ -101,17 +101,17 @@ G_MODULE_EXPORT void on_quit(GtkMenuItem *menu, AWeatherGui *self)
 
 G_MODULE_EXPORT void on_zoomin(GtkAction *action, AWeatherGui *self)
 {
-	gis_viewer_zoom(self->viewer, 3./4);
+	grits_viewer_zoom(self->viewer, 3./4);
 }
 
 G_MODULE_EXPORT void on_zoomout(GtkAction *action, AWeatherGui *self)
 {
-	gis_viewer_zoom(self->viewer, 4./3);
+	grits_viewer_zoom(self->viewer, 4./3);
 }
 
 G_MODULE_EXPORT void on_refresh(GtkAction *action, AWeatherGui *self)
 {
-	gis_viewer_refresh(self->viewer);
+	grits_viewer_refresh(self->viewer);
 }
 
 G_MODULE_EXPORT void on_plugin_toggled(GtkCellRendererToggle *cell, gchar *path_str, AWeatherGui *self)
@@ -150,7 +150,7 @@ G_MODULE_EXPORT void on_time_changed(AWeatherGui *self)
 	gtk_tree_model_get_iter(model, &iter, path);
 	gtk_tree_model_get(model, &iter, 1, &tm.tm_hour, 2, &tm.tm_min, -1);
 
-	gis_viewer_set_time(self->viewer, mktime(&tm));
+	grits_viewer_set_time(self->viewer, mktime(&tm));
 }
 
 static gboolean gtk_tree_model_find_string(GtkTreeModel *model,
@@ -176,7 +176,7 @@ static gboolean gtk_tree_model_find_string(GtkTreeModel *model,
 	return FALSE;
 }
 
-static void update_time_widget(GisViewer *viewer, time_t time, AWeatherGui *self)
+static void update_time_widget(GritsViewer *viewer, time_t time, AWeatherGui *self)
 {
 	g_debug("AWeatherGui: update_time_widget - time=%u", (guint)time);
 	// FIXME
@@ -195,7 +195,7 @@ G_MODULE_EXPORT void on_offline(GtkToggleAction *action, AWeatherGui *self)
 {
 	gboolean value = gtk_toggle_action_get_active(action);
 	g_debug("AWeatherGui: on_offline - offline=%d", value);
-	gis_viewer_set_offline(self->viewer, value);
+	grits_viewer_set_offline(self->viewer, value);
 }
 
 G_MODULE_EXPORT void on_initial_site_changed(GtkComboBox *combo, AWeatherGui *self)
@@ -206,7 +206,7 @@ G_MODULE_EXPORT void on_initial_site_changed(GtkComboBox *combo, AWeatherGui *se
 	gtk_combo_box_get_active_iter(combo, &iter);
 	gtk_tree_model_get(model, &iter, 0, &code, -1);
 	g_debug("AWeatherGui: on_initial_site_changed - code=%s", code);
-	gis_prefs_set_string(self->prefs, "aweather/initial_site", code);
+	grits_prefs_set_string(self->prefs, "aweather/initial_site", code);
 	g_free(code);
 }
 
@@ -214,14 +214,14 @@ G_MODULE_EXPORT void on_nexrad_url_changed(GtkEntry *entry, AWeatherGui *self)
 {
 	const gchar *text = gtk_entry_get_text(entry);
 	g_debug("AWeatherGui: on_nexrad_url_changed - url=%s", text);
-	gis_prefs_set_string(self->prefs, "aweather/nexrad_url", text);
+	grits_prefs_set_string(self->prefs, "aweather/nexrad_url", text);
 }
 
 G_MODULE_EXPORT int on_log_level_changed(GtkSpinButton *spinner, AWeatherGui *self)
 {
 	gint value = gtk_spin_button_get_value_as_int(spinner);
 	g_debug("AWeatherGui: on_log_level_changed - %p, level=%d", self, value);
-	gis_prefs_set_integer(self->prefs, "aweather/log_level", value);
+	grits_prefs_set_integer(self->prefs, "aweather/log_level", value);
 	return TRUE;
 }
 
@@ -262,9 +262,9 @@ static void site_setup(AWeatherGui *self)
 static void prefs_setup(AWeatherGui *self)
 {
 	/* Set values */
-	gchar *nu = gis_prefs_get_string (self->prefs, "aweather/nexrad_url",   NULL);
-	gint   ll = gis_prefs_get_integer(self->prefs, "aweather/log_level",    NULL);
-	gchar *is = gis_prefs_get_string (self->prefs, "aweather/initial_site", NULL);
+	gchar *nu = grits_prefs_get_string (self->prefs, "aweather/nexrad_url",   NULL);
+	gint   ll = grits_prefs_get_integer(self->prefs, "aweather/log_level",    NULL);
+	gchar *is = grits_prefs_get_string (self->prefs, "aweather/initial_site", NULL);
 	GtkWidget *nuw = aweather_gui_get_widget(self, "prefs_general_url");
 	GtkWidget *llw = aweather_gui_get_widget(self, "prefs_general_log");
 	GtkWidget *isw = aweather_gui_get_widget(self, "prefs_general_site");
@@ -331,7 +331,7 @@ AWeatherGui *aweather_gui_new()
 	g_debug("AWeatherGui: new");
 	return g_object_new(AWEATHER_TYPE_GUI, NULL);
 }
-GisViewer *aweather_gui_get_viewer(AWeatherGui *self)
+GritsViewer *aweather_gui_get_viewer(AWeatherGui *self)
 {
 	g_assert(AWEATHER_IS_GUI(self));
 	return self->viewer;
@@ -359,9 +359,9 @@ GObject *aweather_gui_get_object(AWeatherGui *self, const gchar *name)
 }
 void aweather_gui_attach_plugin(AWeatherGui *self, const gchar *name)
 {
-	GisPlugin *plugin = gis_plugins_enable(self->plugins, name,
+	GritsPlugin *plugin = grits_plugins_enable(self->plugins, name,
 			self->viewer, self->prefs);
-	GtkWidget *body = gis_plugin_get_config(plugin);
+	GtkWidget *body = grits_plugin_get_config(plugin);
 	if (body) {
 		GtkWidget *config = aweather_gui_get_widget(self, "main_tabs");
 		GtkWidget *tab    = gtk_label_new(name);
@@ -384,7 +384,7 @@ void aweather_gui_deattach_plugin(AWeatherGui *self, const gchar *name)
 		if (tab_name && g_str_equal(name, tab_name))
 			gtk_notebook_remove_page(GTK_NOTEBOOK(config), i);
 	}
-	gis_plugins_disable(self->plugins, name);
+	grits_plugins_disable(self->plugins, name);
 	gtk_widget_queue_draw(GTK_WIDGET(self->viewer));
 }
 
@@ -401,20 +401,20 @@ static void aweather_gui_parser_finished(GtkBuildable *_self, GtkBuilder *builde
 	/* Simple things */
 	gchar *config   = g_build_filename(g_get_user_config_dir(), PACKAGE, "config.ini", NULL);
 	gchar *defaults = g_build_filename(PKGDATADIR, "defaults.ini", NULL);
-	self->prefs   = gis_prefs_new(config, defaults);
-	self->plugins = gis_plugins_new(PLUGINSDIR, self->prefs);
-	self->viewer  = GIS_VIEWER(aweather_gui_get_widget(self, "main_viewer"));
-	gis_viewer_setup(self->viewer, self->plugins, self->prefs);
+	self->prefs   = grits_prefs_new(config, defaults);
+	self->plugins = grits_plugins_new(PLUGINSDIR, self->prefs);
+	self->viewer  = GRITS_VIEWER(aweather_gui_get_widget(self, "main_viewer"));
+	grits_viewer_setup(self->viewer, self->plugins, self->prefs);
 	g_free(config);
 	g_free(defaults);
 
 	/* Plugins */
 	GtkTreeIter iter;
 	self->gtk_plugins = GTK_LIST_STORE(aweather_gui_get_object(self, "plugins"));
-	for (GList *cur = gis_plugins_available(self->plugins); cur; cur = cur->next) {
+	for (GList *cur = grits_plugins_available(self->plugins); cur; cur = cur->next) {
 		gchar *name = cur->data;
 		GError *error = NULL;
-		gboolean enabled = gis_prefs_get_boolean_v(self->prefs, "plugins", cur->data, &error);
+		gboolean enabled = grits_prefs_get_boolean_v(self->prefs, "plugins", cur->data, &error);
 		if (error && error->code == G_KEY_FILE_ERROR_GROUP_NOT_FOUND)
 			enabled = TRUE;
 		gtk_list_store_append(self->gtk_plugins, &iter);
@@ -460,7 +460,7 @@ static void aweather_gui_dispose(GObject *_self)
 	g_debug("AWeatherGui: dispose");
 	AWeatherGui *self = AWEATHER_GUI(_self);
 	if (self->plugins) {
-		gis_plugins_free(self->plugins);
+		grits_plugins_free(self->plugins);
 		self->plugins = NULL;
 	}
 	if (self->builder) {

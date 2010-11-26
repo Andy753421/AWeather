@@ -19,7 +19,7 @@
 #include <math.h>
 #include <GL/gl.h>
 #include <glib/gstdio.h>
-#include <gis.h>
+#include <grits.h>
 #include <rsl.h>
 
 #include "level2.h"
@@ -130,7 +130,7 @@ static gboolean _decompress_radar(const gchar *file, const gchar *raw)
 /*********************
  * Drawing functions *
  *********************/
-static void _draw_radar(GisCallback *_self, gpointer _viewer)
+static void _draw_radar(GritsCallback *_self, gpointer _viewer)
 {
 	AWeatherLevel2 *self = AWEATHER_LEVEL2(_self);
 	if (!self->sweep || !self->sweep_tex)
@@ -142,7 +142,7 @@ static void _draw_radar(GisCallback *_self, gpointer _viewer)
 	gdouble lat  = (double)h->latd + (double)h->latm/60 + (double)h->lats/(60*60);
 	gdouble lon  = (double)h->lond + (double)h->lonm/60 + (double)h->lons/(60*60);
 	gdouble elev = h->height;
-	gis_viewer_center_position(self->viewer, lat, lon, elev);
+	grits_viewer_center_position(self->viewer, lat, lon, elev);
 
 	glDisable(GL_ALPHA_TEST);
 	glDisable(GL_CULL_FACE);
@@ -234,7 +234,7 @@ void aweather_level2_set_sweep(AWeatherLevel2 *self,
 	g_idle_add(_set_sweep_cb, self);
 }
 
-AWeatherLevel2 *aweather_level2_new(GisViewer *viewer,
+AWeatherLevel2 *aweather_level2_new(GritsViewer *viewer,
 		AWeatherColormap *colormap, Radar *radar)
 {
 	g_debug("AWeatherLevel2: new - %s", radar->h.radar_name);
@@ -246,7 +246,7 @@ AWeatherLevel2 *aweather_level2_new(GisViewer *viewer,
 	return self;
 }
 
-AWeatherLevel2 *aweather_level2_new_from_file(GisViewer *viewer,
+AWeatherLevel2 *aweather_level2_new_from_file(GritsViewer *viewer,
 		AWeatherColormap *colormap,
 		const gchar *file, const gchar *site)
 {
@@ -367,11 +367,11 @@ GtkWidget *aweather_level2_get_config(AWeatherLevel2 *level2)
 /****************
  * GObject code *
  ****************/
-G_DEFINE_TYPE(AWeatherLevel2, aweather_level2, GIS_TYPE_CALLBACK);
+G_DEFINE_TYPE(AWeatherLevel2, aweather_level2, GRITS_TYPE_CALLBACK);
 static void aweather_level2_init(AWeatherLevel2 *self)
 {
-	GIS_CALLBACK(self)->callback  = _draw_radar;
-	GIS_CALLBACK(self)->user_data = self;
+	GRITS_CALLBACK(self)->callback  = _draw_radar;
+	GRITS_CALLBACK(self)->user_data = self;
 }
 static void aweather_level2_dispose(GObject *_self)
 {

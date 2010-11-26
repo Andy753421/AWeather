@@ -4,13 +4,13 @@
   <glade-widget-classes> 
     <glade-widget-class name="AWeatherGui" generic-name="Gui" title="Gui" parent="GtkWindow"> 
     </glade-widget-class> 
-    <glade-widget-class name="GisViewer" generic-name="Viewer" title="Viewer" parent="GtkDrawingArea"> 
+    <glade-widget-class name="GritsViewer" generic-name="Viewer" title="Viewer" parent="GtkDrawingArea"> 
     </glade-widget-class> 
-    <glade-widget-class name="GisOpenGL" generic-name="OpenGL" title="OpenGL" parent="GisViewer"> 
+    <glade-widget-class name="GritsOpenGL" generic-name="OpenGL" title="OpenGL" parent="GritsViewer"> 
     </glade-widget-class> 
   </glade-widget-classes> 
   <glade-widget-group name="aweather-widgets" title="AWeather Widgets"> 
     <glade-widget-class-ref name="AWeatherGui"/> 
-    <glade-widget-class-ref name="GisOpenGL"/> 
+    <glade-widget-class-ref name="GritsOpenGL"/> 
   </glade-widget-group> 
 </glade-catalog> 

@@ -21,7 +21,7 @@
 #include <gtk/gtk.h>
 #include <glib-object.h>
 
-#include <gis.h>
+#include <grits.h>
 
 /* Type macros */
 #define AWEATHER_TYPE_GUI            (aweather_gui_get_type())
@@ -39,9 +39,9 @@ struct _AWeatherGui {
 
 	/* instance members */
 	GtkBuilder   *builder;
-	GisViewer    *viewer;
-	GisPlugins   *plugins;
-	GisPrefs     *prefs;
+	GritsViewer  *viewer;
+	GritsPlugins *plugins;
+	GritsPrefs   *prefs;
 	GtkListStore *gtk_plugins;
 };
 
@@ -56,7 +56,7 @@ GType aweather_gui_get_type(void);
 /* Methods */
 AWeatherGui *aweather_gui_new();
 
-GisViewer   *aweather_gui_get_viewer(AWeatherGui *gui);
+GritsViewer *aweather_gui_get_viewer(AWeatherGui *gui);
 
 GtkWidget   *aweather_gui_get_widget(AWeatherGui *gui, const gchar *name);
 GObject     *aweather_gui_get_object(AWeatherGui *gui, const gchar *name);

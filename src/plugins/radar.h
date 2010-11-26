@@ -21,47 +21,47 @@
 #include <glib-object.h>
 #include <rsl.h>
 
-#include <gis.h>
+#include <grits.h>
 #include "level2.h"
 
-#define GIS_TYPE_PLUGIN_RADAR            (gis_plugin_radar_get_type ())
-#define GIS_PLUGIN_RADAR(obj)            (G_TYPE_CHECK_INSTANCE_CAST((obj),   GIS_TYPE_PLUGIN_RADAR, GisPluginRadar))
-#define GIS_IS_PLUGIN_RADAR(obj)         (G_TYPE_CHECK_INSTANCE_TYPE((obj),   GIS_TYPE_PLUGIN_RADAR))
-#define GIS_PLUGIN_RADAR_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST   ((klass), GIS_TYPE_PLUGIN_RADAR, GisPluginRadarClass))
-#define GIS_IS_PLUGIN_RADAR_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE   ((klass), GIS_TYPE_PLUGIN_RADAR))
-#define GIS_PLUGIN_RADAR_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj),   GIS_TYPE_PLUGIN_RADAR, GisPluginRadarClass))
+#define GRITS_TYPE_PLUGIN_RADAR            (grits_plugin_radar_get_type ())
+#define GRITS_PLUGIN_RADAR(obj)            (G_TYPE_CHECK_INSTANCE_CAST((obj),   GRITS_TYPE_PLUGIN_RADAR, GritsPluginRadar))
+#define GRITS_IS_PLUGIN_RADAR(obj)         (G_TYPE_CHECK_INSTANCE_TYPE((obj),   GRITS_TYPE_PLUGIN_RADAR))
+#define GRITS_PLUGIN_RADAR_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST   ((klass), GRITS_TYPE_PLUGIN_RADAR, GritsPluginRadarClass))
+#define GRITS_IS_PLUGIN_RADAR_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE   ((klass), GRITS_TYPE_PLUGIN_RADAR))
+#define GRITS_PLUGIN_RADAR_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj),   GRITS_TYPE_PLUGIN_RADAR, GritsPluginRadarClass))
 
-typedef struct _GisPluginRadar        GisPluginRadar;
-typedef struct _GisPluginRadarClass   GisPluginRadarClass;
+typedef struct _GritsPluginRadar      GritsPluginRadar;
+typedef struct _GritsPluginRadarClass GritsPluginRadarClass;
 
 typedef struct _RadarConus RadarConus;
 typedef struct _RadarSite  RadarSite;
 
-struct _GisPluginRadar {
+struct _GritsPluginRadar {
 	GObject parent_instance;
 
 	/* instance members */
-	GisViewer  *viewer;
-	GisPrefs   *prefs;
-	GtkWidget  *config;
+	GritsViewer *viewer;
+	GritsPrefs  *prefs;
+	GtkWidget   *config;
 	AWeatherColormap *colormap;
 	gpointer    *hud_ref;
 
-	GHashTable *sites;
-	GisHttp    *sites_http;
+	GHashTable  *sites;
+	GritsHttp   *sites_http;
 
-	RadarConus *conus;
-	GisHttp    *conus_http;
+	RadarConus  *conus;
+	GritsHttp   *conus_http;
 };
 
-struct _GisPluginRadarClass {
+struct _GritsPluginRadarClass {
 	GObjectClass parent_class;
 };
 
-GType gis_plugin_radar_get_type();
+GType grits_plugin_radar_get_type();
 
 /* Methods */
-GisPluginRadar *gis_plugin_radar_new(GisViewer *viewer, GisPrefs *prefs);
+GritsPluginRadar *grits_plugin_radar_new(GritsViewer *viewer, GritsPrefs *prefs);
 
 /* Misc. RSL helpers */
 #define RSL_FOREACH_VOL(radar, volume, count, index) \
