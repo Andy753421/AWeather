@@ -1,6 +1,6 @@
 SUBDIRS = plugins
 
-AM_CFLAGS   = -Wall --std=gnu99 $(GIS_CFLAGS)
+AM_CFLAGS   = -Wall --std=gnu99 $(GRITS_CFLAGS)
 AM_LDFLAGS  = -Wl,--export-dynamic
 
 bin_PROGRAMS = aweather wsr88ddec
@@ -11,7 +11,7 @@ aweather_CPPFLAGS = \
 	-DHTMLDIR="\"$(dots)$(htmldir)\"" \
 	-DPKGDATADIR="\"$(dots)$(pkgdatadir)\"" \
 	-DPLUGINSDIR="\"$(dots)$(pkglibdir)\""
-aweather_LDADD    = $(GIS_LIBS)
+aweather_LDADD    = $(GRITS_LIBS)
 
 wsr88ddec         = wsr88ddec.c
 wsr88ddec_LDADD   = $(GLIB_LIBS) -lbz2

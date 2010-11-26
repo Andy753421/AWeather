@@ -91,7 +91,7 @@ Start AWeather in offline mode and center the map on the St. Louis radar.::
 
 SEE ALSO
 --------
-gis-demo(1)
+grits-demo(1)
 
 BUGS
 ----

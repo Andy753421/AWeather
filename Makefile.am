@@ -14,7 +14,7 @@ test: all
 build: all
 	export DESTDIR="`pwd`/build"; \
 	make -C ../aweather-win32 install; \
-	make -C ../libgis-win32 install; \
+	make -C ../grits-win32 install; \
 	make -C ../rsl-win32 install;
 	touch $@
 

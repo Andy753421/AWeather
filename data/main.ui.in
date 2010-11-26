@@ -272,7 +272,7 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <child>
-                  <object class="GisOpenGL" id="main_viewer">
+                  <object class="GritsOpenGL" id="main_viewer">
                     <property name="width_request">600</property>
                     <property name="height_request">400</property>
                     <property name="visible">True</property>

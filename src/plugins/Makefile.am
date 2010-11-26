@@ -1,4 +1,4 @@
-AM_CFLAGS   = -Wall --std=gnu99 $(GIS_CFLAGS)
+AM_CFLAGS   = -Wall --std=gnu99 $(GRITS_CFLAGS)
 AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/lib
 AM_LDFLAGS  = -module -avoid-version -no-undefined
 
@@ -15,7 +15,7 @@ radar_la_SOURCES = \
 	../aweather-colormap.h \
 	../aweather-location.c \
 	../aweather-location.h
-radar_la_LIBADD  = $(RSL_LIBS) $(GIS_LIBS) \
+radar_la_LIBADD  = $(RSL_LIBS) $(GRITS_LIBS) \
 		   $(addprefix $(top_srcdir)/lib/,$(gl_LTLIBOBJS))
 endif
 
