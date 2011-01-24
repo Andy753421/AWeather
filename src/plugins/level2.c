@@ -201,7 +201,7 @@ static gboolean _set_sweep_cb(gpointer _self)
 	g_debug("AWeatherLevel2: _set_sweep_cb");
 	AWeatherLevel2 *self = _self;
 	_load_sweep_gl(self);
-	gtk_widget_queue_draw(GTK_WIDGET(self->viewer));
+	grits_object_queue_draw(_self);
 	g_object_unref(self);
 	return FALSE;
 }
@@ -228,12 +228,10 @@ void aweather_level2_set_sweep(AWeatherLevel2 *self,
 	g_idle_add(_set_sweep_cb, self);
 }
 
-AWeatherLevel2 *aweather_level2_new(GritsViewer *viewer,
-		AWeatherColormap *colormap, Radar *radar)
+AWeatherLevel2 *aweather_level2_new(Radar *radar, AWeatherColormap *colormap)
 {
 	g_debug("AWeatherLevel2: new - %s", radar->h.radar_name);
 	AWeatherLevel2 *self = g_object_new(AWEATHER_TYPE_LEVEL2, NULL);
-	self->viewer   = viewer;
 	self->radar    = radar;
 	self->colormap = colormap;
 	aweather_level2_set_sweep(self, DZ_INDEX, 0);
@@ -247,9 +245,8 @@ AWeatherLevel2 *aweather_level2_new(GritsViewer *viewer,
 	return self;
 }
 
-AWeatherLevel2 *aweather_level2_new_from_file(GritsViewer *viewer,
-		AWeatherColormap *colormap,
-		const gchar *file, const gchar *site)
+AWeatherLevel2 *aweather_level2_new_from_file(const gchar *file, const gchar *site,
+		AWeatherColormap *colormap)
 {
 	g_debug("AWeatherLevel2: new_from_file %s %s", site, file);
 
@@ -276,7 +273,7 @@ AWeatherLevel2 *aweather_level2_new_from_file(GritsViewer *viewer,
 	if (!radar)
 		return NULL;
 
-	return aweather_level2_new(viewer, colormaps, radar);
+	return aweather_level2_new(radar, colormaps);
 }
 
 static void _on_sweep_clicked(GtkRadioButton *button, gpointer _level2)

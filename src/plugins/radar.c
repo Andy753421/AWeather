@@ -135,7 +135,8 @@ gboolean _site_update_end(gpointer _site)
 	RadarSite *site = _site;
 	if (site->message) {
 		g_warning("RadarSite: update_end - %s", site->message);
-		_gtk_bin_set_child(GTK_BIN(site->config), gtk_label_new(site->message));
+		_gtk_bin_set_child(GTK_BIN(site->config),
+				gtk_label_new(site->message));
 	} else {
 		_gtk_bin_set_child(GTK_BIN(site->config),
 				aweather_level2_get_config(site->level2));
@@ -188,7 +189,7 @@ gpointer _site_update_thread(gpointer _site)
 	/* Load and add new volume */
 	g_debug("RadarSite: update_thread - load - %s", site->city->code);
 	site->level2 = aweather_level2_new_from_file(
-			site->viewer, colormaps, file, site->city->code);
+			file, site->city->code, colormaps);
 	g_free(file);
 	if (!site->level2) {
 		site->message = "Load failed";

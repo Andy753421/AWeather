@@ -1,6 +1,7 @@
 AM_CFLAGS   = -Wall --std=gnu99 $(GRITS_CFLAGS)
 AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/lib
 AM_LDFLAGS  = -module -avoid-version -no-undefined
+LIBS        = $(GRITS_LIBS)
 
 pluginsdir  = $(pkglibdir)
 

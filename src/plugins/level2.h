@@ -34,7 +34,6 @@ typedef struct _AWeatherLevel2Class AWeatherLevel2Class;
 
 struct _AWeatherLevel2 {
 	GritsObject       parent;
-	GritsViewer      *viewer;
 	Radar            *radar;
 	AWeatherColormap *colormap;
 
@@ -51,15 +50,13 @@ struct _AWeatherLevel2Class {
 
 GType aweather_level2_get_type(void);
 
-AWeatherLevel2 *aweather_level2_new(GritsViewer *viewer,
-		AWeatherColormap *colormap, Radar *radar);
+AWeatherLevel2 *aweather_level2_new(Radar *radar, AWeatherColormap *colormap);
 
-AWeatherLevel2 *aweather_level2_new_from_file(GritsViewer *viewer,
-		AWeatherColormap *colormap,
-		const gchar *file, const gchar *site);
+AWeatherLevel2 *aweather_level2_new_from_file(const gchar *file, const gchar *site,
+		AWeatherColormap *colormap);
 
 void aweather_level2_set_sweep(AWeatherLevel2 *level2,
-		int type, float elev);
+		int type, gfloat elev);
 
 GtkWidget *aweather_level2_get_config(AWeatherLevel2 *level2);
 
