@@ -24,6 +24,8 @@
 
 #include "level2.h"
 
+#define ISO_MIN 30
+#define ISO_MAX 80
 
 /**************************
  * Data loading functions *
@@ -133,6 +135,73 @@ static gboolean _decompress_radar(const gchar *file, const gchar *raw)
 	return TRUE;
 }
 
+/* Load the radar into a Grits Volume */
+static void _cart_to_sphere(VolCoord *out, VolCoord *in)
+{
+	gdouble angle = in->x;
+	gdouble dist  = in->y;
+	gdouble tilt  = in->z;
+	gdouble lx    = sin(angle);
+	gdouble ly    = cos(angle);
+	gdouble lz    = sin(tilt);
+	//out->x = (ly*dist)/20000;
+	//out->y = (lz*dist)/10000-0.5;
+	//out->z = (lx*dist)/20000-1.5;
+	out->x = (lx*dist);
+	out->y = (ly*dist);
+	out->z = (lz*dist);
+}
+
+static VolGrid *_load_grid(Volume *vol)
+{
+	g_debug("AWeatherLevel2: _load_grid");
+
+	Sweep *sweep   = vol->sweep[0];
+	Ray   *ray     = sweep->ray[0];
+	gint nsweeps   = vol->h.nsweeps;
+	gint nrays     = sweep->h.nrays/(1/sweep->h.beam_width)+1;
+	gint nbins     = ray->h.nbins  /(1000/ray->h.gate_size);
+	nbins = MIN(nbins, 100);
+
+	VolGrid  *grid = vol_grid_new(nrays, nbins, nsweeps);
+
+	gint rs, bs, val;
+	gint si=0, ri=0, bi=0;
+	for (si = 0; si < nsweeps; si++) {
+		sweep = vol->sweep[si];
+		rs    = 1.0/sweep->h.beam_width;
+	for (ri = 0; ri < nrays; ri++) {
+		/* TODO: missing rays, pick ri based on azmith */
+		ray   = sweep->ray[(ri*rs) % sweep->h.nrays];
+		bs    = 1000/ray->h.gate_size;
+	for (bi = 0; bi < nbins; bi++) {
+		if (bi*bs >= ray->h.nbins)
+			break;
+		val   = ray->h.f(ray->range[bi*bs]);
+		if (val == BADVAL     || val == RFVAL      ||
+		    val == APFLAG     || val == NOECHO     ||
+		    val == NOTFOUND_H || val == NOTFOUND_V ||
+		    val > 80)
+			val = 0;
+		VolPoint *point = vol_grid_get(grid, ri, bi, si);
+		point->value = val;
+		point->c.x = deg2rad(ray->h.azimuth);
+		point->c.y = bi*bs*ray->h.gate_size + ray->h.range_bin1;
+		point->c.z = deg2rad(ray->h.elev);
+	} } }
+
+	for (si = 0; si < nsweeps; si++)
+	for (ri = 0; ri < nrays; ri++)
+	for (bi = 0; bi < nbins; bi++) {
+		VolPoint *point = vol_grid_get(grid, ri, bi, si);
+		if (point->c.y == 0)
+			point->value = nan("");
+		else
+			_cart_to_sphere(&point->c, &point->c);
+	}
+	return grid;
+}
+
 
 /*********************
  * Drawing functions *
@@ -238,9 +307,39 @@ void aweather_level2_set_sweep(AWeatherLevel2 *self,
 	g_idle_add(_set_sweep_cb, self);
 }
 
+void aweather_level2_set_iso(AWeatherLevel2 *level2, gfloat level)
+{
+	g_debug("AWeatherLevel2: set_iso - %f", level);
+
+	if (!level2->volume) {
+		g_debug("AWeatherLevel2: set_iso - creating new volume");
+		Volume      *rvol = RSL_get_volume(level2->radar, DZ_INDEX);
+		VolGrid     *grid = _load_grid(rvol);
+		GritsVolume *vol  = grits_volume_new(grid);
+		vol->proj = GRITS_VOLUME_CARTESIAN;
+		vol->disp = GRITS_VOLUME_SURFACE;
+		GRITS_OBJECT(vol)->center = GRITS_OBJECT(level2)->center;
+		grits_viewer_add(GRITS_OBJECT(level2)->viewer,
+				GRITS_OBJECT(vol), GRITS_LEVEL_WORLD, TRUE);
+		level2->volume = vol;
+	}
+	if (ISO_MIN < level && level < ISO_MAX) {
+		AWeatherColormap *cm = &level2->colormap[0];
+		level2->volume->color[0] = cm->data[(gint)level][0];
+		level2->volume->color[1] = cm->data[(gint)level][1];
+		level2->volume->color[2] = cm->data[(gint)level][2];
+		level2->volume->color[3] = cm->data[(gint)level][3];
+		grits_volume_set_level(level2->volume, level);
+		GRITS_OBJECT(level2->volume)->hidden = FALSE;
+	} else {
+		GRITS_OBJECT(level2->volume)->hidden = TRUE;
+	}
+}
+
 AWeatherLevel2 *aweather_level2_new(Radar *radar, AWeatherColormap *colormap)
 {
 	g_debug("AWeatherLevel2: new - %s", radar->h.radar_name);
+	RSL_sort_radar(radar);
 	AWeatherLevel2 *self = g_object_new(AWEATHER_TYPE_LEVEL2, NULL);
 	self->radar    = radar;
 	self->colormap = colormap;
@@ -297,6 +396,13 @@ static void _on_sweep_clicked(GtkRadioButton *button, gpointer _level2)
 	}
 }
 
+static void _on_iso_changed(GtkRange *range, gpointer _level2)
+{
+	AWeatherLevel2 *level2 = _level2;
+	gfloat level = gtk_range_get_value(range);
+	aweather_level2_set_iso(level2, level);
+}
+
 GtkWidget *aweather_level2_get_config(AWeatherLevel2 *level2)
 {
 	Radar *radar = level2->radar;
@@ -318,6 +424,7 @@ GtkWidget *aweather_level2_get_config(AWeatherLevel2 *level2)
 			0,1, 0,1, GTK_FILL,GTK_FILL, 5,0);
 	g_free(date_str);
 
+	/* Add sweeps */
 	for (guint vi = 0; vi < radar->h.nvolumes; vi++) {
 		Volume *vol = radar->v[vi];
 		if (vol == NULL) continue;
@@ -371,6 +478,25 @@ GtkWidget *aweather_level2_get_config(AWeatherLevel2 *level2)
 			g_signal_connect(button, "clicked", G_CALLBACK(_on_sweep_clicked), level2);
 		}
 	}
+
+	/* Add Iso-surface volume */
+	g_object_get(table, "n-columns", &cols, NULL);
+	row_label = gtk_label_new("<b>Isosurface:</b>");
+	gtk_label_set_use_markup(GTK_LABEL(row_label), TRUE);
+	gtk_misc_set_alignment(GTK_MISC(row_label), 1, 0.5);
+	gtk_table_attach(GTK_TABLE(table), row_label,
+			0,1, rows,rows+1, GTK_FILL,GTK_FILL, 5,0);
+	GtkWidget *scale = gtk_hscale_new_with_range(ISO_MIN, ISO_MAX, 0.5);
+	gtk_widget_set_size_request(scale, -1, 26);
+	gtk_scale_set_value_pos(GTK_SCALE(scale), GTK_POS_LEFT);
+	gtk_range_set_inverted(GTK_RANGE(scale), TRUE);
+	gtk_range_set_value(GTK_RANGE(scale), ISO_MAX);
+	g_signal_connect(scale, "value-changed", G_CALLBACK(_on_iso_changed), level2);
+	gtk_table_attach(GTK_TABLE(table), scale,
+			1,cols+1, rows,rows+1, GTK_FILL|GTK_EXPAND,GTK_FILL, 0,0);
+	/* Shove all the buttons to the left, but keep the slider expanded */
+	gtk_table_attach(GTK_TABLE(table), gtk_label_new(""),
+			cols,cols+1, 0,1, GTK_FILL|GTK_EXPAND,GTK_FILL, 0,0);
 	return table;
 }
 

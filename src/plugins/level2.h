@@ -38,6 +38,7 @@ struct _AWeatherLevel2 {
 	AWeatherColormap *colormap;
 
 	/* Private */
+	GritsVolume      *volume;
 	Sweep            *sweep;
 	AWeatherColormap *sweep_colors;
 	gdouble           sweep_coords[2];
@@ -57,6 +58,8 @@ AWeatherLevel2 *aweather_level2_new_from_file(const gchar *file, const gchar *si
 
 void aweather_level2_set_sweep(AWeatherLevel2 *level2,
 		int type, gfloat elev);
+
+void aweather_level2_set_iso(AWeatherLevel2 *level2, gfloat level);
 
 GtkWidget *aweather_level2_get_config(AWeatherLevel2 *level2);
 
