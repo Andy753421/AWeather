@@ -19,6 +19,7 @@
 #include <gtk/gtk.h>
 #include <gtk/gtkgl.h>
 #include <glib/gstdio.h>
+#include <time.h>
 
 #include <grits.h>
 
@@ -46,10 +47,19 @@ static void on_log_level_changed(GtkSpinButton *spinner, AWeatherGui *self)
 	log_levels = (1 << (value+1))-1;
 }
 
-gboolean set_location(gpointer _gui)
+gboolean set_location_time(AWeatherGui *gui, char *site, char *time)
 {
-	AWeatherGui *gui = _gui;
-	gchar *site = g_object_get_data(G_OBJECT(gui), "site");
+	/* Set time
+	 *   Do this before setting setting location
+	 *   so that it doesn't refresh twice */
+	struct tm tm = {};
+	strptime(time, "%Y-%m-%d %H:%M", &tm);
+	time_t sec = mktime(&tm);
+	if (sec > 0)
+		grits_viewer_set_time(gui->viewer, sec);
+	g_debug("date = [%s] == %lu\n", time, sec);
+
+	/* Set location */
 	for (city_t *city = cities; city->type; city++) {
 		if (city->type == LOCATION_CITY && g_str_equal(city->code, site)) {
 			grits_viewer_set_location(gui->viewer,
@@ -69,17 +79,20 @@ int main(int argc, char *argv[])
 	/* Defaults */
 	gint     debug   = 6;
 	gchar   *site    = "";
+	gchar   *time    = "";
 	gboolean offline = FALSE;
 
 	/* Arguments */
 	gint     opt_debug   = 0;
 	gchar   *opt_site    = NULL;
+	gchar   *opt_time    = NULL;
 	gboolean opt_auto    = FALSE;
 	gboolean opt_offline = FALSE;
 	GOptionEntry entries[] = {
 		//long      short flg type                 location      description                 arg desc
 		{"debug",   'd',  0,  G_OPTION_ARG_INT,    &opt_debug,   "Change default log level", "[1-7]"},
 		{"site",    's',  0,  G_OPTION_ARG_STRING, &opt_site,    "Set initial site",         NULL},
+		{"time",    't',  0,  G_OPTION_ARG_STRING, &opt_time,    "Set initial date/time",    NULL},
 		{"offline", 'o',  0,  G_OPTION_ARG_NONE,   &opt_offline, "Run in offline mode",      NULL},
 		{"auto",    'a',  0,  G_OPTION_ARG_NONE,   &opt_auto,    "Auto update radar (todo)", NULL},
 		{NULL}
@@ -118,16 +131,15 @@ int main(int argc, char *argv[])
 
 	debug   = (opt_debug   ?: prefs_debug   ?: debug);
 	site    = (opt_site    ?: prefs_site    ?: site);
+	time    = (opt_time    ?:                  time);
 	offline = (opt_offline ?: prefs_offline ?: offline);
 
+	set_location_time(gui, site, time);
 	grits_viewer_set_offline(gui->viewer, offline);
 	log_levels = (1 << (debug+1))-1;
 
 	GObject *action = aweather_gui_get_object(gui, "prefs_general_log");
 	g_signal_connect(action, "changed", G_CALLBACK(on_log_level_changed), NULL);
-
-	g_object_set_data(G_OBJECT(gui), "site", site);
-	g_idle_add(set_location, gui);
 
 	gtk_widget_show_all(GTK_WIDGET(gui));
 	gtk_main();
