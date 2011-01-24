@@ -293,7 +293,7 @@ GtkWidget *aweather_level2_get_config(AWeatherLevel2 *level2)
 	Radar *radar = level2->radar;
 	g_debug("AWeatherLevel2: get_config - %p, %p", level2, radar);
 	/* Clear existing items */
-	gdouble elev;
+	gfloat elev;
 	guint rows = 1, cols = 1, cur_cols;
 	gchar row_label_str[64], col_label_str[64], button_str[64];
 	GtkWidget *row_label, *col_label, *button = NULL, *elev_box = NULL;
