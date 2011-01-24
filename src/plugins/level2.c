@@ -166,8 +166,8 @@ void aweather_level2_draw(GritsObject *_self, GritsOpenGL *opengl)
 		double lx = sin(angle);
 		double ly = cos(angle);
 
-		double near_dist = ray->h.range_bin1;
-		double far_dist  = ray->h.nbins*ray->h.gate_size + ray->h.range_bin1;
+		double near_dist = ray->h.range_bin1 - ((double)ray->h.gate_size/2.);
+		double far_dist  = near_dist + (double)ray->h.nbins*ray->h.gate_size;
 
 		/* (find middle of bin) / scale for opengl */
 		// near left
