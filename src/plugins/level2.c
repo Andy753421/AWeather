@@ -138,12 +138,6 @@ void aweather_level2_draw(GritsObject *_self, GritsOpenGL *opengl)
 
 	/* Draw wsr88d */
 	Sweep *sweep = self->sweep;
-	Radar_header *h = &self->radar->h;
-	gdouble lat  = (double)h->latd + (double)h->latm/60 + (double)h->lats/(60*60);
-	gdouble lon  = (double)h->lond + (double)h->lonm/60 + (double)h->lons/(60*60);
-	gdouble elev = h->height;
-	grits_viewer_center_position(GRITS_VIEWER(opengl), lat, lon, elev);
-
 	glDisable(GL_ALPHA_TEST);
 	glDisable(GL_CULL_FACE);
 	glDisable(GL_LIGHTING);
@@ -243,6 +237,13 @@ AWeatherLevel2 *aweather_level2_new(GritsViewer *viewer,
 	self->radar    = radar;
 	self->colormap = colormap;
 	aweather_level2_set_sweep(self, DZ_INDEX, 0);
+
+	GritsPoint center;
+	Radar_header *h = &radar->h;
+	center.lat  = (double)h->latd + (double)h->latm/60 + (double)h->lats/(60*60);
+	center.lon  = (double)h->lond + (double)h->lonm/60 + (double)h->lons/(60*60);
+	center.elev = h->height;
+	GRITS_OBJECT(self)->center = center;
 	return self;
 }
 
