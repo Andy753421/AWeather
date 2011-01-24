@@ -285,7 +285,7 @@ static void prefs_setup(AWeatherGui *self)
 			"Plugin",  rend1, "text",   0, NULL);
 	GtkTreeViewColumn *col2  = gtk_tree_view_column_new_with_attributes(
 			"Enabled", rend2, "active", 1, NULL);
-	g_object_set(rend2, "xalign", 0, NULL);
+	g_object_set(rend2, "xalign", 0.0, NULL);
 	gtk_tree_view_append_column(tview, col1);
 	gtk_tree_view_append_column(tview, col2);
 	g_signal_connect(rend2, "toggled", G_CALLBACK(on_plugin_toggled), self);
