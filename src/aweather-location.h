@@ -21,9 +21,10 @@
 #include "grits-util.h"
 
 enum {
-	LOCATION_END,
-	LOCATION_CITY,
-	LOCATION_STATE,
+	LOCATION_END,   // Special marker for end-of-list
+	LOCATION_CITY,  // Cities (actually radars)
+	LOCATION_STATE, // States (for indexing)
+	LOCATION_NOP,   // Missing from IDD for some reason
 };
 
 typedef struct {
