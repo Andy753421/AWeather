@@ -18,6 +18,8 @@
 #include <glib.h>
 #include <bzlib.h>
 
+#define SANITY_MAX_SIZE 50*1024*1024 // 50 MB/bzip
+
 char *bunzip2(char *input, int input_len, int *output_len)
 {
 	bz_stream *stream = g_new0(bz_stream, 1);
@@ -51,7 +53,7 @@ char *bunzip2(char *input, int input_len, int *output_len)
 		//      stream->avail_in,
 		//      stream->next_out,
 		//      stream->avail_out);
-	} while ((status = BZ2_bzDecompress(stream)) == BZ_OK && output_size < 1024*1024);
+	} while ((status = BZ2_bzDecompress(stream)) == BZ_OK && output_size < SANITY_MAX_SIZE);
 
 	//g_debug("done with status %d = %d", status, BZ_STREAM_END);
 
@@ -92,17 +94,17 @@ int main(int argc, char **argv)
 		if (size < 0)
 			return 0;
 		//g_debug("size = %x", size);
-		if (size > 20*1024*1024)
+		if (size > SANITY_MAX_SIZE)
 			g_error("sanity check failed, buf is to big: %d", size);
 		buf = g_realloc(buf, size);
-		if (!fread(buf, size, 1, input))
+		if (fread(buf, 1, size, input) != size)
 			g_error("error reading data");
 		//fwrite(buf, 1, size, output); // DEBUG
 
 		int dec_len;
 		char *dec = bunzip2(buf, size, &dec_len);
 		//g_debug("decompressed %u bytes", dec_len);
-		if (!fwrite(dec, 1, dec_len, output))
+		if (fwrite(dec, 1, dec_len, output) != dec_len)
 			g_error("error writing data");
 		g_free(dec);
 		//g_debug("decompressed %-6x -> %x", size, dec_len);
