@@ -288,7 +288,7 @@ void _site_on_location_changed(GritsViewer *viewer,
 		gdouble lat, gdouble lon, gdouble elev,
 		gpointer _site)
 {
-	static gdouble min_dist = EARTH_R / 20;
+	static gdouble min_dist = EARTH_R / 30;
 	RadarSite *site = _site;
 
 	/* Calculate distance, could cache xyz values */

@@ -63,7 +63,7 @@ gboolean set_location_time(AWeatherGui *gui, char *site, char *time)
 	for (city_t *city = cities; city->type; city++) {
 		if (city->type == LOCATION_CITY && g_str_equal(city->code, site)) {
 			grits_viewer_set_location(gui->viewer,
-				city->pos.lat, city->pos.lon, EARTH_R/25);
+				city->pos.lat, city->pos.lon, EARTH_R/35);
 			break;
 		}
 	}
