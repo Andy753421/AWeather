@@ -26,8 +26,8 @@ char *bunzip2(char *input, int input_len, int *output_len)
 	case BZ_CONFIG_ERROR: g_error("the library has been mis-compiled");
 	case BZ_PARAM_ERROR:  g_error("Parameter error");
 	case BZ_MEM_ERROR:    g_error("insufficient memory is available");
-	//case BZ_OK:           g_debug("success\n"); break;
-	//default:              g_debug("unknown\n"); break;
+	//case BZ_OK:           g_debug("success"); break;
+	//default:              g_debug("unknown"); break;
 	}
 
 	int   status;
@@ -39,21 +39,21 @@ char *bunzip2(char *input, int input_len, int *output_len)
 		stream->avail_in  = input_len   - stream->total_in_lo32;
 		output_size *= 2;
 		output       = g_realloc(output, output_size);
-		//g_debug("alloc %d\n", output_size);
+		//g_debug("alloc %d", output_size);
 		stream->next_out  = output      + stream->total_out_lo32;
 		stream->avail_out = output_size - stream->total_out_lo32;
 		//g_debug("decompressing..\n"
 		//      "  next_in   = %p\n"
 		//      "  avail_in  = %u\n"
 		//      "  next_out  = %p\n"
-		//      "  avail_out = %u\n",
+		//      "  avail_out = %u",
 		//      stream->next_in,
 		//      stream->avail_in,
 		//      stream->next_out,
 		//      stream->avail_out);
 	} while ((status = BZ2_bzDecompress(stream)) == BZ_OK && output_size < 1024*1024);
 
-	// g_debug("done with status %d = %d\n", status, BZ_STREAM_END);
+	//g_debug("done with status %d = %d", status, BZ_STREAM_END);
 
 	*output_len = stream->total_out_lo32;
 	BZ2_bzDecompressEnd(stream);
@@ -77,21 +77,21 @@ int main(int argc, char **argv)
 	char *buf = g_malloc(24);
 
 	/* Clear header */
-	//g_debug("reading header\n");
+	//g_debug("reading header");
 	if (!fread (buf, 24, 1, input))
 		g_error("error reading header");
 	if (!fwrite(buf, 24, 1, output))
 		g_error("error writing header");
 
-	//g_debug("reading body\n");
+	//g_debug("reading body");
 	while ((st = fread(&size, 1, 4, input))) {
-		//g_debug("size=%08x\n", size);
-		//g_debug("read %u bytes\n", st);
+		//g_debug("size=%08x", size);
+		//g_debug("read %u bytes", st);
 		//fwrite(&size, 1, 4, output); // DEBUG
 		size = ABS(g_ntohl(size));
 		if (size < 0)
 			return 0;
-		//g_debug("size = %x\n", size);
+		//g_debug("size = %x", size);
 		if (size > 20*1024*1024)
 			g_error("sanity check failed, buf is to big: %d", size);
 		buf = g_realloc(buf, size);
@@ -101,10 +101,11 @@ int main(int argc, char **argv)
 
 		int dec_len;
 		char *dec = bunzip2(buf, size, &dec_len);
-		// g_debug("decompressed %u bytes\n", dec_len);
+		//g_debug("decompressed %u bytes", dec_len);
 		if (!fwrite(dec, 1, dec_len, output))
 			g_error("error writing data");
 		g_free(dec);
+		//g_debug("decompressed %-6x -> %x", size, dec_len);
 	}
 
 	return 0;
