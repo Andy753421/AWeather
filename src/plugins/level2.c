@@ -221,7 +221,10 @@ void aweather_level2_set_sweep(AWeatherLevel2 *self,
 	for (int i = 0; self->colormap[i].name; i++)
 		if (self->colormap[i].type == type)
 			self->sweep_colors = &self->colormap[i];
-	if (!self->sweep_colors) return;
+	if (!self->sweep_colors) {
+		g_warning("AWeatherLevel2: set_sweep - missing colormap[%d]", type);
+		self->sweep_colors = &self->colormap[0];
+	}
 
 	/* Load data */
 	g_object_ref(self);
