@@ -279,10 +279,12 @@ AWeatherLevel2 *aweather_level2_new_from_file(const gchar *file, const gchar *si
 static void _on_sweep_clicked(GtkRadioButton *button, gpointer _level2)
 {
 	AWeatherLevel2 *level2 = _level2;
-	gint type = (gint)g_object_get_data(G_OBJECT(button), "type");
-	gint elev = (gint)g_object_get_data(G_OBJECT(button), "elev");
-	aweather_level2_set_sweep(level2, type, (float)elev/100);
-	//self->colormap = level2->sweep_colors;
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(button))) {
+		gint type = (gint)g_object_get_data(G_OBJECT(button), "type");
+		gint elev = (gint)g_object_get_data(G_OBJECT(button), "elev");
+		aweather_level2_set_sweep(level2, type, (float)elev/100);
+		//self->colormap = level2->sweep_colors;
+	}
 }
 
 GtkWidget *aweather_level2_get_config(AWeatherLevel2 *level2)
