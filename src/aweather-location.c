@@ -204,7 +204,7 @@ city_t cities[] = {
 	{LOCATION_CITY,  "KINX", "Tulsa",             {36.17,   -95.5647, 0}, 0.5},
 	{LOCATION_CITY,  "KTLX", "Oklahoma City",     {35.333,  -97.2778, 0}, 0.8},
 	{LOCATION_CITY,  "KVNX", "Vance AFB",         {36.740,  -98.1278, 0}, 0.3},
-	{LOCATION_NOP,   "KOUN", "Norman (KOUN)",     {35.246,  -97.4721, 0}, 0.1},
+	{LOCATION_CITY,  "KOUN", "Norman (KOUN)",     {35.246,  -97.4721, 0}, 0.1},
 
 	{LOCATION_STATE, NULL,   "Oregon",            {0,        0,       0}, 0.0},
 	{LOCATION_CITY,  "KMAX", "Medford",           {42.081,  -122.717, 0}, 0.3},

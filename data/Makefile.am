@@ -4,6 +4,9 @@ dist_gtkbuilder_DATA = main.ui
 configdir = $(datadir)/aweather/
 dist_config_DATA = defaults.ini
 
+colordir = $(datadir)/aweather/
+dist_color_DATA = colors/
+
 if WIN32
 noinst_DATA = aweather.ico
 else

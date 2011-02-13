@@ -221,6 +221,7 @@ void _site_update(RadarSite *site)
 	/* Remove old volume */
 	g_debug("RadarSite: update - remove - %s", site->city->code);
 	if (site->level2_ref) {
+		site->level2     = NULL;
 		grits_viewer_remove(site->viewer, site->level2_ref);
 		site->level2_ref = NULL;
 	}
@@ -249,6 +250,7 @@ void radar_site_unload(RadarSite *site)
 
 	/* Remove radar */
 	if (site->level2_ref) {
+		site->level2     = NULL;
 		grits_viewer_remove(site->viewer, site->level2_ref);
 		site->level2_ref = NULL;
 	}
@@ -330,7 +332,6 @@ RadarSite *radar_site_new(city_t *city, GtkWidget *pconfig,
 
 	/* Add marker */
 	g_idle_add_full(G_PRIORITY_LOW, _site_add_marker, site, NULL);
-
 
 	/* Connect signals */
 	site->location_id  = g_signal_connect(viewer, "location-changed",
@@ -625,11 +626,8 @@ void radar_conus_free(RadarConus *conus)
  ********************/
 static void _draw_hud(GritsCallback *callback, GritsOpenGL *opengl, gpointer _self)
 {
-	/* TODO, pick correct colormaps */
-	AWeatherColormap *colormap = &colormaps[0];
-
 	g_debug("GritsPluginRadar: _draw_hud");
-	/* Print the color table */
+	/* Setup OpenGL */
 	glMatrixMode(GL_MODELVIEW ); glLoadIdentity();
 	glMatrixMode(GL_PROJECTION); glLoadIdentity();
 	glDisable(GL_TEXTURE_2D);
@@ -637,16 +635,49 @@ static void _draw_hud(GritsCallback *callback, GritsOpenGL *opengl, gpointer _se
 	glDisable(GL_CULL_FACE);
 	glDisable(GL_LIGHTING);
 	glEnable(GL_COLOR_MATERIAL);
-	glBegin(GL_QUADS);
-	int i;
-	for (i = 0; i < 256; i++) {
-		glColor4ubv(colormap->data[i]);
-		glVertex3f(-1.0, (float)((i  ) - 256/2)/(256/2), 0.0); // bot left
-		glVertex3f(-1.0, (float)((i+1) - 256/2)/(256/2), 0.0); // top left
-		glVertex3f(-0.9, (float)((i+1) - 256/2)/(256/2), 0.0); // top right
-		glVertex3f(-0.9, (float)((i  ) - 256/2)/(256/2), 0.0); // bot right
+
+	GHashTableIter iter;
+	gpointer name, _site;
+	GritsPluginRadar *self = GRITS_PLUGIN_RADAR(_self);
+	g_hash_table_iter_init(&iter, self->sites);
+	while (g_hash_table_iter_next(&iter, &name, &_site)) {
+		/* Pick correct colormaps */
+		RadarSite *site = _site;
+		if (site->hidden || !site->level2)
+			continue;
+		AWeatherColormap *colormap = site->level2->sweep_colors;
+
+		/* Print the color table */
+		glBegin(GL_QUADS);
+		int len = colormap->len;
+		for (int i = 0; i < len; i++) {
+			glColor4ubv(colormap->data[i]);
+			glVertex3f(-1.0, (float)((i  ) - len/2)/(len/2), 0.0); // bot left
+			glVertex3f(-1.0, (float)((i+1) - len/2)/(len/2), 0.0); // top left
+			glVertex3f(-0.9, (float)((i+1) - len/2)/(len/2), 0.0); // top right
+			glVertex3f(-0.9, (float)((i  ) - len/2)/(len/2), 0.0); // bot right
+		}
+		glEnd();
 	}
-	glEnd();
+}
+
+static void _load_colormap(gchar *filename, AWeatherColormap *cm)
+{
+	g_debug("GritsPluginRadar: _load_colormap - %s", filename);
+	FILE *file = g_fopen(filename, "r");
+	if (!file)
+		g_error("GritsPluginRadar: open failed");
+	guint8 color[4];
+	GArray *array = g_array_sized_new(FALSE, TRUE, sizeof(color), 256);
+	fgets(cm->name, sizeof(cm->name), file);
+	fscanf(file, "%f\n", &cm->scale);
+	fscanf(file, "%f\n", &cm->shift);
+	while (fscanf(file, "%hhd %hhd %hhd %hhd\n",
+			&color[0], &color[1], &color[2], &color[3]) == 4)
+		g_array_append_val(array, color);
+	cm->len  = (gint )array->len;
+	cm->data = (void*)array->data;
+	g_array_free(array, FALSE);
 }
 
 /* Methods */
@@ -707,6 +738,15 @@ static void grits_plugin_radar_init(GritsPluginRadar *self)
 	self->sites      = g_hash_table_new_full(g_str_hash, g_str_equal,
 				NULL, (GDestroyNotify)radar_site_free);
 	self->config     = gtk_notebook_new();
+
+	/* Load colormaps */
+	for (int i = 0; colormaps[i].file; i++) {
+		gchar *file = g_build_filename(PKGDATADIR,
+				"colors", colormaps[i].file, NULL);
+		_load_colormap(file, &colormaps[i]);
+		g_free(file);
+	}
+
 	/* Need to position on the top because of Win32 bug */
 	gtk_notebook_set_tab_pos(GTK_NOTEBOOK(self->config), GTK_POS_BOTTOM);
 }

@@ -15,6 +15,8 @@ radar_la_SOURCES = \
 	radar-info.c radar-info.h \
 	../aweather-location.c \
 	../aweather-location.h
+radar_la_CPPFLAGS = \
+	-DPKGDATADIR="\"$(dots)$(pkgdatadir)\""
 radar_la_LIBADD  = $(RSL_LIBS) $(GRITS_LIBS) \
 		   $(addprefix $(top_srcdir)/lib/,$(gl_LTLIBOBJS))
 endif

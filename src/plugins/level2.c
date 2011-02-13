@@ -46,18 +46,25 @@ static void _bscan_sweep(Sweep *sweep, AWeatherColormap *colormap,
 	for (int ri = 0; ri < sweep->h.nrays; ri++) {
 		Ray *ray  = sweep->ray[ri];
 		for (int bi = 0; bi < ray->h.nbins; bi++) {
-			/* copy RGBA into buffer */
-			//guint val   = dz_f(ray->range[bi]);
-			guint8 val   = (guint8)ray->h.f(ray->range[bi]);
 			guint  buf_i = (ri*max_bins+bi)*4;
-			buf[buf_i+0] = colormap->data[val][0];
-			buf[buf_i+1] = colormap->data[val][1];
-			buf[buf_i+2] = colormap->data[val][2];
-			buf[buf_i+3] = colormap->data[val][3]*0.75; // TESTING
-			if (val == BADVAL     || val == RFVAL      || val == APFLAG ||
-			    val == NOTFOUND_H || val == NOTFOUND_V || val == NOECHO) {
+			float  value = ray->h.f(ray->range[bi]);
+
+			/* Check for bad values */
+			if (value == BADVAL     || value == RFVAL      || value == APFLAG ||
+			    value == NOTFOUND_H || value == NOTFOUND_V || value == NOECHO) {
 				buf[buf_i+3] = 0x00; // transparent
+				continue;
 			}
+
+			/* Convert data value to index */
+			gint idx = value * colormap->scale + colormap->shift;
+			idx = CLAMP(idx, 0, colormap->len);
+
+			/* Copy color to buffer */
+			buf[buf_i+0] = colormap->data[idx][0];
+			buf[buf_i+1] = colormap->data[idx][1];
+			buf[buf_i+2] = colormap->data[idx][2];
+			buf[buf_i+3] = colormap->data[idx][3]*0.75; // TESTING
 		}
 	}
 
@@ -218,7 +225,7 @@ void aweather_level2_set_sweep(AWeatherLevel2 *self,
 
 	/* Find colormap */
 	self->sweep_colors = NULL;
-	for (int i = 0; self->colormap[i].name; i++)
+	for (int i = 0; self->colormap[i].file; i++)
 		if (self->colormap[i].type == type)
 			self->sweep_colors = &self->colormap[i];
 	if (!self->sweep_colors) {

@@ -22,9 +22,13 @@
 #include <rsl.h>
 
 typedef struct {
-	int type;
-	const char *name;
-	guint8 data[256][4];
+	gint     type;     // From RSL e.g. DZ_INDEX
+	gchar   *file;     // Basename of the colors file
+	gchar    name[64]; // Name of the colormap          (line 1)
+	gfloat   scale;    // Map values to color table idx (line 2)
+	gfloat   shift;    //   index = value*scale + shift (line 3)
+	gint     len;      // Length of data                    
+	guint8 (*data)[4]; // The actual colormap           (line 4..)
 } AWeatherColormap;
 
 extern AWeatherColormap colormaps[];
