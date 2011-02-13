@@ -19,7 +19,7 @@
 #define __AWEATHER_LEVEL2_H__
 
 #include <grits.h>
-#include "aweather-colormap.h"
+#include "radar-info.h"
 
 /* Level2 */
 #define AWEATHER_TYPE_LEVEL2            (aweather_level2_get_type())

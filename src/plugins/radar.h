@@ -22,6 +22,7 @@
 #include <rsl.h>
 
 #include <grits.h>
+#include "radar-info.h"
 #include "level2.h"
 
 #define GRITS_TYPE_PLUGIN_RADAR            (grits_plugin_radar_get_type ())

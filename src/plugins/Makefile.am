@@ -10,10 +10,9 @@ plugins_LTLIBRARIES =
 if HAVE_RSL
 plugins_LTLIBRARIES += radar.la
 radar_la_SOURCES = \
-	radar.c  radar.h \
-	level2.c level2.h \
-	../aweather-colormap.c \
-	../aweather-colormap.h \
+	radar.c      radar.h \
+	level2.c     level2.h \
+	radar-info.c radar-info.h \
 	../aweather-location.c \
 	../aweather-location.h
 radar_la_LIBADD  = $(RSL_LIBS) $(GRITS_LIBS) \
