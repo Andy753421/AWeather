@@ -32,22 +32,7 @@
 #include "level2.h"
 #include "../aweather-location.h"
 
-GtkWidget *_gtk_check_label_new(const gchar *text, gboolean state,
-		GCallback on_clicked, gpointer user_data)
-{
-	GtkWidget *hbox  = gtk_hbox_new(FALSE, 0);
-	GtkWidget *check = gtk_check_button_new();
-	GtkWidget *label = gtk_label_new(text);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(check), state);
-	g_signal_connect_swapped(check , "clicked",
-			G_CALLBACK(on_clicked), user_data);
-	gtk_box_pack_start(GTK_BOX(hbox), label, TRUE, TRUE, 0);
-	gtk_box_pack_end(GTK_BOX(hbox), check , FALSE, FALSE, 0);
-	gtk_widget_show_all(hbox);
-	return hbox;
-}
-
-void _gtk_bin_set_child(GtkBin *bin, GtkWidget *new)
+static void _gtk_bin_set_child(GtkBin *bin, GtkWidget *new)
 {
 	GtkWidget *old = gtk_bin_get_child(bin);
 	if (old)
@@ -258,24 +243,15 @@ void radar_site_unload(RadarSite *site)
 	site->status = STATUS_UNLOADED;
 }
 
-void radar_site_toggle(RadarSite *site)
-{
-	site->hidden = !site->hidden;
-	if (site->level2) {
-		GRITS_OBJECT(site->level2)->hidden = site->hidden;
-		gtk_widget_queue_draw(GTK_WIDGET(site->viewer));
-	}
-}
-
 void radar_site_load(RadarSite *site)
 {
 	g_debug("RadarSite: load %s", site->city->code);
 
 	/* Add tab page */
 	site->config = gtk_alignment_new(0, 0, 1, 1);
+	g_object_set_data(G_OBJECT(site->config), "site", site);
 	gtk_notebook_append_page(GTK_NOTEBOOK(site->pconfig), site->config,
-			_gtk_check_label_new(site->city->name, !site->hidden,
-				G_CALLBACK(radar_site_toggle), site));
+			gtk_label_new(site->city->name));
 	gtk_widget_show_all(site->config);
 
 	/* Set up radar loading */
@@ -559,15 +535,6 @@ void _conus_update(RadarConus *conus)
 	g_thread_create(_conus_update_thread, conus, FALSE, NULL);
 }
 
-void radar_conus_toggle(RadarConus *conus)
-{
-	GRITS_OBJECT(conus->tile[0])->hidden =
-		!GRITS_OBJECT(conus->tile[0])->hidden;
-	GRITS_OBJECT(conus->tile[1])->hidden =
-		!GRITS_OBJECT(conus->tile[1])->hidden;
-	gtk_widget_queue_draw(GTK_WIDGET(conus->viewer));
-}
-
 RadarConus *radar_conus_new(GtkWidget *pconfig,
 		GritsViewer *viewer, GritsHttp *http)
 {
@@ -594,9 +561,10 @@ RadarConus *radar_conus_new(GtkWidget *pconfig,
 	conus->refresh_id = g_signal_connect_swapped(viewer, "refresh",
 			G_CALLBACK(_conus_update), conus);
 
+	g_object_set_data(G_OBJECT(conus->config), "conus", conus);
 	gtk_notebook_append_page(GTK_NOTEBOOK(pconfig), conus->config,
-			_gtk_check_label_new("Conus", TRUE,
-				G_CALLBACK(radar_conus_toggle), conus));
+			gtk_label_new("Conus"));
+
 	_conus_update(conus);
 	return conus;
 }
@@ -680,6 +648,33 @@ static void _load_colormap(gchar *filename, AWeatherColormap *cm)
 	g_array_free(array, FALSE);
 }
 
+static void _update_hidden(GtkNotebook *notebook,
+		GtkNotebookPage *page, guint page_num, gpointer viewer)
+{
+	g_debug("GritsPluginRadar: _update_hidden - 0..%d = %d",
+			gtk_notebook_get_n_pages(notebook), page_num);
+
+	for (gint i = 0; i < gtk_notebook_get_n_pages(notebook); i++) {
+		gboolean is_hidden = (i != page_num);
+		GtkWidget  *config = gtk_notebook_get_nth_page(notebook, i);
+		RadarConus *conus  = g_object_get_data(G_OBJECT(config), "conus");
+		RadarSite  *site   = g_object_get_data(G_OBJECT(config), "site");
+
+		/* Conus */
+		if (conus) {
+			GRITS_OBJECT(conus->tile[0])->hidden = is_hidden;
+			GRITS_OBJECT(conus->tile[1])->hidden = is_hidden;
+		} else if (site) {
+			site->hidden = is_hidden;
+			if (site->level2)
+				GRITS_OBJECT(site->level2)->hidden = is_hidden;
+		} else {
+			g_warning("GritsPluginRadar: _update_hidden - no site or counus found");
+		}
+	}
+	gtk_widget_queue_draw(GTK_WIDGET(viewer));
+}
+
 /* Methods */
 GritsPluginRadar *grits_plugin_radar_new(GritsViewer *viewer, GritsPrefs *prefs)
 {
@@ -688,6 +683,10 @@ GritsPluginRadar *grits_plugin_radar_new(GritsViewer *viewer, GritsPrefs *prefs)
 	GritsPluginRadar *self = g_object_new(GRITS_TYPE_PLUGIN_RADAR, NULL);
 	self->viewer = viewer;
 	self->prefs  = prefs;
+
+	/* Setup page switching */
+	g_signal_connect(self->config, "switch-page",
+			G_CALLBACK(_update_hidden), viewer);
 
 	/* Load HUD */
 	GritsCallback *hud_cb = grits_callback_new(_draw_hud, self);
