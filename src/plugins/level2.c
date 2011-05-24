@@ -58,15 +58,12 @@ static void _bscan_sweep(Sweep *sweep, AWeatherColormap *colormap,
 				continue;
 			}
 
-			/* Convert data value to index */
-			gint idx = value * colormap->scale + colormap->shift;
-			idx = CLAMP(idx, 0, colormap->len);
-
 			/* Copy color to buffer */
-			buf[buf_i+0] = colormap->data[idx][0];
-			buf[buf_i+1] = colormap->data[idx][1];
-			buf[buf_i+2] = colormap->data[idx][2];
-			buf[buf_i+3] = colormap->data[idx][3]*0.75; // TESTING
+			guint8 *data = colormap_get(colormap, value);
+			buf[buf_i+0] = data[0];
+			buf[buf_i+1] = data[1];
+			buf[buf_i+2] = data[2];
+			buf[buf_i+3] = data[3]*0.75; // TESTING
 		}
 	}
 
@@ -161,7 +158,7 @@ static VolGrid *_load_grid(Volume *vol)
 	gint nsweeps   = vol->h.nsweeps;
 	gint nrays     = sweep->h.nrays/(1/sweep->h.beam_width)+1;
 	gint nbins     = ray->h.nbins  /(1000/ray->h.gate_size);
-	nbins = MIN(nbins, 100);
+	nbins = MIN(nbins, 150);
 
 	VolGrid  *grid = vol_grid_new(nrays, nbins, nsweeps);
 
@@ -324,11 +321,11 @@ void aweather_level2_set_iso(AWeatherLevel2 *level2, gfloat level)
 		level2->volume = vol;
 	}
 	if (ISO_MIN < level && level < ISO_MAX) {
-		AWeatherColormap *cm = &level2->colormap[0];
-		level2->volume->color[0] = cm->data[(gint)level][0];
-		level2->volume->color[1] = cm->data[(gint)level][1];
-		level2->volume->color[2] = cm->data[(gint)level][2];
-		level2->volume->color[3] = cm->data[(gint)level][3];
+		guint8 *data = colormap_get(&level2->colormap[0], level);
+		level2->volume->color[0] = data[0];
+		level2->volume->color[1] = data[1];
+		level2->volume->color[2] = data[2];
+		level2->volume->color[3] = data[3];
 		grits_volume_set_level(level2->volume, level);
 		GRITS_OBJECT(level2->volume)->hidden = FALSE;
 	} else {
