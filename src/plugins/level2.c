@@ -265,6 +265,13 @@ void aweather_level2_draw(GritsObject *_self, GritsOpenGL *opengl)
 	//glEnd();
 }
 
+void aweather_level2_hide(GritsObject *_self, gboolean hidden)
+{
+	AWeatherLevel2 *self = AWEATHER_LEVEL2(_self);
+	if (self->volume)
+		grits_object_hide(GRITS_OBJECT(self->volume), hidden);
+}
+
 
 /***********
  * Methods *
@@ -327,9 +334,9 @@ void aweather_level2_set_iso(AWeatherLevel2 *level2, gfloat level)
 		level2->volume->color[2] = data[2];
 		level2->volume->color[3] = data[3];
 		grits_volume_set_level(level2->volume, level);
-		GRITS_OBJECT(level2->volume)->hidden = FALSE;
+		grits_object_hide(GRITS_OBJECT(level2->volume), FALSE);
 	} else {
-		GRITS_OBJECT(level2->volume)->hidden = TRUE;
+		grits_object_hide(GRITS_OBJECT(level2->volume), TRUE);
 	}
 }
 
@@ -504,6 +511,16 @@ G_DEFINE_TYPE(AWeatherLevel2, aweather_level2, GRITS_TYPE_OBJECT);
 static void aweather_level2_init(AWeatherLevel2 *self)
 {
 }
+static void aweather_level2_dispose(GObject *_self)
+{
+	AWeatherLevel2 *self = AWEATHER_LEVEL2(_self);
+	g_debug("AWeatherLevel2: dispose - %p", _self);
+	if (self->volume) {
+		grits_viewer_remove(GRITS_OBJECT(self)->viewer, self->volume);
+		self->volume = NULL;
+	}
+	G_OBJECT_CLASS(aweather_level2_parent_class)->dispose(_self);
+}
 static void aweather_level2_finalize(GObject *_self)
 {
 	AWeatherLevel2 *self = AWEATHER_LEVEL2(_self);
@@ -515,6 +532,8 @@ static void aweather_level2_finalize(GObject *_self)
 }
 static void aweather_level2_class_init(AWeatherLevel2Class *klass)
 {
+	G_OBJECT_CLASS(klass)->dispose  = aweather_level2_dispose;
 	G_OBJECT_CLASS(klass)->finalize = aweather_level2_finalize;
-	GRITS_OBJECT_CLASS(klass)->draw   = aweather_level2_draw;
+	GRITS_OBJECT_CLASS(klass)->draw = aweather_level2_draw;
+	GRITS_OBJECT_CLASS(klass)->hide = aweather_level2_hide;
 }

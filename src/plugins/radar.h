@@ -45,8 +45,9 @@ struct _GritsPluginRadar {
 	GritsViewer *viewer;
 	GritsPrefs  *prefs;
 	GtkWidget   *config;
+	guint        tab_id;
 	AWeatherColormap *colormap;
-	gpointer    *hud_ref;
+	GritsCallback    *hud;
 
 	GHashTable  *sites;
 	GritsHttp   *sites_http;

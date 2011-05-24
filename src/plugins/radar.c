@@ -79,7 +79,6 @@ struct _RadarSite {
 	/* Information */
 	city_t         *city;
 	GritsMarker    *marker;      // Map marker for grits
-	gpointer       *marker_ref;  // Reference to maker
 
 	/* Stuff from the parents */
 	GritsViewer    *viewer;
@@ -92,7 +91,6 @@ struct _RadarSite {
 	RadarSiteStatus status;      // Loading status for the site
 	GtkWidget      *config;
 	AWeatherLevel2 *level2;      // The Level2 structure for the current volume
-	gpointer        level2_ref;  // GritsViewer reference to the added radar
 
 	/* Internal data */
 	time_t          time;        // Current timestamp of the level2
@@ -180,9 +178,9 @@ gpointer _site_update_thread(gpointer _site)
 		site->message = "Load failed";
 		goto out;
 	}
-	GRITS_OBJECT(site->level2)->hidden = site->hidden;
-	site->level2_ref = grits_viewer_add(site->viewer,
-			GRITS_OBJECT(site->level2), GRITS_LEVEL_WORLD, TRUE);
+	grits_object_hide(GRITS_OBJECT(site->level2), site->hidden);
+	grits_viewer_add(site->viewer, GRITS_OBJECT(site->level2),
+			GRITS_LEVEL_WORLD, TRUE);
 
 out:
 	g_idle_add(_site_update_end, site);
@@ -205,10 +203,9 @@ void _site_update(RadarSite *site)
 
 	/* Remove old volume */
 	g_debug("RadarSite: update - remove - %s", site->city->code);
-	if (site->level2_ref) {
-		site->level2     = NULL;
-		grits_viewer_remove(site->viewer, site->level2_ref);
-		site->level2_ref = NULL;
+	if (site->level2) {
+		grits_viewer_remove(site->viewer, site->level2);
+		site->level2 = NULL;
 	}
 
 	/* Fork loading right away so updating the
@@ -234,10 +231,9 @@ void radar_site_unload(RadarSite *site)
 		gtk_widget_destroy(site->config);
 
 	/* Remove radar */
-	if (site->level2_ref) {
-		site->level2     = NULL;
-		grits_viewer_remove(site->viewer, site->level2_ref);
-		site->level2_ref = NULL;
+	if (site->level2) {
+		grits_viewer_remove(site->viewer, site->level2);
+		site->level2 = NULL;
 	}
 
 	site->status = STATUS_UNLOADED;
@@ -289,8 +285,8 @@ gboolean _site_add_marker(gpointer _site)
 	site->marker = grits_marker_new(site->city->name);
 	GRITS_OBJECT(site->marker)->center = site->city->pos;
 	GRITS_OBJECT(site->marker)->lod    = EARTH_R*site->city->lod;
-	site->marker_ref = grits_viewer_add(site->viewer,
-			GRITS_OBJECT(site->marker), GRITS_LEVEL_OVERLAY, FALSE);
+	grits_viewer_add(site->viewer, GRITS_OBJECT(site->marker),
+			GRITS_LEVEL_OVERLAY, FALSE);
 	return FALSE;
 }
 RadarSite *radar_site_new(city_t *city, GtkWidget *pconfig,
@@ -318,7 +314,7 @@ RadarSite *radar_site_new(city_t *city, GtkWidget *pconfig,
 void radar_site_free(RadarSite *site)
 {
 	radar_site_unload(site);
-	grits_viewer_remove(site->viewer, site->marker_ref);
+	grits_viewer_remove(site->viewer, site->marker);
 	if (site->location_id)
 		g_signal_handler_disconnect(site->viewer, site->location_id);
 	grits_http_free(site->http);
@@ -347,7 +343,6 @@ struct _RadarConus {
 
 	gchar       *path;
 	GritsTile   *tile[2];
-	gpointer    *tile_ref[2];
 
 	guint        time_id;     // "time-changed"     callback ID
 	guint        refresh_id;  // "refresh"          callback ID
@@ -551,10 +546,8 @@ RadarConus *radar_conus_new(GtkWidget *pconfig,
 	conus->tile[1] = grits_tile_new(NULL, CONUS_NORTH, south, east, mid);
 	conus->tile[0]->zindex = 2;
 	conus->tile[1]->zindex = 1;
-	conus->tile_ref[0] = grits_viewer_add(viewer,
-			GRITS_OBJECT(conus->tile[0]), GRITS_LEVEL_WORLD, TRUE);
-	conus->tile_ref[1] = grits_viewer_add(viewer,
-			GRITS_OBJECT(conus->tile[1]), GRITS_LEVEL_WORLD, TRUE);
+	grits_viewer_add(viewer, GRITS_OBJECT(conus->tile[0]), GRITS_LEVEL_WORLD, TRUE);
+	grits_viewer_add(viewer, GRITS_OBJECT(conus->tile[1]), GRITS_LEVEL_WORLD, TRUE);
 
 	conus->time_id = g_signal_connect_swapped(viewer, "time-changed",
 			G_CALLBACK(_conus_update), conus);
@@ -576,12 +569,11 @@ void radar_conus_free(RadarConus *conus)
 
 	for (int i = 0; i < 2; i++) {
 		GritsTile *tile = conus->tile[i];
-		gpointer   ref  = conus->tile_ref[i];
 		if (tile->data) {
 			glDeleteTextures(1, tile->data);
 			g_free(tile->data);
 		}
-		grits_viewer_remove(conus->viewer, ref);
+		grits_viewer_remove(conus->viewer, tile);
 	}
 
 	g_object_unref(conus->viewer);
@@ -662,12 +654,12 @@ static void _update_hidden(GtkNotebook *notebook,
 
 		/* Conus */
 		if (conus) {
-			GRITS_OBJECT(conus->tile[0])->hidden = is_hidden;
-			GRITS_OBJECT(conus->tile[1])->hidden = is_hidden;
+			grits_object_hide(GRITS_OBJECT(conus->tile[0]), is_hidden);
+			grits_object_hide(GRITS_OBJECT(conus->tile[1]), is_hidden);
 		} else if (site) {
 			site->hidden = is_hidden;
 			if (site->level2)
-				GRITS_OBJECT(site->level2)->hidden = is_hidden;
+				grits_object_hide(GRITS_OBJECT(site->level2), is_hidden);
 		} else {
 			g_warning("GritsPluginRadar: _update_hidden - no site or counus found");
 		}
@@ -685,12 +677,12 @@ GritsPluginRadar *grits_plugin_radar_new(GritsViewer *viewer, GritsPrefs *prefs)
 	self->prefs  = prefs;
 
 	/* Setup page switching */
-	g_signal_connect(self->config, "switch-page",
+	self->tab_id = g_signal_connect(self->config, "switch-page",
 			G_CALLBACK(_update_hidden), viewer);
 
 	/* Load HUD */
-	GritsCallback *hud_cb = grits_callback_new(_draw_hud, self);
-	self->hud_ref = grits_viewer_add(viewer, GRITS_OBJECT(hud_cb), GRITS_LEVEL_HUD, FALSE);
+	self->hud = grits_callback_new(_draw_hud, self);
+	grits_viewer_add(viewer, GRITS_OBJECT(self->hud), GRITS_LEVEL_HUD, FALSE);
 
 	/* Load Conus */
 	self->conus = radar_conus_new(self->config, self->viewer, self->conus_http);
@@ -747,13 +739,14 @@ static void grits_plugin_radar_init(GritsPluginRadar *self)
 	}
 
 	/* Need to position on the top because of Win32 bug */
-	gtk_notebook_set_tab_pos(GTK_NOTEBOOK(self->config), GTK_POS_BOTTOM);
+	gtk_notebook_set_tab_pos(GTK_NOTEBOOK(self->config), GTK_POS_LEFT);
 }
 static void grits_plugin_radar_dispose(GObject *gobject)
 {
 	g_debug("GritsPluginRadar: dispose");
 	GritsPluginRadar *self = GRITS_PLUGIN_RADAR(gobject);
-	grits_viewer_remove(self->viewer, self->hud_ref);
+	g_signal_handler_disconnect(self->config, self->tab_id);
+	grits_viewer_remove(self->viewer, self->hud);
 	radar_conus_free(self->conus);
 	/* Drop references */
 	G_OBJECT_CLASS(grits_plugin_radar_parent_class)->dispose(gobject);
