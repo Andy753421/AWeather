@@ -34,8 +34,13 @@ G_MODULE_EXPORT gboolean on_gui_key_press(GtkWidget *widget, GdkEventKey *event,
 {
 	g_debug("AWeatherGui: on_gui_key_press - key=%x, state=%x",
 			event->keyval, event->state);
+	GObject *action = aweather_gui_get_object(self, "fullscreen");
+	gboolean full   = gtk_toggle_action_get_active(GTK_TOGGLE_ACTION(action));
 	if (event->keyval == GDK_q)
 		gtk_widget_destroy(GTK_WIDGET(self));
+	else if (event->keyval == GDK_F11 ||
+	        (event->keyval == GDK_Escape && full))
+		gtk_action_activate(GTK_ACTION(action));
 	else if (event->keyval == GDK_r && event->state & GDK_CONTROL_MASK)
 		grits_viewer_refresh(self->viewer);
 	else if (event->keyval == GDK_Tab || event->keyval == GDK_ISO_Left_Tab) {
@@ -107,6 +112,21 @@ G_MODULE_EXPORT void on_zoomin(GtkAction *action, AWeatherGui *self)
 G_MODULE_EXPORT void on_zoomout(GtkAction *action, AWeatherGui *self)
 {
 	grits_viewer_zoom(self->viewer, 4./3);
+}
+
+G_MODULE_EXPORT void on_fullscreen(GtkToggleAction *action, AWeatherGui *self)
+{
+	g_message("fullscreen");
+	gchar *hide[] = {"main_menu", "main_sidebar", "main_tabs"};
+	if (gtk_toggle_action_get_active(action)) {
+		gtk_window_fullscreen(GTK_WINDOW(self));
+		for (int i = 0; i < G_N_ELEMENTS(hide); i++)
+			gtk_widget_hide(aweather_gui_get_widget(self, hide[i]));
+	} else {
+		gtk_window_unfullscreen(GTK_WINDOW(self));
+		for (int i = 0; i < G_N_ELEMENTS(hide); i++)
+			gtk_widget_show(aweather_gui_get_widget(self, hide[i]));
+	}
 }
 
 G_MODULE_EXPORT void on_refresh(GtkAction *action, AWeatherGui *self)
@@ -246,7 +266,7 @@ static void site_setup(AWeatherGui *self)
 			gtk_tree_store_append(store, &state, NULL);
 			gtk_tree_store_set   (store, &state, 0, cities[i].code,
 					                     1, cities[i].name, -1);
-		} else if (cities[i].type == LOCATION_CITY) {
+		} else {
 			gtk_tree_store_append(store, &city, &state);
 			gtk_tree_store_set   (store, &city, 0, cities[i].code,
 				                            1, cities[i].name, -1);

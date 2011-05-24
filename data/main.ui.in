@@ -122,6 +122,19 @@
                       </object>
                     </child>
                     <child>
+                      <object class="GtkCheckMenuItem" id="main_menu_view_fullscreen">
+                        <property name="visible">True</property>
+                        <property name="related_action">fullscreen</property>
+                        <property name="use_action_appearance">True</property>
+                        <property name="use_underline">True</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkSeparatorMenuItem" id="main_menu_view_1">
+                        <property name="visible">True</property>
+                      </object>
+                    </child>
+                    <child>
                       <object class="GtkImageMenuItem" id="main_menu_view_refresh">
                         <property name="visible">True</property>
                         <property name="related_action">refresh</property>
@@ -211,6 +224,28 @@
               </packing>
             </child>
             <child>
+              <object class="GtkToggleToolButton" id="main_tb_fullscreen">
+                <property name="visible">True</property>
+                <property name="related_action">fullscreen</property>
+                <property name="use_action_appearance">True</property>
+                <property name="label" translatable="yes">toolbutton1</property>
+                <property name="use_underline">True</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="homogeneous">True</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkSeparatorToolItem" id="main_tb_1">
+                <property name="visible">True</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="homogeneous">True</property>
+              </packing>
+            </child>
+            <child>
               <object class="GtkToggleToolButton" id="main_tb_offline">
                 <property name="visible">True</property>
                 <property name="related_action">offline</property>
@@ -236,7 +271,7 @@
               </packing>
             </child>
             <child>
-              <object class="GtkSeparatorToolItem" id="main_tb_1">
+              <object class="GtkSeparatorToolItem" id="main_tb_2">
                 <property name="visible">True</property>
               </object>
               <packing>
@@ -283,7 +318,7 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkVBox" id="main_1">
+                  <object class="GtkVBox" id="main_sidebar">
                     <property name="visible">True</property>
                     <property name="orientation">vertical</property>
                     <property name="spacing">5</property>
@@ -426,9 +461,8 @@
     <property name="border_width">5</property>
     <property name="title" translatable="yes">Preferences - AWeather</property>
     <property name="type_hint">normal</property>
-    <property name="has_separator">False</property>
-    <signal name="response" handler="gtk_widget_hide" object="prefs_window"/>
     <signal name="delete_event" handler="gtk_widget_hide_on_delete"/>
+    <signal name="response" handler="gtk_widget_hide" object="prefs_window"/>
     <child internal-child="vbox">
       <object class="GtkVBox" id="prefs_0">
         <property name="visible">True</property>
@@ -657,7 +691,6 @@
     <property name="title" translatable="yes">About - AWeather</property>
     <property name="window_position">center-on-parent</property>
     <property name="type_hint">dialog</property>
-    <property name="has_separator">False</property>
     <property name="program_name">AWeather</property>
     <property name="version">@VERSION@</property>
     <property name="copyright" translatable="yes">Copyright &#xA9;2008-2009 Andy Spencer</property>
@@ -909,8 +942,8 @@ The hypothetical commands `show w' and `show c' should show the appropriate part
 </property>
     <property name="authors">Andy Spencer &lt;andy753421@gmail.com&gt;</property>
     <property name="wrap_license">True</property>
-    <signal name="response" handler="gtk_widget_hide"/>
     <signal name="delete_event" handler="gtk_widget_hide_on_delete"/>
+    <signal name="response" handler="gtk_widget_hide"/>
     <child internal-child="vbox">
       <object class="GtkVBox" id="about_0">
         <property name="visible">True</property>
@@ -957,5 +990,10 @@ The hypothetical commands `show w' and `show c' should show the appropriate part
     <property name="tooltip">Clean out old cached files</property>
     <property name="stock_id">gtk-clear</property>
     <signal name="activate" handler="on_cleancache"/>
+  </object>
+  <object class="GtkToggleAction" id="fullscreen">
+    <property name="label">Fullscreen</property>
+    <property name="stock_id">gtk-fullscreen</property>
+    <signal name="toggled" handler="on_fullscreen"/>
   </object>
 </interface>
