@@ -15,11 +15,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#define _XOPEN_SOURCE
+#include <sys/time.h>
 #include <config.h>
 #include <gtk/gtk.h>
 #include <gtk/gtkgl.h>
 #include <glib/gstdio.h>
-#include <time.h>
 
 #include <grits.h>
 

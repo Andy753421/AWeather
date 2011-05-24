@@ -632,9 +632,14 @@ static void _load_colormap(gchar *filename, AWeatherColormap *cm)
 	fgets(cm->name, sizeof(cm->name), file);
 	fscanf(file, "%f\n", &cm->scale);
 	fscanf(file, "%f\n", &cm->shift);
-	while (fscanf(file, "%hhd %hhd %hhd %hhd\n",
-			&color[0], &color[1], &color[2], &color[3]) == 4)
+	int r, g, b, a;
+	while (fscanf(file, "%d %d %d %d\n", &r, &g, &b, &a) == 4) {
+		color[0] = r;
+		color[1] = g;
+		color[2] = b;
+		color[3] = a;
 		g_array_append_val(array, color);
+	}
 	cm->len  = (gint )array->len;
 	cm->data = (void*)array->data;
 	g_array_free(array, FALSE);

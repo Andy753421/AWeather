@@ -16,9 +16,14 @@ radar_la_SOURCES = \
 	../aweather-location.c \
 	../aweather-location.h
 radar_la_CPPFLAGS = \
-	-DPKGDATADIR="\"$(dots)$(pkgdatadir)\""
+	-DPKGDATADIR="\"$(dots)$(pkgdatadir)\"" \
+	-I$(top_srcdir)/src -I$(top_srcdir)/lib
 radar_la_LIBADD  = $(RSL_LIBS) $(GRITS_LIBS) \
 		   $(addprefix $(top_srcdir)/lib/,$(gl_LTLIBOBJS))
+endif
+
+if WIN32
+dots = ..
 endif
 
 test:
