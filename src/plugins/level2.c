@@ -74,20 +74,20 @@ static void _bscan_sweep(Sweep *sweep, AWeatherColormap *colormap,
 }
 
 /* Load a sweep into an OpenGL texture */
-static void _load_sweep_gl(AWeatherLevel2 *self)
+static void _load_sweep_gl(AWeatherLevel2 *level2)
 {
 	g_debug("AWeatherLevel2: _load_sweep_gl");
 	guint8 *data;
 	gint width, height;
-	_bscan_sweep(self->sweep, self->sweep_colors, &data, &width, &height);
+	_bscan_sweep(level2->sweep, level2->sweep_colors, &data, &width, &height);
 	gint tex_width  = pow(2, ceil(log(width )/log(2)));
 	gint tex_height = pow(2, ceil(log(height)/log(2)));
-	self->sweep_coords[0] = (double)width  / tex_width;
-	self->sweep_coords[1] = (double)height / tex_height;
+	level2->sweep_coords[0] = (double)width  / tex_width;
+	level2->sweep_coords[1] = (double)height / tex_height;
 
-	if (!self->sweep_tex)
-		 glGenTextures(1, &self->sweep_tex);
-	glBindTexture(GL_TEXTURE_2D, self->sweep_tex);
+	if (!level2->sweep_tex)
+		 glGenTextures(1, &level2->sweep_tex);
+	glBindTexture(GL_TEXTURE_2D, level2->sweep_tex);
 	glPixelStorei(GL_PACK_ALIGNMENT, 1);
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, tex_width, tex_height, 0,
@@ -203,14 +203,14 @@ static VolGrid *_load_grid(Volume *vol)
 /*********************
  * Drawing functions *
  *********************/
-void aweather_level2_draw(GritsObject *_self, GritsOpenGL *opengl)
+void aweather_level2_draw(GritsObject *_level2, GritsOpenGL *opengl)
 {
-	AWeatherLevel2 *self = AWEATHER_LEVEL2(_self);
-	if (!self->sweep || !self->sweep_tex)
+	AWeatherLevel2 *level2 = AWEATHER_LEVEL2(_level2);
+	if (!level2->sweep || !level2->sweep_tex)
 		return;
 
 	/* Draw wsr88d */
-	Sweep *sweep = self->sweep;
+	Sweep *sweep = level2->sweep;
 	glDisable(GL_ALPHA_TEST);
 	glDisable(GL_CULL_FACE);
 	glDisable(GL_LIGHTING);
@@ -220,9 +220,9 @@ void aweather_level2_draw(GritsObject *_self, GritsOpenGL *opengl)
 	glColor4f(1,1,1,1);
 
 	/* Draw the rays */
-	gdouble xscale = self->sweep_coords[0];
-	gdouble yscale = self->sweep_coords[1];
-	glBindTexture(GL_TEXTURE_2D, self->sweep_tex);
+	gdouble xscale = level2->sweep_coords[0];
+	gdouble yscale = level2->sweep_coords[1];
+	glBindTexture(GL_TEXTURE_2D, level2->sweep_tex);
 	glBegin(GL_TRIANGLE_STRIP);
 	for (int ri = 0; ri <= sweep->h.nrays; ri++) {
 		Ray  *ray = NULL;
@@ -265,50 +265,50 @@ void aweather_level2_draw(GritsObject *_self, GritsOpenGL *opengl)
 	//glEnd();
 }
 
-void aweather_level2_hide(GritsObject *_self, gboolean hidden)
+void aweather_level2_hide(GritsObject *_level2, gboolean hidden)
 {
-	AWeatherLevel2 *self = AWEATHER_LEVEL2(_self);
-	if (self->volume)
-		grits_object_hide(GRITS_OBJECT(self->volume), hidden);
+	AWeatherLevel2 *level2 = AWEATHER_LEVEL2(_level2);
+	if (level2->volume)
+		grits_object_hide(GRITS_OBJECT(level2->volume), hidden);
 }
 
 
 /***********
  * Methods *
  ***********/
-static gboolean _set_sweep_cb(gpointer _self)
+static gboolean _set_sweep_cb(gpointer _level2)
 {
 	g_debug("AWeatherLevel2: _set_sweep_cb");
-	AWeatherLevel2 *self = _self;
-	_load_sweep_gl(self);
-	grits_object_queue_draw(_self);
-	g_object_unref(self);
+	AWeatherLevel2 *level2 = _level2;
+	_load_sweep_gl(level2);
+	grits_object_queue_draw(_level2);
+	g_object_unref(level2);
 	return FALSE;
 }
-void aweather_level2_set_sweep(AWeatherLevel2 *self,
+void aweather_level2_set_sweep(AWeatherLevel2 *level2,
 		int type, float elev)
 {
 	g_debug("AWeatherLevel2: set_sweep - %d %f", type, elev);
 
 	/* Find sweep */
-	Volume *volume = RSL_get_volume(self->radar, type);
+	Volume *volume = RSL_get_volume(level2->radar, type);
 	if (!volume) return;
-	self->sweep = RSL_get_closest_sweep(volume, elev, 90);
-	if (!self->sweep) return;
+	level2->sweep = RSL_get_closest_sweep(volume, elev, 90);
+	if (!level2->sweep) return;
 
 	/* Find colormap */
-	self->sweep_colors = NULL;
-	for (int i = 0; self->colormap[i].file; i++)
-		if (self->colormap[i].type == type)
-			self->sweep_colors = &self->colormap[i];
-	if (!self->sweep_colors) {
+	level2->sweep_colors = NULL;
+	for (int i = 0; level2->colormap[i].file; i++)
+		if (level2->colormap[i].type == type)
+			level2->sweep_colors = &level2->colormap[i];
+	if (!level2->sweep_colors) {
 		g_warning("AWeatherLevel2: set_sweep - missing colormap[%d]", type);
-		self->sweep_colors = &self->colormap[0];
+		level2->sweep_colors = &level2->colormap[0];
 	}
 
 	/* Load data */
-	g_object_ref(self);
-	g_idle_add(_set_sweep_cb, self);
+	g_object_ref(level2);
+	g_idle_add(_set_sweep_cb, level2);
 }
 
 void aweather_level2_set_iso(AWeatherLevel2 *level2, gfloat level)
@@ -344,18 +344,18 @@ AWeatherLevel2 *aweather_level2_new(Radar *radar, AWeatherColormap *colormap)
 {
 	g_debug("AWeatherLevel2: new - %s", radar->h.radar_name);
 	RSL_sort_radar(radar);
-	AWeatherLevel2 *self = g_object_new(AWEATHER_TYPE_LEVEL2, NULL);
-	self->radar    = radar;
-	self->colormap = colormap;
-	aweather_level2_set_sweep(self, DZ_INDEX, 0);
+	AWeatherLevel2 *level2 = g_object_new(AWEATHER_TYPE_LEVEL2, NULL);
+	level2->radar    = radar;
+	level2->colormap = colormap;
+	aweather_level2_set_sweep(level2, DZ_INDEX, 0);
 
 	GritsPoint center;
 	Radar_header *h = &radar->h;
 	center.lat  = (double)h->latd + (double)h->latm/60 + (double)h->lats/(60*60);
 	center.lon  = (double)h->lond + (double)h->lonm/60 + (double)h->lons/(60*60);
 	center.elev = h->height;
-	GRITS_OBJECT(self)->center = center;
-	return self;
+	GRITS_OBJECT(level2)->center = center;
+	return level2;
 }
 
 AWeatherLevel2 *aweather_level2_new_from_file(const gchar *file, const gchar *site,
@@ -396,7 +396,7 @@ static void _on_sweep_clicked(GtkRadioButton *button, gpointer _level2)
 		gint type = (gint)g_object_get_data(G_OBJECT(button), "type");
 		gint elev = (gint)g_object_get_data(G_OBJECT(button), "elev");
 		aweather_level2_set_sweep(level2, type, (float)elev/100);
-		//self->colormap = level2->sweep_colors;
+		//level2->colormap = level2->sweep_colors;
 	}
 }
 
@@ -508,27 +508,27 @@ GtkWidget *aweather_level2_get_config(AWeatherLevel2 *level2)
  * GObject code *
  ****************/
 G_DEFINE_TYPE(AWeatherLevel2, aweather_level2, GRITS_TYPE_OBJECT);
-static void aweather_level2_init(AWeatherLevel2 *self)
+static void aweather_level2_init(AWeatherLevel2 *level2)
 {
 }
-static void aweather_level2_dispose(GObject *_self)
+static void aweather_level2_dispose(GObject *_level2)
 {
-	AWeatherLevel2 *self = AWEATHER_LEVEL2(_self);
-	g_debug("AWeatherLevel2: dispose - %p", _self);
-	if (self->volume) {
-		grits_viewer_remove(GRITS_OBJECT(self)->viewer, self->volume);
-		self->volume = NULL;
+	AWeatherLevel2 *level2 = AWEATHER_LEVEL2(_level2);
+	g_debug("AWeatherLevel2: dispose - %p", _level2);
+	if (level2->volume) {
+		grits_viewer_remove(GRITS_OBJECT(level2)->viewer, level2->volume);
+		level2->volume = NULL;
 	}
-	G_OBJECT_CLASS(aweather_level2_parent_class)->dispose(_self);
+	G_OBJECT_CLASS(aweather_level2_parent_class)->dispose(_level2);
 }
-static void aweather_level2_finalize(GObject *_self)
+static void aweather_level2_finalize(GObject *_level2)
 {
-	AWeatherLevel2 *self = AWEATHER_LEVEL2(_self);
-	g_debug("AWeatherLevel2: finalize - %p", _self);
-	RSL_free_radar(self->radar);
-	if (self->sweep_tex)
-		glDeleteTextures(1, &self->sweep_tex);
-	G_OBJECT_CLASS(aweather_level2_parent_class)->finalize(_self);
+	AWeatherLevel2 *level2 = AWEATHER_LEVEL2(_level2);
+	g_debug("AWeatherLevel2: finalize - %p", _level2);
+	RSL_free_radar(level2->radar);
+	if (level2->sweep_tex)
+		glDeleteTextures(1, &level2->sweep_tex);
+	G_OBJECT_CLASS(aweather_level2_parent_class)->finalize(_level2);
 }
 static void aweather_level2_class_init(AWeatherLevel2Class *klass)
 {
