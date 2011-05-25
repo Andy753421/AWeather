@@ -483,17 +483,28 @@ gpointer _conus_update_thread(gpointer _conus)
 
 	/* Find nearest */
 	g_debug("Conus: update_thread - nearest");
-	gboolean offline = grits_viewer_get_offline(conus->viewer);
 	gchar *conus_url = "http://radar.weather.gov/Conus/RadarImg/";
-	GList *files = grits_http_available(conus->http,
-			"^Conus_[^\"]*_N0Ronly.gif$", "",
-			NULL, (offline ? NULL : conus_url));
-	gchar *nearest = _find_nearest(conus->time, files, 6, "%Y%m%d_%H%M");
-	g_list_foreach(files, (GFunc)g_free, NULL);
-	g_list_free(files);
-	if (!nearest) {
-		conus->message = "No suitable files";
-		goto out;
+	gchar *nearest;
+	if (time(NULL) - conus->time < 60*60*5){
+		/* radar.weather.gov is full of lies.
+		 * the index pages get cached and out of date */
+		struct tm tm;
+		gmtime_r(&conus->time, &tm);
+		time_t onthe8 = conus->time - 60*((tm.tm_min+2)%10);
+		gmtime_r(&onthe8, &tm);
+		nearest = g_strdup_printf("Conus_%04d%02d%02d_%02d%02d_N0Ronly.gif",
+				tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday,
+				tm.tm_hour, tm.tm_min);
+	} else {
+		GList *files = grits_http_available(conus->http,
+				"^Conus_[^\"]*_N0Ronly.gif$", "", NULL, NULL);
+		nearest = _find_nearest(conus->time, files, 6, "%Y%m%d_%H%M");
+		g_list_foreach(files, (GFunc)g_free, NULL);
+		g_list_free(files);
+		if (!nearest) {
+			conus->message = "No suitable files";
+			goto out;
+		}
 	}
 
 	/* Fetch the image */
