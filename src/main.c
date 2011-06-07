@@ -19,7 +19,6 @@
 #include <sys/time.h>
 #include <config.h>
 #include <gtk/gtk.h>
-#include <gtk/gtkgl.h>
 #include <glib/gstdio.h>
 
 #include <grits.h>
@@ -108,7 +107,6 @@ int main(int argc, char *argv[])
 		g_error_free(error);
 		return -1;
 	}
-	gtk_gl_init(&argc, &argv);
 
 	/* Do some logging here for aweather_gui_new */
 	if (opt_debug) log_levels = (1 << (opt_debug+1))-1;
