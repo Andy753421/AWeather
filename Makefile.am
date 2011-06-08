@@ -16,6 +16,10 @@ build: all
 	make -C ../aweather-win32 install; \
 	make -C ../grits-win32 install; \
 	make -C ../rsl-win32 install;
+	find build -name '*.a'  -delete
+	find build -name '*.la' -delete
+	rm -rf build/share/rsl/colors
+	rm -rf build/include
 	touch $@
 
 installers: $(PACKAGE)-$(VERSION).exe $(PACKAGE)-$(VERSION)-gtk.exe
