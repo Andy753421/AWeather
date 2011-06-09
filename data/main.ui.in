@@ -4,55 +4,63 @@
   <!-- interface-requires AWeather 0.0 -->
   <!-- interface-naming-policy project-wide -->
   <object class="GtkAction" id="about">
-    <property name="label">About</property>
+    <property name="label">_About</property>
     <property name="stock_id">gtk-about</property>
     <signal name="activate" handler="gtk_window_present" object="about_window" swapped="yes"/>
   </object>
   <object class="GtkAction" id="cleancache">
-    <property name="label">Clean cache</property>
+    <property name="label">_Clean cache</property>
     <property name="short_label">Clean cache</property>
     <property name="tooltip">Clean out old cached files</property>
     <property name="stock_id">gtk-clear</property>
     <signal name="activate" handler="on_cleancache" swapped="no"/>
   </object>
   <object class="GtkAction" id="contents">
-    <property name="label">Contents</property>
+    <property name="label">_Contents</property>
     <property name="short_label">Contents</property>
     <property name="tooltip">AWeather Reference Manual</property>
     <property name="stock_id">gtk-help</property>
     <signal name="activate" handler="on_contents" swapped="no"/>
   </object>
   <object class="GtkToggleAction" id="fullscreen">
-    <property name="label">Fullscreen</property>
+    <property name="label">_Fullscreen</property>
     <property name="stock_id">gtk-fullscreen</property>
     <signal name="toggled" handler="on_fullscreen" swapped="no"/>
   </object>
   <object class="GtkToggleAction" id="offline">
-    <property name="label">Offline</property>
+    <property name="label">_Offline</property>
     <property name="stock_id">gtk-disconnect</property>
     <signal name="toggled" handler="on_offline" swapped="no"/>
   </object>
   <object class="GtkAction" id="prefs">
+    <property name="label" translatable="yes">_Preferences</property>
     <property name="stock_id">gtk-preferences</property>
     <signal name="activate" handler="gtk_window_present" object="prefs_window" swapped="yes"/>
   </object>
   <object class="GtkAction" id="quit">
-    <property name="label">Quit</property>
+    <property name="label">_Quit</property>
     <property name="stock_id">gtk-quit</property>
     <signal name="activate" handler="on_quit" swapped="no"/>
   </object>
   <object class="GtkAction" id="refresh">
-    <property name="label">Refresh</property>
+    <property name="label">_Refresh</property>
     <property name="stock_id">gtk-refresh</property>
     <signal name="activate" handler="on_refresh" swapped="no"/>
   </object>
+  <object class="GtkToggleAction" id="update">
+    <property name="label" translatable="yes">_Auto-update</property>
+    <property name="short_label" translatable="yes">Auto-update</property>
+    <property name="tooltip" translatable="yes">Automatically refresh after a timeout</property>
+    <property name="stock_id">gtk-media-play</property>
+    <signal name="toggled" handler="on_update" swapped="no"/>
+  </object>
   <object class="GtkAction" id="zoomin">
-    <property name="label">Zoom In</property>
+    <property name="label">Zoom _In</property>
     <property name="stock_id">gtk-zoom-in</property>
     <signal name="activate" handler="on_zoomin" swapped="no"/>
   </object>
   <object class="GtkAction" id="zoomout">
-    <property name="label">Zoom Out</property>
+    <property name="label">Zoom _Out</property>
     <property name="stock_id">gtk-zoom-out</property>
     <signal name="activate" handler="on_zoomout" swapped="no"/>
   </object>
@@ -370,12 +378,26 @@ The hypothetical commands `show w' and `show c' should show the appropriate part
                       </object>
                     </child>
                     <child>
-                      <object class="GtkImageMenuItem" id="main_menu_file_prefs">
+                      <object class="GtkImageMenuItem" id="main_menu_file_refresh">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="related_action">prefs</property>
+                        <property name="related_action">refresh</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkCheckMenuItem" id="main_menu_file_update">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="related_action">update</property>
+                        <property name="use_underline">True</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkSeparatorMenuItem" id="main_menu_file_0">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
                       </object>
                     </child>
                     <child>
@@ -388,7 +410,7 @@ The hypothetical commands `show w' and `show c' should show the appropriate part
                       </object>
                     </child>
                     <child>
-                      <object class="GtkSeparatorMenuItem" id="main_menu_file_0">
+                      <object class="GtkSeparatorMenuItem" id="main_menu_file_1">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                       </object>
@@ -398,6 +420,30 @@ The hypothetical commands `show w' and `show c' should show the appropriate part
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="related_action">quit</property>
+                        <property name="use_underline">True</property>
+                        <property name="use_stock">True</property>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkMenuItem" id="main_menu_edit">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="use_action_appearance">False</property>
+                <property name="label" translatable="yes">_Edit</property>
+                <property name="use_underline">True</property>
+                <child type="submenu">
+                  <object class="GtkMenu" id="main_menu_edit_menu">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <child>
+                      <object class="GtkImageMenuItem" id="main_menu_edit_prefs">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="related_action">prefs</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
                       </object>
@@ -442,24 +488,10 @@ The hypothetical commands `show w' and `show c' should show the appropriate part
                       </object>
                     </child>
                     <child>
-                      <object class="GtkCheckMenuItem" id="main_menu_view_fullscreen">
+                      <object class="GtkImageMenuItem" id="main_menu_view_fullscreen">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="related_action">fullscreen</property>
-                        <property name="use_underline">True</property>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkSeparatorMenuItem" id="main_menu_view_1">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkImageMenuItem" id="main_menu_view_refresh">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="related_action">refresh</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
                       </object>
@@ -489,7 +521,7 @@ The hypothetical commands `show w' and `show c' should show the appropriate part
                       </object>
                     </child>
                     <child>
-                      <object class="GtkSeparatorMenuItem" id="separatormenuitem1">
+                      <object class="GtkSeparatorMenuItem" id="main_menu_help_0">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                       </object>
@@ -592,6 +624,19 @@ The hypothetical commands `show w' and `show c' should show the appropriate part
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="related_action">refresh</property>
+                <property name="use_underline">True</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="homogeneous">True</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkToggleToolButton" id="main_tb_update">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="related_action">update</property>
+                <property name="label" translatable="yes">toolbutton1</property>
                 <property name="use_underline">True</property>
               </object>
               <packing>
@@ -775,6 +820,13 @@ The hypothetical commands `show w' and `show c' should show the appropriate part
       <column type="gboolean"/>
     </columns>
   </object>
+  <object class="GtkAdjustment" id="prefs_general_freq_adj">
+    <property name="lower">1</property>
+    <property name="upper">60</property>
+    <property name="value">5</property>
+    <property name="step_increment">1</property>
+    <property name="page_increment">5</property>
+  </object>
   <object class="GtkAdjustment" id="prefs_general_log_adj">
     <property name="upper">8</property>
     <property name="step_increment">1</property>
@@ -859,6 +911,49 @@ The hypothetical commands `show w' and `show c' should show the appropriate part
                               </packing>
                             </child>
                             <child>
+                              <object class="GtkHBox" id="prefs_general_freq_0">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="spacing">5</property>
+                                <child>
+                                  <object class="GtkLabel" id="prefs_general_freq_label">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="xalign">0</property>
+                                    <property name="label" translatable="yes">Update Freq</property>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkSpinButton" id="prefs_general_freq">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">True</property>
+                                    <property name="invisible_char">●</property>
+                                    <property name="primary_icon_activatable">False</property>
+                                    <property name="secondary_icon_activatable">False</property>
+                                    <property name="primary_icon_sensitive">True</property>
+                                    <property name="secondary_icon_sensitive">True</property>
+                                    <property name="adjustment">prefs_general_freq_adj</property>
+                                    <signal name="value-changed" handler="on_update_freq_changed" swapped="no"/>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">True</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">1</property>
+                                  </packing>
+                                </child>
+                              </object>
+                              <packing>
+                                <property name="expand">True</property>
+                                <property name="fill">True</property>
+                                <property name="position">1</property>
+                              </packing>
+                            </child>
+                            <child>
                               <object class="GtkHBox" id="prefs_general_site_0">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
@@ -899,7 +994,7 @@ The hypothetical commands `show w' and `show c' should show the appropriate part
                               <packing>
                                 <property name="expand">True</property>
                                 <property name="fill">True</property>
-                                <property name="position">1</property>
+                                <property name="position">2</property>
                               </packing>
                             </child>
                             <child>
@@ -941,7 +1036,7 @@ The hypothetical commands `show w' and `show c' should show the appropriate part
                               <packing>
                                 <property name="expand">True</property>
                                 <property name="fill">True</property>
-                                <property name="position">2</property>
+                                <property name="position">3</property>
                               </packing>
                             </child>
                             <child>
@@ -985,7 +1080,7 @@ The hypothetical commands `show w' and `show c' should show the appropriate part
                               <packing>
                                 <property name="expand">True</property>
                                 <property name="fill">True</property>
-                                <property name="position">3</property>
+                                <property name="position">4</property>
                               </packing>
                             </child>
                           </object>
@@ -1072,6 +1167,7 @@ The hypothetical commands `show w' and `show c' should show the appropriate part
   </object>
   <object class="GtkSizeGroup" id="prefs_general_size">
     <widgets>
+      <widget name="prefs_general_freq_label"/>
       <widget name="prefs_general_log_label"/>
       <widget name="prefs_general_url_label"/>
       <widget name="prefs_general_site_label"/>

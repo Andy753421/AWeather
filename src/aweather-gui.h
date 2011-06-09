@@ -43,6 +43,7 @@ struct _AWeatherGui {
 	GritsPlugins *plugins;
 	GritsPrefs   *prefs;
 	GtkListStore *gtk_plugins;
+	guint         update_source;
 };
 
 struct _AWeatherGuiClass {

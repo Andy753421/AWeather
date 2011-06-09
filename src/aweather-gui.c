@@ -116,7 +116,6 @@ G_MODULE_EXPORT void on_zoomout(GtkAction *action, AWeatherGui *self)
 
 G_MODULE_EXPORT void on_fullscreen(GtkToggleAction *action, AWeatherGui *self)
 {
-	g_message("fullscreen");
 	gchar *hide[] = {"main_menu", "main_sidebar", "main_tabs"};
 	if (gtk_toggle_action_get_active(action)) {
 		gtk_window_fullscreen(GTK_WINDOW(self));
@@ -134,7 +133,37 @@ G_MODULE_EXPORT void on_refresh(GtkAction *action, AWeatherGui *self)
 	grits_viewer_refresh(self->viewer);
 }
 
-G_MODULE_EXPORT void on_plugin_toggled(GtkCellRendererToggle *cell, gchar *path_str, AWeatherGui *self)
+static gboolean on_update_timeout(AWeatherGui *self)
+{
+	g_debug("AWeatherGui: on_update_timeout");
+	grits_viewer_set_time(self->viewer, time(NULL));
+	grits_viewer_refresh(self->viewer);
+	return FALSE;
+}
+static void set_update_timeout(AWeatherGui *self)
+{
+	GObject *action = aweather_gui_get_object(self, "update");
+	gint freq = grits_prefs_get_integer(self->prefs, "aweather/update_freq", NULL);
+	if (self->update_source) {
+		g_debug("AWeatherGui: set_update_timeout - clear");
+		g_source_remove(self->update_source);
+	}
+	self->update_source = 0;
+	if (gtk_toggle_action_get_active(GTK_TOGGLE_ACTION(action)) && freq > 0) {
+		g_debug("AWeatherGui: set_update_timeout - %d min", freq);
+		self->update_source = g_timeout_add_seconds(freq*60,
+				(GSourceFunc)on_update_timeout, self);
+	}
+}
+G_MODULE_EXPORT void on_update(GtkToggleAction *action, AWeatherGui *self)
+{
+	grits_prefs_set_boolean(self->prefs, "aweather/update_enab",
+			gtk_toggle_action_get_active(action));
+	set_update_timeout(self);
+}
+
+G_MODULE_EXPORT void on_plugin_toggled(GtkCellRendererToggle *cell,
+		gchar *path_str, AWeatherGui *self)
 {
 	GtkWidget    *tview = aweather_gui_get_widget(self, "prefs_plugins_view");
 	GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(tview));
@@ -218,6 +247,15 @@ G_MODULE_EXPORT void on_offline(GtkToggleAction *action, AWeatherGui *self)
 	grits_viewer_set_offline(self->viewer, value);
 }
 
+G_MODULE_EXPORT int on_update_freq_changed(GtkSpinButton *spinner, AWeatherGui *self)
+{
+	gint value = gtk_spin_button_get_value_as_int(spinner);
+	g_debug("AWeatherGui: on_update_freq_changed - %p, freq=%d", self, value);
+	grits_prefs_set_integer(self->prefs, "aweather/update_freq", value);
+	set_update_timeout(self);
+	return TRUE;
+}
+
 G_MODULE_EXPORT void on_initial_site_changed(GtkComboBox *combo, AWeatherGui *self)
 {
 	gchar *code;
@@ -282,12 +320,15 @@ static void site_setup(AWeatherGui *self)
 static void prefs_setup(AWeatherGui *self)
 {
 	/* Set values */
+	gint   uf = grits_prefs_get_integer(self->prefs, "aweather/update_freq",  NULL);
 	gchar *nu = grits_prefs_get_string (self->prefs, "aweather/nexrad_url",   NULL);
 	gint   ll = grits_prefs_get_integer(self->prefs, "aweather/log_level",    NULL);
 	gchar *is = grits_prefs_get_string (self->prefs, "aweather/initial_site", NULL);
+	GtkWidget *ufw = aweather_gui_get_widget(self, "prefs_general_freq");
 	GtkWidget *nuw = aweather_gui_get_widget(self, "prefs_general_url");
 	GtkWidget *llw = aweather_gui_get_widget(self, "prefs_general_log");
 	GtkWidget *isw = aweather_gui_get_widget(self, "prefs_general_site");
+	if (uf) gtk_spin_button_set_value(GTK_SPIN_BUTTON(ufw), uf);
 	if (nu) gtk_entry_set_text(GTK_ENTRY(nuw), nu), g_free(nu);
 	if (ll) gtk_spin_button_set_value(GTK_SPIN_BUTTON(llw), ll);
 	if (is) {
@@ -310,6 +351,13 @@ static void prefs_setup(AWeatherGui *self)
 	gtk_tree_view_append_column(tview, col2);
 	g_signal_connect(rend2, "toggled", G_CALLBACK(on_plugin_toggled), self);
 	gtk_tree_view_set_model(GTK_TREE_VIEW(tview), GTK_TREE_MODEL(self->gtk_plugins));
+
+	/* Setup auto update enable */
+	gboolean auto_update = grits_prefs_get_boolean(self->prefs, "aweather/update_enab", NULL);
+	GObject *action      = aweather_gui_get_object(self, "update");
+	gtk_toggle_action_set_active(GTK_TOGGLE_ACTION(action), auto_update);
+	g_signal_connect_swapped(self->viewer, "refresh", G_CALLBACK(set_update_timeout), self);
+	set_update_timeout(self);
 }
 
 static void time_setup(AWeatherGui *self)
