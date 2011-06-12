@@ -440,7 +440,7 @@ gboolean _conus_update_end(gpointer _conus)
 	GError *error = NULL;
 	GdkPixbuf *pixbuf = gdk_pixbuf_new_from_file(conus->path, &error);
 	if (!pixbuf || error) {
-		g_warning("Conus: update_end - error loading pixbuf");
+		g_warning("Conus: update_end - error loading pixbuf: %s", conus->path);
 		_gtk_bin_set_child(GTK_BIN(conus->config), gtk_label_new("Error loading pixbuf"));
 		g_remove(conus->path);
 		goto out;
@@ -482,9 +482,10 @@ gpointer _conus_update_thread(gpointer _conus)
 
 	/* Find nearest */
 	g_debug("Conus: update_thread - nearest");
+	gboolean offline = grits_viewer_get_offline(conus->viewer);
 	gchar *conus_url = "http://radar.weather.gov/Conus/RadarImg/";
 	gchar *nearest;
-	if (time(NULL) - conus->time < 60*60*5){
+	if (time(NULL) - conus->time < 60*60*5 && !offline) {
 		/* radar.weather.gov is full of lies.
 		 * the index pages get cached and out of date */
 		struct tm tm;
@@ -509,7 +510,8 @@ gpointer _conus_update_thread(gpointer _conus)
 	/* Fetch the image */
 	g_debug("Conus: update_thread - fetch");
 	gchar *uri  = g_strconcat(conus_url, nearest, NULL);
-	conus->path = grits_http_fetch(conus->http, uri, nearest, GRITS_ONCE,
+	conus->path = grits_http_fetch(conus->http, uri, nearest,
+			offline ? GRITS_LOCAL : GRITS_ONCE,
 			_conus_update_loading, conus);
 	g_free(nearest);
 	g_free(uri);
