@@ -6,6 +6,7 @@ gtk
 pkg
 gtk-*/
 build/
+web/
 /arg-nonnull.h
 /c++defs.h
 /warn-on-use.h
