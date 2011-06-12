@@ -33,7 +33,7 @@ typedef struct {
 
 extern AWeatherColormap colormaps[];
 
-static inline guint8 *colormap_get(AWeatherColormap *colormap, int value)
+static inline guint8 *colormap_get(AWeatherColormap *colormap, float value)
 {
 	int idx = value * colormap->scale + colormap->shift;
 	return colormap->data[CLAMP(idx, 0, colormap->len)];
