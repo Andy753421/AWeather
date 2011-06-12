@@ -1,9 +1,17 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="150" height="150">
-
 	<title>thundery showers</title>
 
-	<rect width="150" height="150" fill="#3be" stroke="none"/>
+	<!-- For website logo -->
+	<!-- <g fill="#fff" fill-opacity="0.8"> -->
+
+	<!-- Normal, for desktop icons -->
+	<rect width="150" height="150" rx="20" ry="20" fill="#3be" stroke="none"/>
+	<g fill="#fff" fill-opacity="0.6">
+		<path d="M 75 55         A 23 23, 0, 1, 0 55,90
+		         L 110,90 115,90 A 21 21, 0, 1, 0 115,45
+		         L 105 60        A 25 25, 0, 1, 0 65,45 " />
+	</g>
 
 	<g style="stroke-width:7;stroke:#ff0">
 		<line x1="2" y1="67" x2="19" y2="67" transform="rotate(-20, 55, 67)" />
@@ -13,13 +21,12 @@
 		<line x1="2" y1="67" x2="19" y2="67" transform="rotate(76, 55, 67)" />
 	</g>
 
-
-	<g fill="none" stroke-width="12" stroke-linecap="round" stroke="#666" >
+	<g fill="none" stroke-width="12" stroke-linecap="round" stroke="#555" >
 		<path d="M 75 55 A 23 23, 0, 1, 0 55,90 L 60,90"/>
 		<path d="M 110,90 115,90 A 21 21, 0, 1, 0 115,45" />
 		<path d="M 105 60 A 25 25, 0, 1, 0 65,45 "  />
 	</g>
 
-	<polygon points="82,110 67,110 82,80 97,80 87,100 102,100 67,150" stroke="none" fill="#dee" />
-
+	<polygon  points="100,75 87,100 102,100 67,150 82,112 67,112 82,75" fill="#fff" stroke="none" />
+	<polyline points="100,75 87,100 102,100 67,150 82,112 67,112 82,75" fill="none" stroke="#ccc" />
 </svg>
