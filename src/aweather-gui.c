@@ -26,6 +26,50 @@
 #include "aweather-gui.h"
 #include "aweather-location.h"
 
+/* Autohide */
+typedef struct {
+	GtkWidget      *widget;
+	GtkWidget      *window;
+	GtkPositionType position;
+	gulong          handler;
+} GtkAutohideData;
+static gboolean _gtk_widget_autohide_cb(GtkWidget *win,
+		GdkEventMotion *event, GtkAutohideData *data)
+{
+	GtkAllocation alloc;
+	gtk_widget_get_allocation(data->window, &alloc);
+	if (data->position == GTK_POS_BOTTOM)
+		g_debug("GtkWidget: autohide_cb - y=%lf, h=%d", event->y, alloc.height);
+	gint position = -1;
+	if (event->x < 20)                position = GTK_POS_LEFT;
+	if (event->y < 20)                position = GTK_POS_TOP;
+	if (event->x > alloc.width  - 20) position = GTK_POS_RIGHT;
+	if (event->y > alloc.height - 20) position = GTK_POS_BOTTOM;
+	if (position == data->position)
+		gtk_widget_show(data->widget);
+	else
+		gtk_widget_hide(data->widget);
+	return FALSE;
+}
+static void _gtk_widget_autohide(GtkWidget *widget, GtkWidget *viewer,
+		GtkPositionType position)
+{
+	GtkAutohideData *data = g_new0(GtkAutohideData, 1);
+	data->widget   = widget;
+	data->position = position;
+	data->window   = viewer;
+	data->handler  = g_signal_connect(data->window, "motion-notify-event",
+			G_CALLBACK(_gtk_widget_autohide_cb), data);
+	g_object_set_data(G_OBJECT(widget), "autohidedata", data);
+	gtk_widget_hide(widget);
+}
+static void _gtk_widget_autoshow(GtkWidget *widget)
+{
+	GtkAutohideData *data = g_object_get_data(G_OBJECT(widget), "autohidedata");
+	g_signal_handler_disconnect(data->window, data->handler);
+	g_free(data);
+	gtk_widget_show(widget);
+}
 
 /*************
  * Callbacks *
@@ -116,15 +160,22 @@ G_MODULE_EXPORT void on_zoomout(GtkAction *action, AWeatherGui *self)
 
 G_MODULE_EXPORT void on_fullscreen(GtkToggleAction *action, AWeatherGui *self)
 {
-	gchar *hide[] = {"main_menu", "main_sidebar", "main_tabs"};
+	GtkWidget *menu    = aweather_gui_get_widget(self, "main_menu");
+	GtkWidget *toolbar = aweather_gui_get_widget(self, "main_toolbar");
+	GtkWidget *sidebar = aweather_gui_get_widget(self, "main_sidebar");
+	GtkWidget *tabs    = aweather_gui_get_widget(self, "main_tabs");
 	if (gtk_toggle_action_get_active(action)) {
 		gtk_window_fullscreen(GTK_WINDOW(self));
-		for (int i = 0; i < G_N_ELEMENTS(hide); i++)
-			gtk_widget_hide(aweather_gui_get_widget(self, hide[i]));
+		gtk_widget_hide(menu);
+		_gtk_widget_autohide(toolbar, GTK_WIDGET(self->viewer), GTK_POS_TOP);
+		_gtk_widget_autohide(sidebar, GTK_WIDGET(self->viewer), GTK_POS_RIGHT);
+		_gtk_widget_autohide(tabs,    GTK_WIDGET(self->viewer), GTK_POS_BOTTOM);
 	} else {
 		gtk_window_unfullscreen(GTK_WINDOW(self));
-		for (int i = 0; i < G_N_ELEMENTS(hide); i++)
-			gtk_widget_show(aweather_gui_get_widget(self, hide[i]));
+		gtk_widget_show(menu);
+		_gtk_widget_autoshow(toolbar);
+		_gtk_widget_autoshow(sidebar);
+		_gtk_widget_autoshow(tabs);
 	}
 }
 
