@@ -37,7 +37,7 @@ release: all dist
 	git push --all
 	echo $(VERSION) > LATEST
 	scp LATEST $(PACKAGE)-$(VERSION).tar.* \
-		"spenceal@lug.rose-hulman.edu:/home/lug/htdocs/proj/$(PACKAGE)"; \
+		"spenceal@lug.rose-hulman.edu:/home/lug/htdocs/proj/$(PACKAGE)/files"; \
 	rm -f LATEST
 
 depscan:

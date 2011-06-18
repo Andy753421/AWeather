@@ -1,5 +1,5 @@
 # Init and options
-AC_INIT([aweather], [0.5-p0], [andy753421@gmail.com])
+AC_INIT([aweather], [0.5], [andy753421@gmail.com])
 AM_INIT_AUTOMAKE([-Wall -Werror -Wno-portability foreign])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])
