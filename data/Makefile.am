@@ -5,7 +5,7 @@ configdir = $(datadir)/aweather/
 dist_config_DATA = defaults.ini
 
 colordir = $(datadir)/aweather/colors/
-dist_color_DATA = colors/*
+dist_color_DATA = colors/*.clr
 
 if WIN32
 noinst_DATA = aweather.ico
