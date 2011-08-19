@@ -1,3 +1,5 @@
+<!-- Original: http://commons.wikimedia.org/wiki/File:Thundery-shower.svg -->
+
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="150" height="150">
 	<title>thundery showers</title>
@@ -7,7 +9,7 @@
 
 	<!-- Normal, for desktop icons -->
 	<rect width="150" height="150" rx="20" ry="20" fill="#3be" stroke="none"/>
-	<g fill="#fff" fill-opacity="0.6">
+	<g fill="#fff" fill-opacity="0.8">
 
 		<path d="M 75 55         A 23 23, 0, 1, 0 55,90
 		         L 110,90 115,90 A 21 21, 0, 1, 0 115,45
