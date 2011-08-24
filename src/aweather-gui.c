@@ -506,6 +506,24 @@ void aweather_gui_deattach_plugin(AWeatherGui *self, const gchar *name)
 	grits_plugins_disable(self->plugins, name);
 	gtk_widget_queue_draw(GTK_WIDGET(self->viewer));
 }
+void aweather_gui_load_plugins(AWeatherGui *self)
+{
+	g_debug("AWeatherGui: load_plugins");
+	GtkTreeIter iter;
+	self->gtk_plugins = GTK_LIST_STORE(aweather_gui_get_object(self, "plugins"));
+	for (GList *cur = grits_plugins_available(self->plugins); cur; cur = cur->next) {
+		gchar *name = cur->data;
+		GError *error = NULL;
+		gboolean enabled = grits_prefs_get_boolean_v(self->prefs, "plugins", cur->data, &error);
+		if (error && error->code == G_KEY_FILE_ERROR_GROUP_NOT_FOUND)
+			enabled = TRUE;
+		gtk_list_store_append(self->gtk_plugins, &iter);
+		gtk_list_store_set(self->gtk_plugins, &iter, 0, name, 1, enabled, -1);
+		if (enabled)
+			aweather_gui_attach_plugin(self, name);
+	}
+}
+
 
 
 /****************
@@ -527,21 +545,6 @@ static void aweather_gui_parser_finished(GtkBuildable *_self, GtkBuilder *builde
 	g_free(config);
 	g_free(defaults);
 
-	/* Plugins */
-	GtkTreeIter iter;
-	self->gtk_plugins = GTK_LIST_STORE(aweather_gui_get_object(self, "plugins"));
-	for (GList *cur = grits_plugins_available(self->plugins); cur; cur = cur->next) {
-		gchar *name = cur->data;
-		GError *error = NULL;
-		gboolean enabled = grits_prefs_get_boolean_v(self->prefs, "plugins", cur->data, &error);
-		if (error && error->code == G_KEY_FILE_ERROR_GROUP_NOT_FOUND)
-			enabled = TRUE;
-		gtk_list_store_append(self->gtk_plugins, &iter);
-		gtk_list_store_set(self->gtk_plugins, &iter, 0, name, 1, enabled, -1);
-		if (enabled)
-			aweather_gui_attach_plugin(self, name);
-	}
-
 	/* Misc, helpers */
 	site_setup(self);
 	time_setup(self);
@@ -554,6 +557,8 @@ static void aweather_gui_parser_finished(GtkBuildable *_self, GtkBuilder *builde
 	g_signal_connect_swapped(self->viewer, "offline",
 			G_CALLBACK(gtk_toggle_action_set_active),
 			aweather_gui_get_object(self, "offline"));
+	g_signal_connect_swapped(self->viewer, "realize",
+			G_CALLBACK(aweather_gui_load_plugins), self);
 }
 static void aweather_gui_buildable_init(GtkBuildableIface *iface)
 {

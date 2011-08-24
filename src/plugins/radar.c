@@ -301,6 +301,11 @@ RadarSite *radar_site_new(city_t *city, GtkWidget *pconfig,
 	site->city    = city;
 	site->pconfig = pconfig;
 
+	/* Set initial location */
+	gdouble lat, lon, elev;
+	grits_viewer_get_location(viewer, &lat, &lon, &elev);
+	_site_on_location_changed(viewer, lat, lon, elev, site);
+
 	/* Add marker */
 	g_idle_add_full(G_PRIORITY_LOW, _site_add_marker, site, NULL);
 
