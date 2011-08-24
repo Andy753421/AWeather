@@ -15,7 +15,7 @@ gl_INIT
 
 # Check for required packages
 PKG_CHECK_MODULES(GLIB,  glib-2.0)
-PKG_CHECK_MODULES(GRITS, grits = $VERSION)
+PKG_CHECK_MODULES(GRITS, grits >= 0.5)
 
 # Define odd RSL install location
 AC_CHECK_LIB(rsl, RSL_wsr88d_to_radar, RSL_LIBS="-lrsl")
