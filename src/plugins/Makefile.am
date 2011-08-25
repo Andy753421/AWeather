@@ -1,6 +1,6 @@
 AM_CFLAGS   = -Wall --std=gnu99 $(GRITS_CFLAGS)
 AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/lib
-AM_LDFLAGS  = -shared -module -avoid-version -Wl,-as-needed
+AM_LDFLAGS  = -shared -module -avoid-version -Wl,--as-needed
 LIBS        = $(GRITS_LIBS)
 
 pluginsdir  = $(pkglibdir)
@@ -23,6 +23,7 @@ radar_la_LIBADD  = $(RSL_LIBS) $(GRITS_LIBS) \
 endif
 
 if WIN32
+AM_LDFLAGS += -no-undefined
 dots = ..
 endif
 
