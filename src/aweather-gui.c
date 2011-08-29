@@ -510,7 +510,6 @@ void aweather_gui_load_plugins(AWeatherGui *self)
 {
 	g_debug("AWeatherGui: load_plugins");
 	GtkTreeIter iter;
-	self->gtk_plugins = GTK_LIST_STORE(aweather_gui_get_object(self, "plugins"));
 	for (GList *cur = grits_plugins_available(self->plugins); cur; cur = cur->next) {
 		gchar *name = cur->data;
 		GError *error = NULL;
@@ -541,6 +540,7 @@ static void aweather_gui_parser_finished(GtkBuildable *_self, GtkBuilder *builde
 	self->prefs   = grits_prefs_new(config, defaults);
 	self->plugins = grits_plugins_new(PLUGINSDIR, self->prefs);
 	self->viewer  = GRITS_VIEWER(aweather_gui_get_widget(self, "main_viewer"));
+	self->gtk_plugins = GTK_LIST_STORE(aweather_gui_get_object(self, "plugins"));
 	grits_viewer_setup(self->viewer, self->plugins, self->prefs);
 	g_free(config);
 	g_free(defaults);
