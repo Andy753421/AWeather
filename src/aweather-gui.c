@@ -441,6 +441,27 @@ static void time_setup(AWeatherGui *self)
 			G_CALLBACK(update_time_widget), self);
 }
 
+static void icons_setup(AWeatherGui *self)
+{
+	gchar *icons[] = {
+		ICONDIR "/hicolor/16x16/apps/aweather.png",
+		ICONDIR "/hicolor/22x22/apps/aweather.png",
+		ICONDIR "/hicolor/24x24/apps/aweather.png",
+		ICONDIR "/hicolor/32x32/apps/aweather.png",
+		ICONDIR "/hicolor/48x48/apps/aweather.png",
+		ICONDIR "/hicolor/scalable/apps/aweather.svg",
+	};
+	GList *list = NULL;
+	for (int i = 0; i < G_N_ELEMENTS(icons); i++) {
+		GdkPixbuf *pixbuf = gdk_pixbuf_new_from_file(icons[i], NULL);
+		if (!pixbuf)
+			g_warning("AWeatherGui: icons_setup - %s failed", icons[i]);
+		list = g_list_prepend(list, pixbuf);
+	}
+	gtk_window_set_default_icon_list(list);
+	g_list_free(list);
+}
+
 
 /***********
  * Methods *
@@ -549,6 +570,7 @@ static void aweather_gui_parser_finished(GtkBuildable *_self, GtkBuilder *builde
 	site_setup(self);
 	time_setup(self);
 	prefs_setup(self);
+	icons_setup(self);
 
 	/* Connect signals */
 	gtk_builder_connect_signals(self->builder, self);

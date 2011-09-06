@@ -4,5 +4,5 @@ Name=AWeather
 Comment=Advanced weather reporting program
 Exec=aweather
 Terminal=false
-Icon=aweather.png
+Icon=aweather
 Categories=Education;Science;Geoscience

@@ -4,24 +4,38 @@ dist_gtkbuilder_DATA = main.ui
 configdir = $(datadir)/aweather/
 dist_config_DATA = defaults.ini
 
+logodir = $(datadir)/aweather/
+logo_DATA = logo.svg
+
 colordir = $(datadir)/aweather/colors/
 dist_color_DATA = colors/*.clr
 
 if WIN32
-noinst_DATA = aweather.ico
+noinst_DATA = icons/48x48/aweather.ico
 else
 desktopdir = $(datadir)/applications
 dist_desktop_DATA = aweather.desktop
 
-pixmapdir = $(datadir)/pixmaps
-dist_pixmap_DATA = aweather.png
+icon16dir = $(datadir)/icons/hicolor/16x16/apps/
+icon22dir = $(datadir)/icons/hicolor/22x22/apps/
+icon24dir = $(datadir)/icons/hicolor/24x24/apps/
+icon32dir = $(datadir)/icons/hicolor/32x32/apps/
+icon48dir = $(datadir)/icons/hicolor/48x48/apps/
+iconSCdir = $(datadir)/icons/hicolor/scalable/apps
+
+icon16_DATA = icons/16x16/aweather.png
+icon22_DATA = icons/22x22/aweather.png
+icon24_DATA = icons/24x24/aweather.png
+icon32_DATA = icons/32x32/aweather.png
+iconSC_DATA = icons/scalable/aweather.svg
+
+install-data-hook:
+	gtk-update-icon-cache -f -t $(datadir)/icons/hicolor
 endif
 
 glade:
 	GLADE_CATALOG_PATH=. glade-3 main.ui.in
 
-.svg.png:
-	rsvg -w 48 -h 48 $< $@
 .png.ico:
 	icotool -c $< -o $@
 

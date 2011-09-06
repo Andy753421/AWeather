@@ -23,7 +23,7 @@ name "AWeather"
 	outFile "aweather-${VERSION}.exe"
 !endif
 installDir AWeather
-Icon "data/aweather.ico"
+Icon "data/icons/48x48/aweather.ico"
 
 !define MUI_ABORTWARNING
 

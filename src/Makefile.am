@@ -10,6 +10,7 @@ aweather_SOURCES  = main.c \
 	aweather-location.c aweather-location.h
 aweather_CPPFLAGS = \
 	-DHTMLDIR="\"$(dots)$(htmldir)\"" \
+	-DICONDIR="\"$(dots)$(datadir)/icons\"" \
 	-DPKGDATADIR="\"$(dots)$(pkgdatadir)\"" \
 	-DPLUGINSDIR="\"$(dots)$(pkglibdir)\""
 aweather_LDADD    = $(GRITS_LIBS)
