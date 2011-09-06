@@ -72,9 +72,9 @@
     <property name="type_hint">dialog</property>
     <property name="program_name">AWeather</property>
     <property name="version">@VERSION@</property>
-    <property name="copyright" translatable="yes">Copyright ©2008-2009 Andy Spencer</property>
-    <property name="comments" translatable="yes">A semi-advanced weather viewer</property>
-    <property name="website">http://lug.rose-hulman.edu/wiki/AWeather</property>
+    <property name="copyright" translatable="yes">Copyright ©2008-2011 Andy Spencer</property>
+    <property name="comments" translatable="yes">A weather monitoring program</property>
+    <property name="website">http://lug.rose-hulman.edu/proj/aweather</property>
     <property name="license" translatable="yes">                    GNU GENERAL PUBLIC LICENSE
                        Version 3, 29 June 2007
 
@@ -1147,6 +1147,14 @@ The hypothetical commands `show w' and `show c' should show the appropriate part
       <action-widget response="0">prefs_action_close</action-widget>
     </action-widgets>
   </object>
+  <object class="GtkSizeGroup" id="prefs_general_size">
+    <widgets>
+      <widget name="prefs_general_freq_label"/>
+      <widget name="prefs_general_log_label"/>
+      <widget name="prefs_general_url_label"/>
+      <widget name="prefs_general_site_label"/>
+    </widgets>
+  </object>
   <object class="GtkTreeStore" id="sites">
     <columns>
       <!-- column-name code -->
@@ -1164,13 +1172,5 @@ The hypothetical commands `show w' and `show c' should show the appropriate part
       <!-- column-name min -->
       <column type="gint"/>
     </columns>
-  </object>
-  <object class="GtkSizeGroup" id="prefs_general_size">
-    <widgets>
-      <widget name="prefs_general_freq_label"/>
-      <widget name="prefs_general_log_label"/>
-      <widget name="prefs_general_url_label"/>
-      <widget name="prefs_general_site_label"/>
-    </widgets>
   </object>
 </interface>
