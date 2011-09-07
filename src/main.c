@@ -1,16 +1,16 @@
 /*
  * Copyright (C) 2009-2010 Andy Spencer <andy753421@gmail.com>
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -28,6 +28,13 @@
 
 static gint log_levels = 0;
 
+static int int2log(int level) {
+	level = G_LOG_LEVEL_ERROR << level;
+	level = (level<<1) - 1;
+	level = level & G_LOG_LEVEL_MASK;
+	return level;
+}
+
 static void log_func(const gchar *log_domain, GLogLevelFlags log_level,
               const gchar *message, gpointer udata)
 {
@@ -43,11 +50,10 @@ static void log_func(const gchar *log_domain, GLogLevelFlags log_level,
 static void on_log_level_changed(GtkSpinButton *spinner, AWeatherGui *self)
 {
 	g_message("main: log_level_changed");
-	gint value = gtk_spin_button_get_value_as_int(spinner);
-	log_levels = (1 << (value+1))-1;
+	log_levels = int2log(gtk_spin_button_get_value_as_int(spinner));
 }
 
-gboolean set_location_time(AWeatherGui *gui, char *site, char *time)
+static void set_location_time(AWeatherGui *gui, char *site, char *time)
 {
 	/* Set time
 	 *   Do this before setting setting location
@@ -67,9 +73,13 @@ gboolean set_location_time(AWeatherGui *gui, char *site, char *time)
 			break;
 		}
 	}
-	return FALSE;
 }
 
+static void set_toggle_action(AWeatherGui *gui, const char *action, gboolean enabled)
+{
+	GObject *object = aweather_gui_get_object(gui, action);
+	gtk_toggle_action_set_active(GTK_TOGGLE_ACTION(object), enabled);
+}
 
 /********
  * Main *
@@ -77,24 +87,28 @@ gboolean set_location_time(AWeatherGui *gui, char *site, char *time)
 int main(int argc, char *argv[])
 {
 	/* Defaults */
-	gint     debug   = 6;
-	gchar   *site    = "";
-	gchar   *time    = "";
-	gboolean offline = FALSE;
+	gint     debug      = 2; // G_LOG_LEVEL_WARNING
+	gchar   *site       = "";
+	gchar   *time       = "";
+	gboolean autoupdate = FALSE;
+	gboolean offline    = FALSE;
+	gboolean fullscreen = FALSE;
 
 	/* Arguments */
-	gint     opt_debug   = 0;
-	gchar   *opt_site    = NULL;
-	gchar   *opt_time    = NULL;
-	gboolean opt_auto    = FALSE;
-	gboolean opt_offline = FALSE;
+	gint     opt_debug      = -1;
+	gchar   *opt_site       = NULL;
+	gchar   *opt_time       = NULL;
+	gboolean opt_offline    = FALSE;
+	gboolean opt_autoupdate = FALSE;
+	gboolean opt_fullscreen = FALSE;
 	GOptionEntry entries[] = {
-		//long      short flg type                 location      description                 arg desc
-		{"debug",   'd',  0,  G_OPTION_ARG_INT,    &opt_debug,   "Change default log level", "[1-7]"},
-		{"site",    's',  0,  G_OPTION_ARG_STRING, &opt_site,    "Set initial site",         NULL},
-		{"time",    't',  0,  G_OPTION_ARG_STRING, &opt_time,    "Set initial date/time",    NULL},
-		{"offline", 'o',  0,  G_OPTION_ARG_NONE,   &opt_offline, "Run in offline mode",      NULL},
-		{"auto",    'a',  0,  G_OPTION_ARG_NONE,   &opt_auto,    "Auto update radar (todo)", NULL},
+		//long         short flg type                 location         description                 arg desc
+		{"debug",      'd',  0,  G_OPTION_ARG_INT,    &opt_debug,      "Change default log level", "[0-5]"},
+		{"site",       's',  0,  G_OPTION_ARG_STRING, &opt_site,       "Set initial site",         "SITE"},
+		{"time",       't',  0,  G_OPTION_ARG_STRING, &opt_time,       "Set initial date/time",    "DATE"},
+		{"offline",    'o',  0,  G_OPTION_ARG_NONE,   &opt_offline,    "Run in offline mode",      NULL},
+		{"autoupdate", 'a',  0,  G_OPTION_ARG_NONE,   &opt_autoupdate, "Auto update radar",        NULL},
+		{"fullscreen", 'f',  0,  G_OPTION_ARG_NONE,   &opt_fullscreen, "Open in fullscreen mode",  NULL},
 		{NULL}
 	};
 
@@ -108,14 +122,13 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
-	/* Do some logging here for aweather_gui_new */
-	if (opt_debug) log_levels = (1 << (opt_debug+1))-1;
-	else           log_levels = (1 << (6+1))-1;
+	/* Setup debug level for aweather_gui_new */
 	g_log_set_handler(NULL, G_LOG_LEVEL_MASK, log_func, NULL);
+	log_levels = int2log(opt_debug >= 0 ? opt_debug : debug);
 
 	/* Set up AWeather */
 	gdk_threads_enter();
-	/* Pre-load some type for gtkbuilder */
+	/* Pre-load some types for gtkbuilder */
 	GRITS_TYPE_OPENGL;
 	AWEATHER_TYPE_GUI;
 	GtkBuilder *builder = gtk_builder_new();
@@ -123,24 +136,33 @@ int main(int argc, char *argv[])
 		g_error("Failed to create gtk builder: %s", error->message);
 	AWeatherGui *gui = AWEATHER_GUI(gtk_builder_get_object(builder, "main_window"));
 	g_signal_connect(gui, "destroy", gtk_main_quit, NULL);
-
-	gint     prefs_debug   = grits_prefs_get_integer(gui->prefs, "aweather/log_level", NULL);
-	gchar   *prefs_site    = grits_prefs_get_string(gui->prefs,  "aweather/initial_site", NULL);
-	gboolean prefs_offline = grits_prefs_get_boolean(gui->prefs, "grits/offline", NULL);
-
-	debug   = (opt_debug   ?: prefs_debug   ?: debug);
-	site    = (opt_site    ?: prefs_site    ?: site);
-	time    = (opt_time    ?:                  time);
-	offline = (opt_offline ?: prefs_offline ?: offline);
-
-	set_location_time(gui, site, time);
-	grits_viewer_set_offline(gui->viewer, offline);
-	log_levels = (1 << (debug+1))-1;
-
 	GObject *action = aweather_gui_get_object(gui, "prefs_general_log");
 	g_signal_connect(action, "changed", G_CALLBACK(on_log_level_changed), NULL);
 
+	/* Finish setting up options */
+	GError *err = NULL;
+	gint     prefs_debug      = grits_prefs_get_integer(gui->prefs, "aweather/log_level",    &err);
+	gchar   *prefs_site       = grits_prefs_get_string(gui->prefs,  "aweather/initial_site", NULL);
+	gboolean prefs_offline    = grits_prefs_get_boolean(gui->prefs, "grits/offline",         NULL);
+	gint     prefs_autoupdate = grits_prefs_get_boolean(gui->prefs, "aweather/update_enab",  NULL);
+
+	debug      = (opt_debug >= 0 ? opt_debug   :
+	              err == NULL    ? prefs_debug : debug);
+	site       = (opt_site       ?: prefs_site       ?: site);
+	time       = (opt_time       ?:                     time);
+	offline    = (opt_offline    ?: prefs_offline    ?: offline);
+	autoupdate = (opt_autoupdate ?: prefs_autoupdate ?: autoupdate);
+	fullscreen = (opt_fullscreen ?:                     fullscreen);
+
+	log_levels = int2log(debug);
+	set_location_time(gui, site, time);
+	grits_viewer_set_offline(gui->viewer, offline);
+	set_toggle_action(gui, "update",     autoupdate);
+	set_toggle_action(gui, "fullscreen", fullscreen);
+
+	/* Done with init, show gui */
 	gtk_widget_show_all(GTK_WIDGET(gui));
+	set_toggle_action(gui, "fullscreen", fullscreen); // Resest widget hiding
 	gtk_main();
 	gdk_threads_leave();
 	gdk_display_close(gdk_display_get_default());

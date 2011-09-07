@@ -829,7 +829,7 @@ The hypothetical commands `show w' and `show c' should show the appropriate part
     <property name="page_increment">5</property>
   </object>
   <object class="GtkAdjustment" id="prefs_general_log_adj">
-    <property name="upper">8</property>
+    <property name="upper">5</property>
     <property name="step_increment">1</property>
   </object>
   <object class="GtkDialog" id="prefs_window">

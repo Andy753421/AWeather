@@ -8,7 +8,7 @@ aweather - Advanced weather reporting program
 
 SYNOPSIS
 --------
-*aweather* [*-aho*] [-d 'level'] [-s 'site']
+*aweather* [*-hoaf*] [-d 'level'] [-s 'site'] [-t 'time']
 
 DESCRIPTION
 -----------
@@ -20,24 +20,34 @@ features for more details.
 
 OPTIONS
 -------
-*-a*, *--auto*::
-	Auto update radar (todo)
-
 *-h*, *--help*::
 	Show usage.
 
 *-d*, *--debug*='level'::
-	Change default log level*, a debug level ranges from 0 to 7. A debug
-	level of 7 is recommended only for debugging purposes.
+	Change default log level*, a debug level ranges from 0 to 5. A debug
+	level of 5 is recommended only for debugging purposes.
 
 *-s*, *--site*='site'::
 	Set initial site. The site should be given as a WSR88D site code such
 	as KLSX. 
 
+*-t*, *--time*='time'::
+	Set initial time. The tiem format should be provided in the
+	*YYYY-MM-DD HH:MM* format.
+
 *-o*, *--offline*::
 	Run in offline mode, AWeather will not attempt to connect to the
 	internet to download radar files but will show the closest matching
 	cached file.
+
+*-a*, *--autoupdate*::
+	Run in autoupdate mode, AWeather will periodically poll data servers
+	for updated information.
+
+*-f*, *--fullscreen*::
+	Run in fullscreen mode, AWeather start up using the entire screen as he
+	main display area. Toolbars and side panels are hidden by default and
+	can be accessed by moving the mouse to the edge of the screen.
 
 KEY BINDINGS
 ------------

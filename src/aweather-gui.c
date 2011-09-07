@@ -402,13 +402,6 @@ static void prefs_setup(AWeatherGui *self)
 	gtk_tree_view_append_column(tview, col2);
 	g_signal_connect(rend2, "toggled", G_CALLBACK(on_plugin_toggled), self);
 	gtk_tree_view_set_model(GTK_TREE_VIEW(tview), GTK_TREE_MODEL(self->gtk_plugins));
-
-	/* Setup auto update enable */
-	gboolean auto_update = grits_prefs_get_boolean(self->prefs, "aweather/update_enab", NULL);
-	GObject *action      = aweather_gui_get_object(self, "update");
-	gtk_toggle_action_set_active(GTK_TOGGLE_ACTION(action), auto_update);
-	g_signal_connect_swapped(self->viewer, "refresh", G_CALLBACK(set_update_timeout), self);
-	set_update_timeout(self);
 }
 
 static void time_setup(AWeatherGui *self)
@@ -579,6 +572,8 @@ static void aweather_gui_parser_finished(GtkBuildable *_self, GtkBuilder *builde
 	g_signal_connect_swapped(self->viewer, "offline",
 			G_CALLBACK(gtk_toggle_action_set_active),
 			aweather_gui_get_object(self, "offline"));
+	g_signal_connect_swapped(self->viewer, "refresh",
+			G_CALLBACK(set_update_timeout), self);
 	g_signal_connect_swapped(self->viewer, "realize",
 			G_CALLBACK(aweather_gui_load_plugins), self);
 }
