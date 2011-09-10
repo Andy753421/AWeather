@@ -495,7 +495,7 @@ gpointer _conus_update_thread(gpointer _conus)
 		 * the index pages get cached and out of date */
 		struct tm tm;
 		gmtime_r(&conus->time, &tm);
-		time_t onthe8 = conus->time - 60*((tm.tm_min+2)%10);
+		time_t onthe8 = conus->time - 60*((tm.tm_min+1)%10+1);
 		gmtime_r(&onthe8, &tm);
 		nearest = g_strdup_printf("Conus_%04d%02d%02d_%02d%02d_N0Ronly.gif",
 				tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday,
