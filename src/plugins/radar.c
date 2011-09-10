@@ -641,14 +641,14 @@ static void _draw_hud(GritsCallback *callback, GritsOpenGL *opengl, gpointer _se
 static void _load_colormap(gchar *filename, AWeatherColormap *cm)
 {
 	g_debug("GritsPluginRadar: _load_colormap - %s", filename);
-	FILE *file = g_fopen(filename, "r");
+	FILE *file = fopen(filename, "r");
 	if (!file)
 		g_error("GritsPluginRadar: open failed");
 	guint8 color[4];
 	GArray *array = g_array_sized_new(FALSE, TRUE, sizeof(color), 256);
-	fgets(cm->name, sizeof(cm->name), file);
-	fscanf(file, "%f\n", &cm->scale);
-	fscanf(file, "%f\n", &cm->shift);
+	if (!fgets(cm->name, sizeof(cm->name), file)) goto out;
+	if (!fscanf(file, "%f\n", &cm->scale))        goto out;
+	if (!fscanf(file, "%f\n", &cm->shift))        goto out;
 	int r, g, b, a;
 	while (fscanf(file, "%d %d %d %d\n", &r, &g, &b, &a) == 4) {
 		color[0] = r;
@@ -659,7 +659,9 @@ static void _load_colormap(gchar *filename, AWeatherColormap *cm)
 	}
 	cm->len  = (gint )array->len;
 	cm->data = (void*)array->data;
+out:
 	g_array_free(array, FALSE);
+	fclose(file);
 }
 
 static void _update_hidden(GtkNotebook *notebook,
