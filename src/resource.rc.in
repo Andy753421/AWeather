@@ -30,4 +30,4 @@ VS_VERSION_INFO VERSIONINFO
     END
   END
 
-AWEATHER_ICON ICON "../data/aweather.ico"
+AWEATHER_ICON ICON "../data/icons/48x48/aweather.ico"

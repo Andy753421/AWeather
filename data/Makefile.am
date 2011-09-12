@@ -10,9 +10,6 @@ dist_logo_DATA = logo.svg
 colordir = $(datadir)/aweather/colors/
 dist_color_DATA = colors/*.clr
 
-if WIN32
-noinst_DATA = icons/48x48/aweather.ico
-else
 desktopdir = $(datadir)/applications
 dist_desktop_DATA = aweather.desktop
 
@@ -29,11 +26,12 @@ dist_icon24_DATA = icons/24x24/aweather.png
 dist_icon32_DATA = icons/32x32/aweather.png
 dist_iconSC_DATA = icons/scalable/aweather.svg
 
+noinst_DATA = icons/48x48/aweather.ico
+
 install-data-hook:
 	if test -z "$(DESTDIR)"; then \
 		gtk-update-icon-cache -f -t $(datadir)/icons/hicolor; \
 	fi
-endif
 
 glade:
 	GLADE_CATALOG_PATH=. glade-3 main.ui.in
