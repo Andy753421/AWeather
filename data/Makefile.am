@@ -30,7 +30,9 @@ icon32_DATA = icons/32x32/aweather.png
 iconSC_DATA = icons/scalable/aweather.svg
 
 install-data-hook:
-	gtk-update-icon-cache -f -t $(datadir)/icons/hicolor
+	if test -z "$(DESTDIR)"; then \
+		gtk-update-icon-cache -f -t $(datadir)/icons/hicolor; \
+	fi
 endif
 
 glade:
