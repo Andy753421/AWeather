@@ -5,7 +5,7 @@ configdir = $(datadir)/aweather/
 dist_config_DATA = defaults.ini
 
 logodir = $(datadir)/aweather/
-logo_DATA = logo.svg
+dist_logo_DATA = logo.svg
 
 colordir = $(datadir)/aweather/colors/
 dist_color_DATA = colors/*.clr
@@ -23,11 +23,11 @@ icon32dir = $(datadir)/icons/hicolor/32x32/apps/
 icon48dir = $(datadir)/icons/hicolor/48x48/apps/
 iconSCdir = $(datadir)/icons/hicolor/scalable/apps
 
-icon16_DATA = icons/16x16/aweather.png
-icon22_DATA = icons/22x22/aweather.png
-icon24_DATA = icons/24x24/aweather.png
-icon32_DATA = icons/32x32/aweather.png
-iconSC_DATA = icons/scalable/aweather.svg
+dist_icon16_DATA = icons/16x16/aweather.png
+dist_icon22_DATA = icons/22x22/aweather.png
+dist_icon24_DATA = icons/24x24/aweather.png
+dist_icon32_DATA = icons/32x32/aweather.png
+dist_iconSC_DATA = icons/scalable/aweather.svg
 
 install-data-hook:
 	if test -z "$(DESTDIR)"; then \
