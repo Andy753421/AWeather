@@ -355,7 +355,7 @@ static void site_setup(AWeatherGui *self)
 			gtk_tree_store_append(store, &state, NULL);
 			gtk_tree_store_set   (store, &state, 0, cities[i].code,
 					                     1, cities[i].name, -1);
-		} else {
+		} else if (cities[i].type == LOCATION_CITY) {
 			gtk_tree_store_append(store, &city, &state);
 			gtk_tree_store_set   (store, &city, 0, cities[i].code,
 				                            1, cities[i].name, -1);
