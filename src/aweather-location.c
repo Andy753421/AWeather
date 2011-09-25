@@ -218,7 +218,7 @@ city_t cities[] = {
 
 	{LOCATION_STATE, NULL,   "Puerta Rico",       {0,        0,       0}, 0.0},
 	{LOCATION_NOP,   "KJUA", "Cayey",             {18.1,    -66.07,   0}, 0.1},
-	{LOCATION_CITY,  "TJUA", "San Juan",          {18.12,   -66.08,   0}, 0.3},
+	{LOCATION_CITY,  "TJUA", "San Juan",          {18.12,   -66.08,   0}, 0.8},
 
 	{LOCATION_STATE, NULL,   "South Carolina",    {0,        0,       0}, 0.0},
 	{LOCATION_CITY,  "KCAE", "Columbia",          {33.948,  -81.1183, 0}, 0.5},
