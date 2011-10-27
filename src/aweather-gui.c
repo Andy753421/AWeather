@@ -387,6 +387,7 @@ static void prefs_setup(AWeatherGui *self)
 		GtkTreeIter iter;
 		if (gtk_tree_model_find_string(model, &iter, NULL, 0, is))
 			gtk_combo_box_set_active_iter(GTK_COMBO_BOX(isw), &iter);
+		g_free(is);
 	}
 
 	/* Load Plugins */

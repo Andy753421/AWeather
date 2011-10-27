@@ -51,3 +51,15 @@ gdb: all
 
 ddd: all
 	ddd .libs/aweather
+
+memcheck: all
+	G_SLICE=always-malloc                   \
+	G_DEBUG=gc-friendly,resident-modules    \
+	valgrind --track-origins=yes            \
+	         --leak-check=full              \
+	         --leak-resolution=high         \
+	         --num-callers=50               \
+	         --suppressions=gtk.suppression \
+	         --suppressions=/usr/lib/valgrind/default.supp \
+	         .libs/aweather                 \
+	2> valgrind.out

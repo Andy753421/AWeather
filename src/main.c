@@ -159,6 +159,7 @@ int main(int argc, char *argv[])
 	grits_viewer_set_offline(gui->viewer, offline);
 	set_toggle_action(gui, "update",     autoupdate);
 	set_toggle_action(gui, "fullscreen", fullscreen);
+	g_free(prefs_site);
 
 	/* Done with init, show gui */
 	gtk_widget_show_all(GTK_WIDGET(gui));
