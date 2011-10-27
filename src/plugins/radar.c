@@ -203,7 +203,7 @@ void _site_update(RadarSite *site)
 	/* Remove old volume */
 	g_debug("RadarSite: update - remove - %s", site->city->code);
 	if (site->level2) {
-		grits_viewer_remove(site->viewer, site->level2);
+		grits_viewer_remove(site->viewer, GRITS_OBJECT(site->level2));
 		site->level2 = NULL;
 	}
 
@@ -231,7 +231,7 @@ void radar_site_unload(RadarSite *site)
 
 	/* Remove radar */
 	if (site->level2) {
-		grits_viewer_remove(site->viewer, site->level2);
+		grits_viewer_remove(site->viewer, GRITS_OBJECT(site->level2));
 		site->level2 = NULL;
 	}
 
@@ -318,7 +318,7 @@ RadarSite *radar_site_new(city_t *city, GtkWidget *pconfig,
 void radar_site_free(RadarSite *site)
 {
 	radar_site_unload(site);
-	grits_viewer_remove(site->viewer, site->marker);
+	grits_viewer_remove(site->viewer, GRITS_OBJECT(site->marker));
 	if (site->location_id)
 		g_signal_handler_disconnect(site->viewer, site->location_id);
 	grits_http_free(site->http);
@@ -590,7 +590,7 @@ void radar_conus_free(RadarConus *conus)
 			glDeleteTextures(1, tile->data);
 			g_free(tile->data);
 		}
-		grits_viewer_remove(conus->viewer, tile);
+		grits_viewer_remove(conus->viewer, GRITS_OBJECT(tile));
 	}
 
 	g_object_unref(conus->viewer);
@@ -770,7 +770,7 @@ static void grits_plugin_radar_dispose(GObject *gobject)
 	g_debug("GritsPluginRadar: dispose");
 	GritsPluginRadar *self = GRITS_PLUGIN_RADAR(gobject);
 	g_signal_handler_disconnect(self->config, self->tab_id);
-	grits_viewer_remove(self->viewer, self->hud);
+	grits_viewer_remove(self->viewer, GRITS_OBJECT(self->hud));
 	radar_conus_free(self->conus);
 	/* Drop references */
 	G_OBJECT_CLASS(grits_plugin_radar_parent_class)->dispose(gobject);
