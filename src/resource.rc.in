@@ -18,7 +18,7 @@ VS_VERSION_INFO VERSIONINFO
         VALUE "FileDescription",  "AWeather"
         VALUE "FileVersion",      "@VERSION@"
         VALUE "InternalName",     "@PACKAGE@"
-        VALUE "LegalCopyright",   "Copyright (C) 2008-2010 Andy Spencer"
+        VALUE "LegalCopyright",   "Copyright (C) 2008-2011 Andy Spencer"
         VALUE "OriginalFilename", "@ORIGINAL_FILENAME@"
         VALUE "ProductName",      "AWeather"
         VALUE "ProductVersion",   "@VERSION@"
