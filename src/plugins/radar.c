@@ -179,7 +179,7 @@ gpointer _site_update_thread(gpointer _site)
 	}
 	grits_object_hide(GRITS_OBJECT(site->level2), site->hidden);
 	grits_viewer_add(site->viewer, GRITS_OBJECT(site->level2),
-			GRITS_LEVEL_WORLD, TRUE);
+			GRITS_LEVEL_WORLD+1, TRUE);
 
 out:
 	g_idle_add(_site_update_end, site);

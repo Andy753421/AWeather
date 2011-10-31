@@ -5,7 +5,16 @@ LIBS        = $(GRITS_LIBS)
 
 pluginsdir  = $(pkglibdir)
 
-plugins_LTLIBRARIES =
+plugins_LTLIBRARIES = alert.la
+
+alert_la_SOURCES = \
+	alert.c      alert.h \
+	alert-info.c alert-info.h
+alert_la_CPPFLAGS = \
+	-DPKGDATADIR="\"$(dots)$(pkgdatadir)\"" \
+	-I$(top_srcdir)/lib
+alert_la_LIBADD  = $(GRITS_LIBS) \
+		   $(addprefix $(top_srcdir)/lib/,$(gl_LTLIBOBJS))
 
 if HAVE_RSL
 plugins_LTLIBRARIES += radar.la

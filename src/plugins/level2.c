@@ -211,7 +211,7 @@ void aweather_level2_draw(GritsObject *_level2, GritsOpenGL *opengl)
 
 	/* Draw wsr88d */
 	Sweep *sweep = level2->sweep;
-	glDisable(GL_ALPHA_TEST);
+	//glDisable(GL_ALPHA_TEST);
 	glDisable(GL_CULL_FACE);
 	glDisable(GL_LIGHTING);
 	glEnable(GL_TEXTURE_2D);
@@ -324,7 +324,7 @@ void aweather_level2_set_iso(AWeatherLevel2 *level2, gfloat level)
 		vol->disp = GRITS_VOLUME_SURFACE;
 		GRITS_OBJECT(vol)->center = GRITS_OBJECT(level2)->center;
 		grits_viewer_add(GRITS_OBJECT(level2)->viewer,
-				GRITS_OBJECT(vol), GRITS_LEVEL_WORLD, TRUE);
+				GRITS_OBJECT(vol), GRITS_LEVEL_WORLD+1, FALSE);
 		level2->volume = vol;
 	}
 	if (ISO_MIN < level && level < ISO_MAX) {

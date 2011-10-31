@@ -4,6 +4,9 @@ dist_gtkbuilder_DATA = main.ui
 configdir = $(datadir)/aweather/
 dist_config_DATA = defaults.ini
 
+fipsdir = $(datadir)/aweather/
+dist_fips_DATA = fips.txt
+
 logodir = $(datadir)/aweather/
 dist_logo_DATA = logo.svg
 
@@ -27,6 +30,9 @@ dist_icon32_DATA = icons/32x32/aweather.png
 dist_iconSC_DATA = icons/scalable/aweather.svg
 
 noinst_DATA = icons/48x48/aweather.ico
+
+fips.txt:
+	wget http://lug.rose-hulman.edu/proj/aweather/files/fips/fips.txt
 
 install-data-hook:
 	if test -z "$(DESTDIR)"; then \
