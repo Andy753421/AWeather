@@ -1,5 +1,5 @@
 # Init and options
-AC_INIT([aweather], [0.5.2], [andy753421@gmail.com])
+AC_INIT([aweather], [0.6], [andy753421@gmail.com])
 AM_INIT_AUTOMAKE([-Wall -Werror -Wno-portability foreign])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])
@@ -14,7 +14,7 @@ PKG_PROG_PKG_CONFIG
 
 # Check for required packages
 PKG_CHECK_MODULES(GLIB,  glib-2.0)
-PKG_CHECK_MODULES(GRITS, grits >= 0.5)
+PKG_CHECK_MODULES(GRITS, grits >= 0.6)
 
 # Define odd RSL install location
 AC_CHECK_LIB(rsl, RSL_wsr88d_to_radar, RSL_LIBS="-lrsl")
