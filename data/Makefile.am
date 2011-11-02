@@ -27,9 +27,10 @@ dist_icon16_DATA = icons/16x16/aweather.png
 dist_icon22_DATA = icons/22x22/aweather.png
 dist_icon24_DATA = icons/24x24/aweather.png
 dist_icon32_DATA = icons/32x32/aweather.png
+dist_icon48_DATA = icons/48x48/aweather.png
 dist_iconSC_DATA = icons/scalable/aweather.svg
 
-noinst_DATA = icons/48x48/aweather.ico
+dist_noinst_DATA = icons/48x48/aweather.ico
 
 fips.txt:
 	wget http://lug.rose-hulman.edu/proj/aweather/files/fips/fips.txt
