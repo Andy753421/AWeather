@@ -420,7 +420,7 @@ GtkWidget *aweather_level2_get_config(AWeatherLevel2 *level2)
 
 	/* Add date */
 	gchar *date_str = g_strdup_printf("<b><i>%04d-%02d-%02d %02d:%02d</i></b>",
-			radar->h.year, radar->h.month, radar->h.day,
+			radar->h.year, radar->h.month, radar->h.day+1,
 			radar->h.hour, radar->h.minute);
 	GtkWidget *date_label = gtk_label_new(date_str);
 	gtk_label_set_use_markup(GTK_LABEL(date_label), TRUE);
