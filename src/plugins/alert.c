@@ -699,11 +699,10 @@ static gboolean _update_buttons(GritsPluginAlert *alert)
 	}
 
 	/* Set time widget */
-	struct tm tm;
-	gmtime_r(&alert->updated, &tm);
+	struct tm *tm = gmtime(&alert->updated);
 	gchar *date_str = g_strdup_printf(" <b><i>%04d-%02d-%02d %02d:%02d</i></b>",
-			tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday,
-			tm.tm_hour,      tm.tm_min);
+			tm->tm_year+1900, tm->tm_mon+1, tm->tm_mday,
+			tm->tm_hour,      tm->tm_min);
 	gtk_label_set_markup(GTK_LABEL(updated), date_str);
 	g_free(date_str);
 

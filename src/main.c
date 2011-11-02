@@ -58,9 +58,9 @@ static void set_location_time(AWeatherGui *gui, char *site, char *time)
 	/* Set time
 	 *   Do this before setting setting location
 	 *   so that it doesn't refresh twice */
-	struct tm tm = {};
-	strptime(time, "%Y-%m-%d %H:%M", &tm);
-	time_t sec = mktime(&tm);
+	int year, mon, day, hour, min;
+	sscanf(time, "%d-%d-%d %d:%d", &year, &mon, &day, &hour, &min);
+	time_t sec = mktime(&(struct tm){0, year-1900, mon-1, day, hour, min});
 	if (sec > 0)
 		grits_viewer_set_time(gui->viewer, sec);
 	g_debug("date = [%s] == %lu\n", time, sec);

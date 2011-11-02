@@ -41,7 +41,7 @@ static void _gtk_bin_set_child(GtkBin *bin, GtkWidget *new)
 }
 
 static gchar *_find_nearest(time_t time, GList *files,
-		gsize offset, gchar *format)
+		gsize offset)
 {
 	g_debug("RadarSite: find_nearest ...");
 	time_t  nearest_time = 0;
@@ -50,7 +50,11 @@ static gchar *_find_nearest(time_t time, GList *files,
 	struct tm tm = {};
 	for (GList *cur = files; cur; cur = cur->next) {
 		gchar *file = cur->data;
-		strptime(file+offset, format, &tm);
+		sscanf(file+offset, "%4d%2d%2d_%2d%2d",
+				&tm.tm_year, &tm.tm_mon, &tm.tm_mday,
+				&tm.tm_hour, &tm.tm_min);
+		tm.tm_year -= 1900;
+		tm.tm_mon  -= 1;
 		if (ABS(time - mktime(&tm)) <
 		    ABS(time - nearest_time)) {
 			nearest_file = file;
@@ -144,7 +148,7 @@ gpointer _site_update_thread(gpointer _site)
 			"^\\w{4}_\\d{8}_\\d{4}$", site->city->code,
 			"\\d+ (.*)", (offline ? NULL : dir_list));
 	g_free(dir_list);
-	gchar *nearest = _find_nearest(site->time, files, 5, "%Y%m%d_%H%M");
+	gchar *nearest = _find_nearest(site->time, files, 5);
 	g_list_foreach(files, (GFunc)g_free, NULL);
 	g_list_free(files);
 	if (!nearest) {
@@ -493,17 +497,18 @@ gpointer _conus_update_thread(gpointer _conus)
 	if (time(NULL) - conus->time < 60*60*5 && !offline) {
 		/* radar.weather.gov is full of lies.
 		 * the index pages get cached and out of date */
-		struct tm tm;
-		gmtime_r(&conus->time, &tm);
-		time_t onthe8 = conus->time - 60*((tm.tm_min+1)%10+1);
-		gmtime_r(&onthe8, &tm);
+		/* gmtime is not thread safe, but it's not used very often so
+		 * hopefully it'll be alright for now... :-( */
+		struct tm *tm = gmtime(&conus->time);
+		time_t onthe8 = conus->time - 60*((tm->tm_min+1)%10+1);
+		tm = gmtime(&onthe8);
 		nearest = g_strdup_printf("Conus_%04d%02d%02d_%02d%02d_N0Ronly.gif",
-				tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday,
-				tm.tm_hour, tm.tm_min);
+				tm->tm_year+1900, tm->tm_mon+1, tm->tm_mday,
+				tm->tm_hour, tm->tm_min);
 	} else {
 		GList *files = grits_http_available(conus->http,
 				"^Conus_[^\"]*_N0Ronly.gif$", "", NULL, NULL);
-		nearest = _find_nearest(conus->time, files, 6, "%Y%m%d_%H%M");
+		nearest = _find_nearest(conus->time, files, 6);
 		g_list_foreach(files, (GFunc)g_free, NULL);
 		g_list_free(files);
 		if (!nearest) {
