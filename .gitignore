@@ -24,6 +24,8 @@ config.sub
 configure
 core
 depcomp
+doltcompile
+doltlibtool
 gmon.out
 gtk-doc.make
 install-sh
