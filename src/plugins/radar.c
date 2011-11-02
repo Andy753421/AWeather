@@ -16,7 +16,7 @@
  */
 
 #define _XOPEN_SOURCE
-#include <sys/time.h>
+#include <time.h>
 #include <config.h>
 #include <glib/gstdio.h>
 #include <gtk/gtk.h>

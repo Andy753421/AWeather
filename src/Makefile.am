@@ -26,7 +26,6 @@ wsr88ddec_LDFLAGS     = -mwindows
 aweather_SOURCES     += resource.rc
 aweather_LDFLAGS      = -mwindows
 aweather_CPPFLAGS    += -I$(top_srcdir)/lib
-aweather_LDADD       += $(top_srcdir)/lib/libgnu.la
 
 bin_PROGRAMS         += aweather-dbg
 aweather_dbg_SOURCES  = $(aweather_SOURCES)

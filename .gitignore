@@ -7,9 +7,6 @@ pkg
 gtk-*/
 build/
 web/
-/arg-nonnull.h
-/c++defs.h
-/warn-on-use.h
 Makefile
 Makefile.in
 aclocal.m4
@@ -29,7 +26,6 @@ doltlibtool
 gmon.out
 gtk-doc.make
 install-sh
-lib
 libtool
 local
 ltmain.sh

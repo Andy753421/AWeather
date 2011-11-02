@@ -7,12 +7,10 @@ AC_CONFIG_MACRO_DIR([m4])
 
 # Check for required programs
 AC_PROG_CC
-gl_EARLY
 LT_PROG_RC
 AC_PROG_LIBTOOL
 DOLT
 PKG_PROG_PKG_CONFIG
-gl_INIT
 
 # Check for required packages
 PKG_CHECK_MODULES(GLIB,  glib-2.0)
@@ -36,7 +34,6 @@ AM_CONDITIONAL([WIN32], test "$WIN32" = "yes")
 # Output 
 AC_CONFIG_FILES([
 	Makefile
-	lib/Makefile
 	src/Makefile
 	src/resource.rc
 	src/plugins/Makefile

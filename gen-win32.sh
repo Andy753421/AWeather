@@ -1,5 +1,4 @@
 #!/bin/bash
-gnulib-tool --no-vc-files --import strptime
 
 GRITS="/scratch/grits-win32/src"
 export PKG_CONFIG_PATH="$GRITS"

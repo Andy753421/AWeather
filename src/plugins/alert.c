@@ -16,7 +16,7 @@
  */
 
 
-#include <sys/time.h>
+#include <time.h>
 #include <grits.h>
 #include <GL/gl.h>
 #include <stdio.h>

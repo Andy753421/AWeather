@@ -11,10 +11,8 @@ alert_la_SOURCES = \
 	alert.c      alert.h \
 	alert-info.c alert-info.h
 alert_la_CPPFLAGS = \
-	-DPKGDATADIR="\"$(dots)$(pkgdatadir)\"" \
-	-I$(top_srcdir)/lib
-alert_la_LIBADD  = $(GRITS_LIBS) \
-		   $(addprefix $(top_srcdir)/lib/,$(gl_LTLIBOBJS))
+	-DPKGDATADIR="\"$(dots)$(pkgdatadir)\""
+alert_la_LIBADD  = $(GRITS_LIBS)
 
 if HAVE_RSL
 plugins_LTLIBRARIES += radar.la
@@ -26,9 +24,8 @@ radar_la_SOURCES = \
 	../aweather-location.h
 radar_la_CPPFLAGS = \
 	-DPKGDATADIR="\"$(dots)$(pkgdatadir)\"" \
-	-I$(top_srcdir)/src -I$(top_srcdir)/lib
-radar_la_LIBADD  = $(RSL_LIBS) $(GRITS_LIBS) \
-		   $(addprefix $(top_srcdir)/lib/,$(gl_LTLIBOBJS))
+	-I$(top_srcdir)/src
+radar_la_LIBADD  = $(RSL_LIBS) $(GRITS_LIBS)
 endif
 
 if WIN32
