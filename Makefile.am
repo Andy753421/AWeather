@@ -1,4 +1,4 @@
-SUBDIRS = lib src data docs
+SUBDIRS = data lib src docs
 
 ACLOCAL_AMFLAGS = -I m4
 
