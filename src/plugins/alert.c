@@ -449,8 +449,8 @@ static GtkWidget *_make_msg_details(AlertMsg *msg)
 {
 
 	GtkWidget *title     = gtk_label_new("");
-	gchar     *title_str = g_markup_printf_escaped(
-			"<big><b>%s</b></big>", msg->title);
+	gchar     *title_str = g_markup_printf_escaped("<big><b>%s</b></big>",
+			msg->title ?: "No title provided");
 	gtk_label_set_use_markup(GTK_LABEL(title), TRUE);
 	gtk_label_set_markup(GTK_LABEL(title), title_str);
 	gtk_label_set_line_wrap(GTK_LABEL(title), TRUE);
@@ -461,8 +461,9 @@ static GtkWidget *_make_msg_details(AlertMsg *msg)
 	GtkWidget     *alert      = gtk_scrolled_window_new(NULL, NULL);
 	GtkWidget     *alert_view = gtk_text_view_new();
 	GtkTextBuffer *alert_buf  = gtk_text_buffer_new(NULL);
-	gchar         *alert_str  = g_markup_printf_escaped(
-			"%s\n\n%s", msg->description, msg->instruction);
+	gchar         *alert_str  = g_markup_printf_escaped("%s\n\n%s",
+			msg->description ?: "No description provided",
+			msg->instruction ?: "No instructions provided");
 	PangoFontDescription *alert_font = pango_font_description_from_string(
 			"monospace");
 	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(alert),
