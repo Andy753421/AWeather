@@ -1,3 +1,4 @@
+SetCompressor /SOLID lzma
 !define MULTIUSER_EXECUTIONLEVEL Highest
 !define MULTIUSER_MUI
 !define MULTIUSER_INSTALLMODE_COMMANDLINE
@@ -13,16 +14,16 @@ Function un.onInit
 	!insertmacro MULTIUSER_UNINIT
 FunctionEnd
 
-name "AWeather"
+Name "AWeather"
 !ifndef VERSION
 	!define VERSION LATEST
 !endif
 !ifdef USE_GTK
-	outFile "aweather-${VERSION}-gtk.exe"
+	OutFile "aweather-${VERSION}-gtk.exe"
 !else
-	outFile "aweather-${VERSION}.exe"
+	OutFile "aweather-${VERSION}.exe"
 !endif
-installDir AWeather
+InstallDir AWeather
 Icon "data/icons/48x48/aweather.ico"
 
 !define MUI_ABORTWARNING
@@ -38,11 +39,11 @@ Icon "data/icons/48x48/aweather.ico"
 
 !insertmacro MUI_LANGUAGE "English"
 
-section "AWeather (required)" SecAWeather
+Section "AWeather (required)" SecAWeather
 	SectionIn RO
 
-	setOutPath $INSTDIR
-	file /r build/*
+	SetOutPath $INSTDIR
+	File /r build/*
 	!ifdef USE_GTK
 		file /r gtk/*
 	!endif
@@ -58,26 +59,26 @@ section "AWeather (required)" SecAWeather
 	FileWrite $0 $MultiUser.InstallMode
 	FileClose $0
 	
-	writeUninstaller $INSTDIR\uninstaller.exe
-sectionEnd
+	WriteUninstaller $INSTDIR\uninstaller.exe
+SectionEnd
 !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
 !insertmacro MUI_DESCRIPTION_TEXT ${SecAWeather} "AWeather core files."
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
 
 Section "Desktop Icons"
-	setOutPath $INSTDIR\bin
+	SetOutPath $INSTDIR\bin
 	CreateShortCut "$DESKTOP\AWeather.lnk" "$INSTDIR\bin\aweather.exe" "" "$INSTDIR\bin\aweather.exe" 0
 SectionEnd
 
 Section "Start Menu Shortcuts"
-	setOutPath $INSTDIR\bin
+	SetOutPath $INSTDIR\bin
 	CreateDirectory "$SMPROGRAMS\AWeather"
 	CreateShortCut  "$SMPROGRAMS\AWeather\Uninstall AWeather.lnk" "$INSTDIR\uninstaller.exe"  "" "$INSTDIR\uninstaller.exe"  0
 	CreateShortCut  "$SMPROGRAMS\AWeather\AWeather.lnk"           "$INSTDIR\bin\aweather.exe" "" "$INSTDIR\bin\aweather.exe" 0
 	CreateShortCut  "$SMPROGRAMS\AWeather\AWeather (debug).lnk" "cmd.exe" "/K aweather-dbg.exe -d 7" "$INSTDIR\bin\aweather-dbg.exe" 0
 SectionEnd
 
-section "Uninstall"
+Section "Uninstall"
 	FileOpen $0 $INSTDIR\instmode.dat r
 	FileRead $0 $1
 	FileClose $0
@@ -89,8 +90,8 @@ section "Uninstall"
 		SetShellVarContext current
 		DeleteRegKey HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\AWeather"
 
-	delete $DESKTOP\AWeather.exe.lnk
+	Delete $DESKTOP\AWeather.exe.lnk
 
-	rmdir /r $SMPROGRAMS\AWeather
-	rmdir /r $INSTDIR
-sectionEnd
+	RMDir /r $SMPROGRAMS\AWeather
+	RMDir /r $INSTDIR
+SectionEnd
