@@ -258,13 +258,15 @@ G_MODULE_EXPORT void on_time_changed(AWeatherGui *self)
 			(guint*)&tm.tm_mon, (guint*)&tm.tm_mday);
 	tm.tm_year -= 1900;
 
-	GtkTreeIter   iter;
-	GtkTreePath  *path  = NULL;
-	GtkWidget    *view  = aweather_gui_get_widget(self, "main_time");
-	GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(view));
+	GtkTreePath *path = NULL;
+	GtkWidget   *view = aweather_gui_get_widget(self, "main_time");
 	gtk_tree_view_get_cursor(GTK_TREE_VIEW(view), &path, NULL);
-	gtk_tree_model_get_iter(model, &iter, path);
-	gtk_tree_model_get(model, &iter, 1, &tm.tm_hour, 2, &tm.tm_min, -1);
+	if (path) {
+		GtkTreeIter   iter;
+		GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(view));
+		gtk_tree_model_get_iter(model, &iter, path);
+		gtk_tree_model_get(model, &iter, 1, &tm.tm_hour, 2, &tm.tm_min, -1);
+	}
 
 	grits_viewer_set_time(self->viewer, mktime(&tm));
 }
