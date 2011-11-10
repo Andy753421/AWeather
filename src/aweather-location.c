@@ -28,7 +28,7 @@ city_t cities[] = {
 	{LOCATION_CITY,  "KMOB", "Mobile",            {30.6794, -88.2397, 0}, 0.3},
 	{LOCATION_NOP,   "KEOX", "Fort Rucker",       {31.456,  -85.455,  0}, 0.1},
 
-	{LOCATION_STATE, NULL,   "Alaska",            {0,        0,       0}, 0.0},
+	{LOCATION_NOP,   NULL,   "Alaska",            {0,        0,       0}, 0.0},
 	{LOCATION_NOP,   "KABC", "Bethel",            {60.78,   -161.87,  0}, 0.1},
 	{LOCATION_NOP,   "KAHG", "Nikiski",           {60.72,   -151.35,  0}, 0.1},
 	{LOCATION_NOP,   "KAIH", "Middleton Island",  {59.45,   -146.3,   0}, 0.1},
@@ -81,7 +81,7 @@ city_t cities[] = {
 	{LOCATION_CITY,  "KFFC", "Atlanta",           {33.3636, -84.5658, 0}, 0.8},
 	{LOCATION_CITY,  "KJGX", "Robins AFB",        {32.675,  -83.3511, 0}, 0.3},
 
-	{LOCATION_STATE, NULL,   "Guam",              {0,        0,       0}, 0.0},
+	{LOCATION_NOP,   NULL,   "Guam",              {0,        0,       0}, 0.0},
 	{LOCATION_NOP,   "KGUA", "Barrigada Comm.",   {13.45,    144.8,   0}, 0.1},
 
 	{LOCATION_STATE, NULL,   "Hawaii",            {0,        0,       0}, 0.0},
@@ -277,7 +277,7 @@ city_t cities[] = {
 	{LOCATION_CITY,  "KCYS", "Cheyenne",          {41.151,  -104.806, 0}, 0.5},
 	{LOCATION_CITY,  "KRIW", "Riverton",          {43.066,  -108.477, 0}, 0.3},
 
-	{LOCATION_STATE, NULL,   "Other",             {0,        0,       0}, 0.0},
+	{LOCATION_NOP,   NULL,   "Other",             {0,        0,       0}, 0.0},
 	{LOCATION_NOP,   "DOP1", "DOP1",              {0,        0,       0}, 0.1},
 	{LOCATION_NOP,   "FOP1", "FOP1",              {0,        0,       0}, 0.1},
 	{LOCATION_NOP,   "NOP3", "NOP3",              {0,        0,       0}, 0.1},

@@ -143,6 +143,22 @@ G_MODULE_EXPORT void on_contents(GtkMenuItem *menu, AWeatherGui *self)
 	g_free(path);
 }
 
+void on_radar_changed(GtkMenuItem *menu, AWeatherGui *self)
+{
+	city_t *city = g_object_get_data(G_OBJECT(menu), "city");
+	grits_viewer_set_location(self->viewer,
+			city->pos.lat, city->pos.lon, EARTH_R/35);
+	/* Focus radar tab */
+	GtkWidget *config = aweather_gui_get_widget(self, "main_tabs");
+	gint       npages = gtk_notebook_get_n_pages(GTK_NOTEBOOK(config));
+	for (int i = 0; i < npages; i++) {
+		GtkWidget   *child  = gtk_notebook_get_nth_page(GTK_NOTEBOOK(config), i);
+		const gchar *plugin = gtk_notebook_get_tab_label_text(GTK_NOTEBOOK(config), child);
+		if (g_str_equal(plugin, "radar"))
+			gtk_notebook_set_current_page(GTK_NOTEBOOK(config), i);
+	}
+}
+
 G_MODULE_EXPORT void on_quit(GtkMenuItem *menu, AWeatherGui *self)
 {
 	gtk_widget_destroy(GTK_WIDGET(self));
@@ -368,6 +384,29 @@ static void site_setup(AWeatherGui *self)
 			GTK_CELL_RENDERER(renderer), combo_sensitive, NULL, NULL);
 }
 
+static void menu_setup(AWeatherGui *self)
+{
+	GtkWidget *menu = aweather_gui_get_widget(self, "main_menu_radar");
+	GtkWidget *states, *state, *sites, *site;
+
+	states = gtk_menu_new();
+	gtk_menu_item_set_submenu(GTK_MENU_ITEM(menu), states);
+
+	for (int i = 0; cities[i].type; i++) {
+		if (cities[i].type == LOCATION_STATE) {
+			state = gtk_menu_item_new_with_label(cities[i].name);
+			sites = gtk_menu_new();
+			gtk_menu_shell_append(GTK_MENU_SHELL(states), state);
+			gtk_menu_item_set_submenu(GTK_MENU_ITEM(state), sites);
+		} else if (cities[i].type == LOCATION_CITY) {
+			site  = gtk_menu_item_new_with_label(cities[i].name);
+			gtk_menu_shell_append(GTK_MENU_SHELL(sites), site);
+			g_object_set_data(G_OBJECT(site), "city", &cities[i]);
+			g_signal_connect(site, "activate", G_CALLBACK(on_radar_changed), self);
+		}
+	}
+}
+
 static void prefs_setup(AWeatherGui *self)
 {
 	/* Set values */
@@ -562,6 +601,7 @@ static void aweather_gui_parser_finished(GtkBuildable *_self, GtkBuilder *builde
 
 	/* Misc, helpers */
 	site_setup(self);
+	menu_setup(self);
 	time_setup(self);
 	prefs_setup(self);
 	icons_setup(self);

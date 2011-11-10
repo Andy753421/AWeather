@@ -252,6 +252,8 @@ void radar_site_load(RadarSite *site)
 	gtk_notebook_append_page(GTK_NOTEBOOK(site->pconfig), site->config,
 			gtk_label_new(site->city->name));
 	gtk_widget_show_all(site->config);
+	if (gtk_notebook_get_current_page(GTK_NOTEBOOK(site->pconfig)) == 0)
+		gtk_notebook_set_current_page(GTK_NOTEBOOK(site->pconfig), -1);
 
 	/* Set up radar loading */
 	site->time_id = g_signal_connect_swapped(site->viewer, "time-changed",

@@ -504,6 +504,15 @@ The hypothetical commands `show w' and `show c' should show the appropriate part
               </object>
             </child>
             <child>
+              <object class="GtkMenuItem" id="main_menu_radar">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="use_action_appearance">False</property>
+                <property name="label" translatable="yes">_Radar</property>
+                <property name="use_underline">True</property>
+              </object>
+            </child>
+            <child>
               <object class="GtkMenuItem" id="main_menu_help">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
