@@ -393,8 +393,8 @@ static void _on_sweep_clicked(GtkRadioButton *button, gpointer _level2)
 {
 	AWeatherLevel2 *level2 = _level2;
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(button))) {
-		gint type = (gint)g_object_get_data(G_OBJECT(button), "type");
-		gint elev = (gint)g_object_get_data(G_OBJECT(button), "elev");
+		gint type = (glong)g_object_get_data(G_OBJECT(button), "type");
+		gint elev = (glong)g_object_get_data(G_OBJECT(button), "elev");
 		aweather_level2_set_sweep(level2, type, (float)elev/100);
 		//level2->colormap = level2->sweep_colors;
 	}
@@ -476,9 +476,9 @@ GtkWidget *aweather_level2_get_config(AWeatherLevel2 *level2)
 			g_object_set(button, "draw-indicator", FALSE, NULL);
 			gtk_box_pack_end(GTK_BOX(elev_box), button, TRUE, TRUE, 0);
 
-			g_object_set_data(G_OBJECT(button), "level2", (gpointer)level2);
-			g_object_set_data(G_OBJECT(button), "type",   (gpointer)vi);
-			g_object_set_data(G_OBJECT(button), "elev",   (gpointer)(int)(elev*100));
+			g_object_set_data(G_OBJECT(button), "level2", level2);
+			g_object_set_data(G_OBJECT(button), "type", (gpointer)(guintptr)vi);
+			g_object_set_data(G_OBJECT(button), "elev", (gpointer)(guintptr)(elev*100));
 			g_signal_connect(button, "clicked", G_CALLBACK(_on_sweep_clicked), level2);
 		}
 	}

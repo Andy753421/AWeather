@@ -423,7 +423,7 @@ void fips_parse(gchar *text, GTree **_counties, GList **_states)
 		GritsPoly *poly = grits_poly_parse(sparts[3], "\t", " ", ",");
 
 		/* Insert polys into the tree */
-		gint id = g_ascii_strtoll(sparts[0], NULL, 10);
+		glong id = g_ascii_strtoll(sparts[0], NULL, 10);
 		g_tree_insert(counties, (gpointer)id, poly);
 
 		/* Insert into states list */
@@ -585,7 +585,7 @@ static GritsPoly *_load_county_based(GritsPluginAlert *alert, AlertMsg *msg)
 	gchar **fipses  = g_strsplit(msg->cap.fips6, " ", -1);
 	GList *counties = NULL;
 	for (int i = 0; fipses[i]; i++) {
-		gint fips = g_ascii_strtoll(fipses[i], NULL, 10);
+		glong fips = g_ascii_strtoll(fipses[i], NULL, 10);
 		GritsPoly *county = g_tree_lookup(alert->counties, (gpointer)fips);
 		if (!county)
 			continue;
