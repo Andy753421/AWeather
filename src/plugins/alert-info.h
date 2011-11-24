@@ -19,7 +19,6 @@
 #define __ALERT_INFO_H__
 
 #include <glib.h>
-#include <rsl.h>
 
 typedef struct {
 	char    *title;    // Title, "Tornado Warning"
