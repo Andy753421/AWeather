@@ -1,7 +1,15 @@
 AM_CFLAGS   = -Wall --std=gnu99 $(GRITS_CFLAGS)
 AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/lib
-AM_LDFLAGS  = -shared -module -avoid-version -Wl,--as-needed
+AM_LDFLAGS  = -shared -module -avoid-version
 LIBS        = $(GRITS_LIBS)
+
+if SYS_WIN
+AM_LDFLAGS += -no-undefined
+dots = ..
+endif
+if !SYS_MAC
+AM_LDFLAGS += -Wl,--as-needed
+endif
 
 pluginsdir  = $(pkglibdir)
 
@@ -26,11 +34,6 @@ radar_la_CPPFLAGS = \
 	-DPKGDATADIR="\"$(dots)$(pkgdatadir)\"" \
 	-I$(top_srcdir)/src
 radar_la_LIBADD  = $(RSL_LIBS) $(GRITS_LIBS)
-endif
-
-if WIN32
-AM_LDFLAGS += -no-undefined
-dots = ..
 endif
 
 test:

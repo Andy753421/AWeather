@@ -21,7 +21,6 @@
 #include <glib/gstdio.h>
 #include <gtk/gtk.h>
 #include <gio/gio.h>
-#include <GL/gl.h>
 #include <math.h>
 #include <rsl.h>
 

@@ -18,7 +18,6 @@
 
 #include <time.h>
 #include <grits.h>
-#include <GL/gl.h>
 #include <stdio.h>
 #include <string.h>
 

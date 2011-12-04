@@ -17,7 +17,6 @@
 
 #include <config.h>
 #include <math.h>
-#include <GL/gl.h>
 #include <glib/gstdio.h>
 #include <grits.h>
 #include <rsl.h>

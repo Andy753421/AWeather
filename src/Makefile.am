@@ -1,8 +1,11 @@
 SUBDIRS = plugins
 
 AM_CFLAGS   = -Wall --std=gnu99 $(GRITS_CFLAGS)
-AM_LDFLAGS  = -Wl,--export-dynamic \
-              -Wl,--as-needed -Wl,--no-undefined
+AM_LDFLAGS  = -Wl,--export-dynamic -Wl,--no-undefined
+
+if !SYS_MAC
+AM_LDFLAGS += -Wl,--as-needed 
+endif
 
 bin_PROGRAMS = aweather wsr88ddec
 aweather_SOURCES  = main.c \
@@ -18,7 +21,7 @@ aweather_LDADD    = $(GRITS_LIBS)
 wsr88ddec         = wsr88ddec.c
 wsr88ddec_LDADD   = $(GLIB_LIBS) -lbz2
 
-if WIN32
+if SYS_WIN
 dots = ..
 
 wsr88ddec_LDFLAGS     = -mwindows

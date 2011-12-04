@@ -21,17 +21,21 @@ AC_CHECK_LIB(rsl, RSL_wsr88d_to_radar, RSL_LIBS="-lrsl")
 AM_CONDITIONAL(HAVE_RSL, test "$RSL_LIBS" != "")
 AC_SUBST(RSL_LIBS)
 
-# Test for Windows vs. Unix
+# Test for windowing system
 case "${host}" in
-	*mingw32*) WIN32="yes" ;;
-	*)         WIN32="no"  ;;
+	*mingw32*) SYS="WIN" ;;
+	*cygwin*)  SYS="WIN" ;;
+	*apple*)   SYS="MAC" ;;
+	*)         SYS="X11" ;;
 esac
-if test "$WIN32" = yes; then
+if test "$SYS" = "WIN"; then
 	ac_default_prefix="/"
 fi
-AM_CONDITIONAL([WIN32], test "$WIN32" = "yes")
+AM_CONDITIONAL([SYS_WIN], test "$SYS" = "WIN")
+AM_CONDITIONAL([SYS_MAC], test "$SYS" = "MAC")
+AM_CONDITIONAL([SYS_X11], test "$SYS" = "X11")
 
-# Output 
+# Output
 AC_CONFIG_FILES([
 	Makefile
 	src/Makefile
