@@ -718,6 +718,13 @@ static gint _sort_warnings(gconstpointer _a, gconstpointer _b)
 	       (a->info->prior == b->info->prior) ?  0 : 1;
 }
 
+static gboolean _update_end(gpointer _alert)
+{
+	GritsPluginAlert *alert = _alert;
+	gtk_widget_queue_draw(GTK_WIDGET(alert->viewer));
+	return FALSE;
+}
+
 static void _update_warnings(GritsPluginAlert *alert, GList *old)
 {
 	g_debug("GritsPluginAlert: _update_warnings");
@@ -737,11 +744,17 @@ static void _update_warnings(GritsPluginAlert *alert, GList *old)
 	}
 
 	/* Add new messages */
+	/* Load counties first since it does not require network access */
 	for (GList *cur = alert->msgs; cur; cur = cur->next) {
 		AlertMsg *msg = cur->data;
 		msg->county_based = _load_county_based(alert, msg);
+	}
+	g_idle_add(_update_end, alert);
+	for (GList *cur = alert->msgs; cur; cur = cur->next) {
+		AlertMsg *msg = cur->data;
 		msg->storm_based  = _load_storm_based(alert, msg);
 	}
+	g_idle_add(_update_end, alert);
 
 	g_debug("GritsPluginAlert: _load_warnings - end");
 }
@@ -764,7 +777,6 @@ static void _update(gpointer _, gpointer _alert)
 	g_list_foreach(old, (GFunc)msg_free, NULL);
 	g_list_free(old);
 
-	gtk_widget_queue_draw(GTK_WIDGET(alert->viewer));
 	g_debug("GritsPluginAlert: _update - end");
 }
 
@@ -897,7 +909,7 @@ static void grits_plugin_alert_init(GritsPluginAlert *alert)
 {
 	g_debug("GritsPluginAlert: init");
 	/* Set defaults */
-	alert->threads = g_thread_pool_new(_update, alert, 1, TRUE, NULL);
+	alert->threads = g_thread_pool_new(_update, alert, 1, FALSE, NULL);
 	alert->config  = _make_config();
 	alert->http    = grits_http_new(G_DIR_SEPARATOR_S
 			"alerts" G_DIR_SEPARATOR_S
