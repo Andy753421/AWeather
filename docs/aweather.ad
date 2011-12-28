@@ -32,7 +32,7 @@ OPTIONS
 	as KLSX. 
 
 *-t*, *--time*='time'::
-	Set initial time. The tiem format should be provided in the
+	Set initial time. The time format should be provided in the
 	*YYYY-MM-DD HH:MM* format.
 
 *-o*, *--offline*::
