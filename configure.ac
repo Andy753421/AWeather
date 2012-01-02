@@ -32,6 +32,11 @@ AM_CONDITIONAL([SYS_WIN], test "$SYS" = "WIN")
 AM_CONDITIONAL([SYS_MAC], test "$SYS" = "MAC")
 AM_CONDITIONAL([SYS_X11], test "$SYS" = "X11")
 
+# Check for Mac OX
+if test "$SYS" = "MAC"; then
+	PKG_CHECK_MODULES(MAC, gtk-mac-integration)
+fi
+
 # Check for relative build
 AC_ARG_ENABLE(relative, [AS_HELP_STRING([--enable-relative],
 	[enable runtime search paths @<:@default=no@:>@])],

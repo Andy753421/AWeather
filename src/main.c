@@ -21,6 +21,10 @@
 #include <gtk/gtk.h>
 #include <glib/gstdio.h>
 
+#ifdef MAC_INTEGRATION
+#include <gtkosxapplication.h>
+#endif
+
 #include <grits.h>
 
 #include "aweather-gui.h"
@@ -85,6 +89,19 @@ static void set_toggle_action(AWeatherGui *gui, const char *action, gboolean ena
 {
 	GObject *object = aweather_gui_get_object(gui, action);
 	gtk_toggle_action_set_active(GTK_TOGGLE_ACTION(object), enabled);
+}
+
+static void setup_mac(AWeatherGui *gui)
+{
+#ifdef MAC_INTEGRATION
+	GtkWidget *menu = aweather_gui_get_widget(gui, "main_menu");
+	GtkOSXApplication *app = g_object_new(GTK_TYPE_OSX_APPLICATION, NULL);
+	gtk_widget_hide(menu);
+	gtk_osxapplication_set_menu_bar(app, GTK_MENU_SHELL(menu));
+	gtk_osxapplication_set_use_quartz_accelerators(app, TRUE);
+	gtk_osxapplication_ready(app);
+	//gtk_osxapplication_sync_menubar(app)
+#endif
 }
 
 /********
@@ -173,6 +190,7 @@ int main(int argc, char *argv[])
 	/* Done with init, show gui */
 	gtk_widget_show_all(GTK_WIDGET(gui));
 	set_toggle_action(gui, "fullscreen", fullscreen); // Resest widget hiding
+	setup_mac(gui);	// done after show_all
 	gtk_main();
 	gdk_threads_leave();
 	gdk_display_close(gdk_display_get_default());

@@ -34,6 +34,11 @@ aweather_dbg_CPPFLAGS = $(aweather_CPPFLAGS)
 aweather_dbg_LDADD    = $(aweather_LDADD)
 endif
 
+if SYS_MAC
+aweather_CPPFLAGS    += $(MAC_CFLAGS)
+aweather_LDADD       += $(MAC_LIBS)
+endif
+
 .rc.o: ../data/icons/48x48/aweather.ico
 	$(RC) -o $@ $<
 
