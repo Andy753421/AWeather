@@ -378,13 +378,14 @@ static void _conus_update_end_copy(GritsTile *tile, guchar *pixels)
 		glGenTextures(1, tile->data);
 	}
 
+	gchar *clear = g_malloc0(2048*2048*4);
 	guint *tex = tile->data;
 	glBindTexture(GL_TEXTURE_2D, *tex);
 
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 	glPixelStorei(GL_PACK_ALIGNMENT, 1);
 	glTexImage2D(GL_TEXTURE_2D, 0, 4, 2048, 2048, 0,
-			GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+			GL_RGBA, GL_UNSIGNED_BYTE, clear);
 	glTexSubImage2D(GL_TEXTURE_2D, 0, 1,1, CONUS_WIDTH/2,CONUS_HEIGHT,
 			GL_RGBA, GL_UNSIGNED_BYTE, pixels);
 	tile->coords.n = 1.0/(CONUS_WIDTH/2);
@@ -396,6 +397,7 @@ static void _conus_update_end_copy(GritsTile *tile, guchar *pixels)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 	glFlush();
+	g_free(clear);
 }
 
 /* Split the pixbuf into east and west halves (with 2K sides)
