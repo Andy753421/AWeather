@@ -180,7 +180,9 @@ G_MODULE_EXPORT void on_fullscreen(GtkToggleAction *action, AWeatherGui *self)
 	GtkWidget *toolbar = aweather_gui_get_widget(self, "main_toolbar");
 	GtkWidget *sidebar = aweather_gui_get_widget(self, "main_sidebar");
 	GtkWidget *tabs    = aweather_gui_get_widget(self, "main_tabs");
+	static gboolean menushow = TRUE; // Toolbar can be always disabled
 	if (gtk_toggle_action_get_active(action)) {
+		menushow = gtk_widget_get_visible(menu);
 		gtk_window_fullscreen(GTK_WINDOW(self));
 		gtk_widget_hide(menu);
 		_gtk_widget_autohide(toolbar, GTK_WIDGET(self->viewer), GTK_POS_TOP);
@@ -188,7 +190,7 @@ G_MODULE_EXPORT void on_fullscreen(GtkToggleAction *action, AWeatherGui *self)
 		_gtk_widget_autohide(tabs,    GTK_WIDGET(self->viewer), GTK_POS_BOTTOM);
 	} else {
 		gtk_window_unfullscreen(GTK_WINDOW(self));
-		gtk_widget_show(menu);
+		gtk_widget_set_visible(menu, menushow);
 		_gtk_widget_autoshow(toolbar);
 		_gtk_widget_autoshow(sidebar);
 		_gtk_widget_autoshow(tabs);
