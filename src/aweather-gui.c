@@ -391,7 +391,7 @@ static void site_setup(AWeatherGui *self)
 static void menu_setup(AWeatherGui *self)
 {
 	GtkWidget *menu = aweather_gui_get_widget(self, "main_menu_radar");
-	GtkWidget *states, *state, *sites, *site;
+	GtkWidget *states=NULL, *state=NULL, *sites=NULL, *site=NULL;
 
 	states = gtk_menu_new();
 	gtk_menu_item_set_submenu(GTK_MENU_ITEM(menu), states);
