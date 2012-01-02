@@ -5,7 +5,6 @@ LIBS        = $(GRITS_LIBS)
 
 if SYS_WIN
 AM_LDFLAGS += -no-undefined
-dots = ..
 endif
 if !SYS_MAC
 AM_LDFLAGS += -Wl,--as-needed
@@ -19,7 +18,7 @@ alert_la_SOURCES = \
 	alert.c      alert.h \
 	alert-info.c alert-info.h
 alert_la_CPPFLAGS = \
-	-DPKGDATADIR="\"$(dots)$(pkgdatadir)\""
+	-DPKGDATADIR="\"$(DOTS)$(pkgdatadir)\""
 alert_la_LIBADD  = $(GRITS_LIBS)
 
 if HAVE_RSL
@@ -31,7 +30,7 @@ radar_la_SOURCES = \
 	../aweather-location.c \
 	../aweather-location.h
 radar_la_CPPFLAGS = \
-	-DPKGDATADIR="\"$(dots)$(pkgdatadir)\"" \
+	-DPKGDATADIR="\"$(DOTS)$(pkgdatadir)\"" \
 	-I$(top_srcdir)/src
 radar_la_LIBADD  = $(RSL_LIBS) $(GRITS_LIBS)
 endif

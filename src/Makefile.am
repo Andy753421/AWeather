@@ -12,18 +12,16 @@ aweather_SOURCES  = main.c \
 	aweather-gui.c      aweather-gui.h \
 	aweather-location.c aweather-location.h
 aweather_CPPFLAGS = \
-	-DHTMLDIR="\"$(dots)$(htmldir)\"" \
-	-DICONDIR="\"$(dots)$(datadir)/icons\"" \
-	-DPKGDATADIR="\"$(dots)$(pkgdatadir)\"" \
-	-DPLUGINSDIR="\"$(dots)$(pkglibdir)\""
+	-DHTMLDIR="\"$(DOTS)$(htmldir)\"" \
+	-DICONDIR="\"$(DOTS)$(datadir)/icons\"" \
+	-DPKGDATADIR="\"$(DOTS)$(pkgdatadir)\"" \
+	-DPLUGINSDIR="\"$(DOTS)$(pkglibdir)\""
 aweather_LDADD    = $(GRITS_LIBS)
 
 wsr88ddec         = wsr88ddec.c
 wsr88ddec_LDADD   = $(GLIB_LIBS) -lbz2
 
 if SYS_WIN
-dots = ..
-
 wsr88ddec_LDFLAGS     = -mwindows
 
 aweather_SOURCES     += resource.rc

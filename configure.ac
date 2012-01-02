@@ -28,12 +28,15 @@ case "${host}" in
 	*apple*)   SYS="MAC" ;;
 	*)         SYS="X11" ;;
 esac
-if test "$SYS" = "WIN"; then
-	ac_default_prefix="/"
-fi
 AM_CONDITIONAL([SYS_WIN], test "$SYS" = "WIN")
 AM_CONDITIONAL([SYS_MAC], test "$SYS" = "MAC")
 AM_CONDITIONAL([SYS_X11], test "$SYS" = "X11")
+
+# Check for relative build
+AC_ARG_ENABLE(relative, [AS_HELP_STRING([--enable-relative],
+	[enable runtime search paths @<:@default=no@:>@])],
+	[DOTS=".."; ac_default_prefix="/"])
+AC_SUBST([DOTS])
 
 # Output
 AC_CONFIG_FILES([
