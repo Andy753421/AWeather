@@ -23,6 +23,7 @@ core
 depcomp
 doltcompile
 doltlibtool
+gen.sh
 gmon.out
 gtk-doc.make
 install-sh
