@@ -139,6 +139,9 @@ int main(int argc, char *argv[])
 		{NULL}
 	};
 
+	/* All times in UTC */
+	g_setenv("TZ", "UTC", TRUE);
+
 	/* Init */
 	GError *error = NULL;
 	g_thread_init(NULL);
