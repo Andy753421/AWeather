@@ -128,10 +128,17 @@ G_MODULE_EXPORT void on_cleancache(GtkMenuItem *menu, AWeatherGui *self)
 	cleancache_r(cache);
 }
 
-G_MODULE_EXPORT void on_contents(GtkMenuItem *menu, AWeatherGui *self)
+G_MODULE_EXPORT void on_help(GtkMenuItem *menu, AWeatherGui *self)
 {
 	GError *err = NULL;
-	gchar *path = g_strdup(HTMLDIR "/aweather.html");
+	const gchar *name = gtk_buildable_get_name(GTK_BUILDABLE(menu));
+	gchar *page = g_str_has_suffix(name, "userguide") ? "userguide" :
+	              g_str_has_suffix(name, "manpage")   ? "aweather"  : NULL;
+	if (page == NULL) {
+		g_warning("Unknown help page: %s", page);
+		return;
+	}
+	gchar *path = g_strdup_printf("%s/%s.html", HTMLDIR, page);
 	g_strdelimit(path, "/", G_DIR_SEPARATOR);
 	gchar *argv[] = {"xdg-open", path, NULL};
 	g_spawn_async(NULL, argv, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL, NULL, &err);

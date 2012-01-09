@@ -15,17 +15,17 @@
     <property name="stock_id">gtk-clear</property>
     <signal name="activate" handler="on_cleancache" swapped="no"/>
   </object>
-  <object class="GtkAction" id="contents">
-    <property name="label">_Contents</property>
-    <property name="short_label">Contents</property>
-    <property name="tooltip">AWeather Reference Manual</property>
-    <property name="stock_id">gtk-help</property>
-    <signal name="activate" handler="on_contents" swapped="no"/>
-  </object>
   <object class="GtkToggleAction" id="fullscreen">
     <property name="label">_Fullscreen</property>
     <property name="stock_id">gtk-fullscreen</property>
     <signal name="toggled" handler="on_fullscreen" swapped="no"/>
+  </object>
+  <object class="GtkAction" id="manpage">
+    <property name="label" translatable="yes">_Man Page</property>
+    <property name="short_label" translatable="yes">Man Page</property>
+    <property name="tooltip" translatable="yes">Unix Man Page</property>
+    <property name="stock_id">gtk-help</property>
+    <signal name="activate" handler="on_help" swapped="no"/>
   </object>
   <object class="GtkToggleAction" id="offline">
     <property name="label">_Offline</property>
@@ -54,6 +54,13 @@
     <property name="stock_id">gtk-media-play</property>
     <signal name="toggled" handler="on_update" swapped="no"/>
   </object>
+  <object class="GtkAction" id="userguide">
+    <property name="label">_User Guide</property>
+    <property name="short_label">User Guide</property>
+    <property name="tooltip">AWeather User Guide</property>
+    <property name="stock_id">gtk-help</property>
+    <signal name="activate" handler="on_help" swapped="no"/>
+  </object>
   <object class="GtkAction" id="zoomin">
     <property name="label">Zoom _In</property>
     <property name="stock_id">gtk-zoom-in</property>
@@ -72,7 +79,7 @@
     <property name="type_hint">dialog</property>
     <property name="program_name">AWeather</property>
     <property name="version">@VERSION@</property>
-    <property name="copyright" translatable="yes">Copyright ©2008-2011 Andy Spencer</property>
+    <property name="copyright" translatable="yes">Copyright ©2008-2012 Andy Spencer</property>
     <property name="comments" translatable="yes">A weather monitoring program</property>
     <property name="website">http://lug.rose-hulman.edu/proj/aweather</property>
     <property name="license" translatable="yes">                    GNU GENERAL PUBLIC LICENSE
@@ -320,6 +327,7 @@ The hypothetical commands `show w' and `show c' should show the appropriate part
   The GNU General Public License does not permit incorporating your program into proprietary programs.  If your program is a subroutine library, you may consider it more useful to permit linking proprietary applications with the library.  If this is what you want to do, use the GNU Lesser General Public License instead of this License.  But first, please read &lt;http://www.gnu.org/philosophy/why-not-lgpl.html&gt;.
 </property>
     <property name="authors">Andy Spencer &lt;andy753421@gmail.com&gt;</property>
+    <property name="documenters">Jason Holmes &lt;Doppler5@aol.com&gt;</property>
     <property name="logo">logo.svg</property>
     <property name="wrap_license">True</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
@@ -524,10 +532,19 @@ The hypothetical commands `show w' and `show c' should show the appropriate part
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <child>
-                      <object class="GtkImageMenuItem" id="main_menu_help_contents">
+                      <object class="GtkImageMenuItem" id="main_menu_help_userguide">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="related_action">contents</property>
+                        <property name="related_action">userguide</property>
+                        <property name="use_underline">True</property>
+                        <property name="use_stock">True</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkImageMenuItem" id="main_menu_help_manpage">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="related_action">manpage</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
                       </object>
