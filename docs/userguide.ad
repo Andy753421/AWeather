@@ -1,0 +1,261 @@
+AWeather Users Guide
+====================
+:Author:   Jason Holmes
+:Email:    <Doppler5@aol.com>
+:Date:     2011-12-27
+:Revision: 0.6.1
+:Website:  http://lug.rose-hulman.edu/proj/aweather/
+
+About and contact information
+-----------------------------
+AWeather was created in the summer of 2008 and functions as a NEXRAD Level II
+radar display program. The goal of this application is to fulfill a need through
+providing ample weather information without excessive cost and size that is not
+limited to the Linux operating system.
+
+It is written in a standard GTK+/GObject architecture and features an
+interactive display utilizing libgis and OpenGL technologies.
+
+The software source code for Ubuntu and other operating systems is available for
+download on the RHLUG server at git://lug.rose-hulman.edu/proj/aweather.
+
+AWeather relies upon the following dependencies: http://www.ijg.org/[jpeg],
+http://hdf.ncsa.uiuc.edu/hdf4.html[hdf4], http://www.gnome.org/[libsoup] 2.26 or
+later and http://www.gtk.org/[gtk+] 2.16 or later 
+
+Compiled packages of the software are currently available for the Gentoo,
+Debian, and Microsoft Windows operating systems.
+
+The program currently provides data viewing from the standard one dimensional
+plan view to user-defined three-dimensional dynamic views of current and recent
+radar data.
+
+The software was developed and is maintained by Andy Spencer.  He may be
+contacted through e-mail at andy753421@gmail.com and chat through IRC at #rhlug
+on irc.freenode.net.
+
+
+Licensing information
+---------------------
+AWeather is provided as free software according to the terms of the GNU General
+Public License (version 3 or later) as published by the Free Software Foundation
+(http://www.gnu.org/licenses/).
+
+
+Data types and sources
+----------------------
+AWeather displays U.S. National Weather Service NEXt generation RADar data
+(NEXRAD) Level II data.  This is the highest resolution form of radar data
+available in the public domain and consists of multiple tilts of data updated
+every 5 to 10 minutes depending on the current scan mode of each radar.
+
+The following Level II data types are supported by this program:
+
+Base reflectivity (power return of current precipitation intensity)
+
+Base velocity (Doppler-derived speed and direction of radar returns)
+
+Spectrum width (The variation of velocity detected within each radar pixel or
+bin)
+
+
+Level II data has been available through private weather data vendors for some
+time but recently has been generously provided by some universities.
+
+AWeather requires an active internet connection along with a data feed source in
+order to retrieve, decode and display current or recent radar data.
+
+The default radar feed is publically accessible thanks to Iowa State University
+and is located at: http://mesonet.agron.iastate.edu/data/nexrd2/raw/.
+
+
+Program layout
+--------------
+AWeather consists of a graphical user interface window that contains a file menu
+bar, a button bar, a date and time side bar, a large map and data viewing pane
+and a bottom data status bar.
+
+
+The file menu commands
+----------------------
+The program file nenu consists of 3 entries:
+
+File
+~~~~
+Offline::     stops the program from downloading data through the internet
+Preferences:: opens the preferences window, which contains the following
+              commands
+
+	General tab:::
+
+[horizontal]
+		Offline checkbox::::     if selected keeps the program from connecting
+		                         to the internet
+		Initial site listbox:::: allows the user to select a default radar site
+		                         to jump to when the program loads
+		Debug level text box:::: allows the user to select what level of
+		                         debugging the program should conduct while
+		                         running (7 is recommended only for debugging)
+
+	Plugins tab:::
+
+[horizontal]
+		elev checkbox::::        ???
+		env checkbox::::         ???
+		map checkbox::::         allows the user to toggle the map overlays
+		radar checkbox::::       allows the user to toggle the radar data
+		sat checkbox::::         allows the user to toggle satellite data
+		test checkbox::::        ???
+
+Clean cache:: removes data files from the program's internal cache
+Quit::        closes the program window and exits from memory
+
+View
+~~~~
+[horizontal]
+Zoom in::     decreases the viewing area
+Zoom out::    increases the viewing area
+Fullscreen::  maximizes the window and only displays the button menu bar along
+              with the map and data viewing pane
+Refresh::     reloads the current display
+
+Help
+~~~~
+[horizontal]
+Contents::    displays this documentation of program operation and features
+About::       contains current program version, copyright, development site,
+              credits and licensing information
+
+
+The button bar
+--------------
+The program button bar contains 6 options:
+
+[horizontal]
+Magnifying glass with plus sign::   decreases the viewing area
+Magnifying glass with minus sign::  increases the viewing area
+Window icon with expanding arrows:: Toggles between fullscreen and normal viewing modes
+Plug button::                       toggles between offline and online program mode
+Circular arrow button::             reloads the current display
+Wrench and screwdriver button::     Opens the preferences window
+
+
+The date and time side bar
+--------------------------
+The date and time side bar resides on the right side of the program window, it contains:
+
+* The date button, which reveals a calendar of the current month when clicked
+
+* The time button, which reveals a list of each hour when clicked
+
+** Clicking on an hour will reveal a list of times in 5 minute intervals that
+   the user can select to load radar data from
+
+
+The map and data viewing pane
+-----------------------------
+On program startup and when zoomed far from the earth's surface AWeather
+displays a national radar composite image.
+
+As the user zooms closer to the earth AWeather will automatically activate
+nearby radar sites.
+
+The radar data will be plotted on the map while the scan and product information
+will be displayed at the bottom of the program.
+
+All active radar sites will show as tabs while site's available tilt and product
+data will display to the right of the tab.
+
+Simply click on a button to display that product/tilt in the map window.
+
+An isosurface slider is shown below the product/tilt buttons.  Slide the
+selector to reveal the rendered isosurface structure of the selected
+product/tilt.
+
+A color scale will automatically appear at the top left corner of the map window
+corresponding to each available product.
+
+
+Panning, zooming and tilt functions
+-----------------------------------
+AWeather supports the use of the mouse and keyboard commands to change the map
+window settings.
+
+Mouse usage::
+[horizontal]
+	Left click and drag:::    Pan the surface of the earth
+	Middle click and drag:::  Zoom toward or away from the earth
+	Right click and drag:::   Rotate the camera left or right
+
+Keyboard shortcuts::
+[horizontal]
+	h:::                  Pan left
+	j:::                  Pan down
+	k:::                  Pan up
+	l:::                  Pan right
+	i, +, Scroll Up:::    Zoom in
+	o, -, Scroll Down:::  Zoom out
+	J:::                  Rotate camera toward earth
+	K:::                  Rotate camera toward sky
+	H:::                  Rotate camera left
+	L:::                  Rotate camera right
+	w:::                  Draw wire frame of the earth (for debugging)
+	q:::                  Exit the program
+	Tab:::                Cycle through available plugins
+	CTRL+R:::             Refresh the display
+
+
+Command Line Options
+--------------------
+The following commands can help advanced users take full advantage of the
+AWeather program:
+
+aweather [*-hoaf*] [-d 'level'] [-s 'site'] [-t 'time']
+
+*-h*, *--help*::
+	Show usage.
+
+*-d*, *--debug*='level'::
+	Change default log level*, a debug level ranges from 0 to 5. A debug
+	level of 5 is recommended only for debugging purposes.
+
+*-s*, *--site*='site'::
+	Set initial site. The site should be given as a WSR88D site code such
+	as KLSX.
+
+*-t*, *--time*='time'::
+	Set initial time. The time format should be provided in the
+	*YYYY-MM-DD HH:MM* format.
+
+*-o*, *--offline*::
+	Run in offline mode, AWeather will not attempt to connect to the
+	internet to download radar files but will show the closest matching
+	cached file.
+
+*-a*, *--autoupdate*::
+	Run in autoupdate mode, AWeather will periodically poll data servers
+	for updated information.
+
+*-f*, *--fullscreen*::
+	Run in fullscreen mode, AWeather start up using the entire screen as he
+	main display area. Toolbars and side panels are hidden by default and
+
+
+Future Features
+---------------
+The author intends to develop additional features in the future as time and
+conditions allow.
+
+Some of these enhancements include:
+
+	* Vertical cross sections, volume display
+	* Support for derived L3 data (storm relative motion, echo tops, composite
+	  reflectivity, etc)
+	* Additional data sources for watches, warnings, surface data, etc
+	* Auto-updating of data
+	* Animation support
+	* A 3D volume browser
+	* API for radar algorithms
+	* Additional features
+
+// vim: ft=asciidoc ts=4 tw=80
