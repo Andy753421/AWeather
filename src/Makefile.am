@@ -46,7 +46,8 @@ CLEANFILES = gmon.out valgrind.out
 MAINTAINERCLEANFILES = Makefile.in
 
 test: all
-	.libs/aweather -o -d 7 -s KOUN -t '2011-02-01 10:01Z'
+	.libs/aweather -o -d 5
+#.libs/aweather -o -d 7 -s KOUN -t '2011-02-01 10:01Z'
 #.libs/aweather -o -d 7 -s KLSX -t '2010-12-31 17:56Z'
 #.libs/aweather -o -d 7 -s KDGX -t '2010-12-31 23:10Z'
 #.libs/aweather -o -d 7 -s KDGX -t '1999-05-03 23:51Z'
