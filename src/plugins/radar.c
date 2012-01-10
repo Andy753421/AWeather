@@ -305,6 +305,7 @@ RadarSite *radar_site_new(city_t *city, GtkWidget *pconfig,
 			"level2" G_DIR_SEPARATOR_S);
 	site->city    = city;
 	site->pconfig = pconfig;
+	site->hidden  = TRUE;
 
 	/* Set initial location */
 	gdouble lat, lon, elev;
