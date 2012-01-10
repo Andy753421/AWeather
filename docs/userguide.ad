@@ -2,8 +2,8 @@ AWeather Users Guide
 ====================
 :Author:   Jason Holmes
 :Email:    <Doppler5@aol.com>
-:Date:     2011-12-27
-:Revision: 0.6.1
+:Date:     2012-01-10
+:Revision: 0.6.3
 :Website:  http://lug.rose-hulman.edu/proj/aweather/
 
 About and contact information
@@ -14,23 +14,24 @@ providing ample weather information without excessive cost and size that is not
 limited to the Linux operating system.
 
 It is written in a standard GTK+/GObject architecture and features an
-interactive display utilizing libgis and OpenGL technologies.
+interactive display utilizing Grits and OpenGL technologies.
 
-The software source code for Ubuntu and other operating systems is available for
-download on the RHLUG server at git://lug.rose-hulman.edu/proj/aweather.
+The software source code is available for download on the RHLUG server at
+git://lug.rose-hulman.edu/proj/aweather.
 
-AWeather relies upon the following dependencies: http://www.ijg.org/[jpeg],
-http://hdf.ncsa.uiuc.edu/hdf4.html[hdf4], http://www.gnome.org/[libsoup] 2.26 or
-later and http://www.gtk.org/[gtk+] 2.16 or later 
+AWeather relies upon the following dependencies: http://www.gtk.org/[gtk+] 2.16
+or later, http://www.gnome.org/[libsoup] 2.26 or later, http://bzip.org/[bzip],
+http://trmm-fc.gsfc.nasa.gov/trmm_gv/software/rsl[rsl] 1.42 or later, and
+others.
 
-Compiled packages of the software are currently available for the Gentoo,
-Debian, and Microsoft Windows operating systems.
+Packaged versions of the software are currently available for Gentoo, Debian,
+Ubuntu, Microsoft Windows, and Mac OSX operating systems.
 
 The program currently provides data viewing from the standard one dimensional
 plan view to user-defined three-dimensional dynamic views of current and recent
 radar data.
 
-The software was developed and is maintained by Andy Spencer.  He may be
+The software was developed and is maintained by Andy Spencer. He may be
 contacted through e-mail at andy753421@gmail.com and chat through IRC at #rhlug
 on irc.freenode.net.
 
@@ -51,13 +52,22 @@ every 5 to 10 minutes depending on the current scan mode of each radar.
 
 The following Level II data types are supported by this program:
 
-Base reflectivity (power return of current precipitation intensity)
+- Base reflectivity (power return of current precipitation intensity)
 
-Base velocity (Doppler-derived speed and direction of radar returns)
+- Base velocity (Doppler-derived speed and direction of radar returns)
 
-Spectrum width (The variation of velocity detected within each radar pixel or
-bin)
+- Spectrum width (The variation of velocity detected within each radar pixel or
+  bin)
 
+- Differential Reflectivity (The ratio of the reflected horizontal and vertical
+  power returns) footnoteref:[dualpol]
+
+- Differential Phase (A comparison of the phase difference between the
+  horizontal and vertical returns) footnoteref:[dualpol]
+
+- Correlation Coefficient (A statistical correlation between the reflected
+  horizontal and vertical power returns) footnoteref:[dualpol,Only available at
+  WSR-88D sites that have been upgraded to support dual-polarization]
 
 Level II data has been available through private weather data vendors for some
 time but recently has been generously provided by some universities.
@@ -67,6 +77,9 @@ order to retrieve, decode and display current or recent radar data.
 
 The default radar feed is publically accessible thanks to Iowa State University
 and is located at: http://mesonet.agron.iastate.edu/data/nexrd2/raw/.
+
+AWeather also displays some severe weather alerts provided by the NOAA weather
+alerts http://alerts.weather.gov/[feed].
 
 
 Program layout
@@ -78,11 +91,18 @@ and a bottom data status bar.
 
 The file menu commands
 ----------------------
-The program file nenu consists of 3 entries:
+The program file menu consists of 5 entries:
 
 File
 ~~~~
 Offline::     stops the program from downloading data through the internet
+Refresh::     reloads the current display
+Auto-updae::  automatically refresh the the radar after a certain delay
+Clean cache:: removes data files from the program's internal cache
+Quit::        closes the program window and exits from memory
+
+Edit
+~~~~
 Preferences:: opens the preferences window, which contains the following
               commands
 
@@ -91,8 +111,11 @@ Preferences:: opens the preferences window, which contains the following
 [horizontal]
 		Offline checkbox::::     if selected keeps the program from connecting
 		                         to the internet
+		Update Freq::::          sets the timeout value for automatic updating
 		Initial site listbox:::: allows the user to select a default radar site
 		                         to jump to when the program loads
+		NEXRAD URL text box::::  allows the user to select a different server to
+		                         download Level-II NEXRAD data from
 		Debug level text box:::: allows the user to select what level of
 		                         debugging the program should conduct while
 		                         running (7 is recommended only for debugging)
@@ -100,15 +123,13 @@ Preferences:: opens the preferences window, which contains the following
 	Plugins tab:::
 
 [horizontal]
-		elev checkbox::::        ???
-		env checkbox::::         ???
+		alert checkbox::::       allows the user to toggle the weather alerts
+		elev checkbox::::        allows the user to toggle terrain rendering
+		env checkbox::::         allows the user to toggle a blue atmosphere
 		map checkbox::::         allows the user to toggle the map overlays
 		radar checkbox::::       allows the user to toggle the radar data
-		sat checkbox::::         allows the user to toggle satellite data
-		test checkbox::::        ???
-
-Clean cache:: removes data files from the program's internal cache
-Quit::        closes the program window and exits from memory
+		sat checkbox::::         allows the user to toggle satellite ground images
+		test checkbox::::        used by the developers for debugging
 
 View
 ~~~~
@@ -116,13 +137,19 @@ View
 Zoom in::     decreases the viewing area
 Zoom out::    increases the viewing area
 Fullscreen::  maximizes the window and only displays the button menu bar along
-              with the map and data viewing pane
-Refresh::     reloads the current display
+              with the map and data viewing pane when the mouse is moved to the
+              edge of the screen
+
+Radar
+~~~~~
+The radar menu contains list of all the support NEXRAD radar sites sorted by
+state. Selecting a site will zoom AWeather to that location.
 
 Help
 ~~~~
 [horizontal]
-Contents::    displays this documentation of program operation and features
+User Guide::  displays this documentation of program operation and features
+Man Page::    displays a HTML version of the UNIX man page
 About::       contains current program version, copyright, development site,
               credits and licensing information
 
@@ -149,7 +176,9 @@ The date and time side bar resides on the right side of the program window, it c
 * The time button, which reveals a list of each hour when clicked
 
 ** Clicking on an hour will reveal a list of times in 5 minute intervals that
-   the user can select to load radar data from
+   the user can select to load radar data from footnote:[Radar data can only be
+   loaded if it has been previously cached or is from a recent enough date and
+   can still be obtained from the NEXRAD server]
 
 
 The map and data viewing pane
@@ -169,11 +198,31 @@ data will display to the right of the tab.
 Simply click on a button to display that product/tilt in the map window.
 
 An isosurface slider is shown below the product/tilt buttons.  Slide the
-selector to reveal the rendered isosurface structure of the selected
-product/tilt.
+selector to reveal the rendered isosurface structure of reflectivity data.
 
 A color scale will automatically appear at the top left corner of the map window
 corresponding to each available product.
+
+
+Viewing severe  weather alerts
+------------------------------
+When the alert plugin is enabled, AWeather will automatically shade each county
+that is under a weather alert in a color corresponding to the type of alert.
+
+For storm based warnings, AWeather will also draw a polygon representing the
+warning area.
+
+Individual alert types can be enabled and disabled by clicking on the toggle
+button in the alert tab at the bottom of the screen.
+
+To view more information about a particular alert, click on one the shaded
+county or inside the polygon warning area in the viewing pane. This will bring
+up the alert details dialog with a tab for each alert that is active for the
+location that was clicked.
+
+The alert dialog displays the alert title and valid time along with the text
+descriptions provided by the weather service. Clicking the "Full Text" button
+will open the full text of the alert in a web browser.
 
 
 Panning, zooming and tilt functions
@@ -202,13 +251,14 @@ Keyboard shortcuts::
 	w:::                  Draw wire frame of the earth (for debugging)
 	q:::                  Exit the program
 	Tab:::                Cycle through available plugins
+	Escape:::             Close the currently active dialog box
 	CTRL+R:::             Refresh the display
 
 
 Command Line Options
 --------------------
-The following commands can help advanced users take full advantage of the
-AWeather program:
+The following command line options can help advanced users take full advantage
+of the AWeather program:
 
 aweather [*-hoaf*] [-d 'level'] [-s 'site'] [-t 'time']
 
@@ -238,7 +288,7 @@ aweather [*-hoaf*] [-d 'level'] [-s 'site'] [-t 'time']
 
 *-f*, *--fullscreen*::
 	Run in fullscreen mode, AWeather start up using the entire screen as he
-	main display area. Toolbars and side panels are hidden by default and
+	main display area. Toolbars and side panels are hidden by default.
 
 
 Future Features
@@ -248,13 +298,11 @@ conditions allow.
 
 Some of these enhancements include:
 
-	* Vertical cross sections, volume display
+	* Vertical cross sections
 	* Support for derived L3 data (storm relative motion, echo tops, composite
 	  reflectivity, etc)
-	* Additional data sources for watches, warnings, surface data, etc
-	* Auto-updating of data
+	* Additional data sources for surface data, etc
 	* Animation support
-	* A 3D volume browser
 	* API for radar algorithms
 	* Additional features
 
