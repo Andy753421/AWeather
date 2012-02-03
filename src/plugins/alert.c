@@ -25,6 +25,7 @@
 #include "alert-info.h"
 
 #define MSG_INDEX "http://alerts.weather.gov/cap/us.php?x=0"
+#define CONFIG_HEIGHT 3
 
 /* Format for single cap alert:
  *   "http://alerts.weather.gov/cap/wwacapget.php?x="
@@ -684,11 +685,9 @@ static gboolean _update_buttons(GritsPluginAlert *alert)
 		GtkWidget *table = g_object_get_data(G_OBJECT(alerts),
 				alert_info[i].category);
 		GList *kids = gtk_container_get_children(GTK_CONTAINER(table));
-		gint nkids = g_list_length(kids);
-		guint rows, cols;
-		gtk_table_get_size(GTK_TABLE(table), &rows, &cols);
-		gint x = nkids % cols;
-		gint y = nkids / cols;
+		gint  nkids = g_list_length(kids);
+		gint x = nkids / CONFIG_HEIGHT;
+		gint y = nkids % CONFIG_HEIGHT;
 		g_list_free(kids);
 
 		GtkWidget *button = _button_new(&alert_info[i]);
@@ -801,11 +800,10 @@ static GtkWidget *_make_config(void)
 	gchar *labels[] = {"<b>Warnings</b>", "<b>Watches</b>",
 	                   "<b>Advisories</b>", "<b>Other</b>"};
 	gchar *keys[]   = {"warning",  "watch",   "advisory",   "other"};
-	gint   cols[]   = {2, 2, 3, 2};
 	GtkWidget *alerts = gtk_hbox_new(FALSE, 10);
 	for (int i = 0; i < G_N_ELEMENTS(labels); i++) {
 		GtkWidget *frame = gtk_frame_new(labels[i]);
-		GtkWidget *table = gtk_table_new(1, cols[i], TRUE);
+		GtkWidget *table = gtk_table_new(1, 1, TRUE);
 		GtkWidget *label = gtk_frame_get_label_widget(GTK_FRAME(frame));
 		gtk_label_set_use_markup(GTK_LABEL(label), TRUE);
 		gtk_frame_set_shadow_type(GTK_FRAME(frame), GTK_SHADOW_NONE);
