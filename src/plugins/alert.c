@@ -549,7 +549,7 @@ static void _alert_enter(GritsPoly *county, GritsPluginAlert *alert)
 
 /* Update polygons */
 static void _load_common(GritsPluginAlert *alert, AlertMsg *msg, GritsPoly *poly,
-		float color, float border, int width)
+		float color, float border, int width, gchar *hidden)
 {
 	g_object_set_data(G_OBJECT(poly), "msg", msg);
 	poly->color[0]  = poly->border[0] = (float)msg->info->color[0] / 256;
@@ -559,7 +559,8 @@ static void _load_common(GritsPluginAlert *alert, AlertMsg *msg, GritsPoly *poly
 	poly->border[3] = border;
 	poly->width     = width;
 	GRITS_OBJECT(poly)->lod    = 0;
-	GRITS_OBJECT(poly)->hidden = msg->info->hidden;
+	GRITS_OBJECT(poly)->hidden = msg->info->hidden ||
+		grits_prefs_get_boolean(alert->prefs, hidden, NULL);
 	g_signal_connect(poly, "enter",   G_CALLBACK(_alert_enter),  alert);
 	g_signal_connect(poly, "leave",   G_CALLBACK(_alert_leave),  alert);
 	g_signal_connect(poly, "clicked", G_CALLBACK(_show_details), alert);
@@ -573,7 +574,7 @@ static GritsPoly *_load_storm_based(GritsPluginAlert *alert, AlertMsg *msg)
 	msg_load_cap(alert->http, msg);
 
 	GritsPoly *poly = grits_poly_parse(msg->polygon, "\t", " ", ",");
-	_load_common(alert, msg, poly, 0, 1, 3);
+	_load_common(alert, msg, poly, 0, 1, 3, "alert/hide_storm_based");
 	grits_viewer_add(alert->viewer, GRITS_OBJECT(poly), GRITS_LEVEL_WORLD+2, TRUE);
 
 	return poly;
@@ -599,7 +600,7 @@ static GritsPoly *_load_county_based(GritsPluginAlert *alert, AlertMsg *msg)
 
 	/* Create new county based warning */
 	GritsPoly *poly = fips_combine(counties);
-	_load_common(alert, msg, poly, 0.25, 0.25, 0);
+	_load_common(alert, msg, poly, 0.25, 0.25, 0, "alert/hide_county_based");
 	grits_viewer_add(alert->viewer, GRITS_OBJECT(poly), GRITS_LEVEL_WORLD+1, FALSE);
 
 	g_list_free(counties);
@@ -607,23 +608,39 @@ static GritsPoly *_load_county_based(GritsPluginAlert *alert, AlertMsg *msg)
 }
 
 /* Update buttons */
-static void _button_click(GtkToggleButton *button, gpointer _alert)
+static gboolean _show_hide(GtkToggleButton *button, GritsPluginAlert *alert)
 {
-	g_debug("GritsPluginAlert: _button_click");
-	GritsPluginAlert *alert = _alert;
-	AlertInfo *info = g_object_get_data(G_OBJECT(button), "info");
-	info->hidden = !gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(button));
+	g_debug("GritsPluginAlert: _show_hide - alert=%p, config=%p", alert, alert->config);
 
-	/* Show/hide each polygons */
+	/* Check if we've clicked a alert type button */
+	AlertInfo *info = g_object_get_data(G_OBJECT(button), "info");
+	if (info)
+		info->hidden = !gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(button));
+
+	/* Update county/storm based hiding */
+	GtkWidget *ctoggle = g_object_get_data(G_OBJECT(alert->config), "county_based");
+	GtkWidget *stoggle = g_object_get_data(G_OBJECT(alert->config), "storm_based");
+
+	gboolean   cshow   = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(ctoggle));
+	gboolean   sshow   = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(stoggle));
+
+	grits_prefs_set_boolean(alert->prefs, "alert/hide_county_based", !cshow);
+	grits_prefs_set_boolean(alert->prefs, "alert/hide_storm_based",  !sshow);
+
+	/* Show/hide each message */
 	for (GList *cur = alert->msgs; cur; cur = cur->next) {
 		AlertMsg *msg = cur->data;
-		if (msg->info != info)
-			continue;
-		if (msg->county_based) GRITS_OBJECT(msg->county_based)->hidden = info->hidden;
-		if (msg->storm_based)  GRITS_OBJECT(msg->storm_based)->hidden  = info->hidden;
+		gboolean hide = msg->info->hidden;
+		if (msg->county_based)
+			GRITS_OBJECT(msg->county_based)->hidden = !cshow || hide;
+		if (msg->storm_based)
+			GRITS_OBJECT(msg->storm_based)->hidden  = !sshow || hide;
 	}
+
 	gtk_widget_queue_draw(GTK_WIDGET(alert->viewer));
+	return TRUE;
 }
+
 
 static GtkWidget *_button_new(AlertInfo *info)
 {
@@ -693,8 +710,7 @@ static gboolean _update_buttons(GritsPluginAlert *alert)
 		GtkWidget *button = _button_new(&alert_info[i]);
 		gtk_table_attach(GTK_TABLE(table), button, x, x+1, y, y+1,
 				GTK_FILL|GTK_EXPAND, GTK_FILL, 0, 0);
-		g_signal_connect(button, "clicked",
-				G_CALLBACK(_button_click), alert);
+		g_signal_connect(button, "clicked", G_CALLBACK(_show_hide), alert);
 	}
 
 	/* Set time widget */
@@ -784,17 +800,25 @@ static void _on_update(GritsPluginAlert *alert)
 }
 
 /* Init helpers */
-static GtkWidget *_make_config(void)
+static GtkWidget *_make_config(GritsPluginAlert *alert)
 {
 	GtkWidget *config = gtk_vbox_new(FALSE, 0);
 
 	/* Setup tools area */
 	GtkWidget *tools   = gtk_hbox_new(FALSE, 10);
 	GtkWidget *updated = gtk_label_new(" Loading...");
+	GtkWidget *storm_based  = gtk_toggle_button_new_with_label("Storm based");
+	GtkWidget *county_based = gtk_toggle_button_new_with_label("County based");
 	gtk_label_set_use_markup(GTK_LABEL(updated), TRUE);
-	gtk_box_pack_start(GTK_BOX(tools), updated, FALSE, FALSE, 0);
+	gtk_box_pack_start(GTK_BOX(tools), updated,      FALSE, FALSE, 0);
+	gtk_box_pack_end  (GTK_BOX(tools), storm_based,  FALSE, FALSE, 0);
+	gtk_box_pack_end  (GTK_BOX(tools), county_based, FALSE, FALSE, 0);
 	gtk_box_pack_start(GTK_BOX(config), tools, FALSE, FALSE, 0);
-	g_object_set_data(G_OBJECT(config), "updated", updated);
+	g_object_set_data(G_OBJECT(config), "updated",      updated);
+	g_object_set_data(G_OBJECT(config), "storm_based",  storm_based);
+	g_object_set_data(G_OBJECT(config), "county_based", county_based);
+	g_signal_connect(storm_based,  "toggled", G_CALLBACK(_show_hide), alert);
+	g_signal_connect(county_based, "toggled", G_CALLBACK(_show_hide), alert);
 
 	/* Setup alerts */
 	gchar *labels[] = {"<b>Warnings</b>", "<b>Watches</b>",
@@ -880,6 +904,13 @@ GritsPluginAlert *grits_plugin_alert_new(GritsViewer *viewer, GritsPrefs *prefs)
 	for (GList *cur = alert->states; cur; cur = cur->next)
 		grits_viewer_add(viewer, cur->data, GRITS_LEVEL_WORLD+1, FALSE);
 
+	gboolean   chide   = grits_prefs_get_boolean(alert->prefs, "alert/hide_county_based", NULL);
+	gboolean   shide   = grits_prefs_get_boolean(alert->prefs, "alert/hide_storm_based",  NULL);
+	GtkWidget *ctoggle = g_object_get_data(G_OBJECT(alert->config), "county_based");
+	GtkWidget *stoggle = g_object_get_data(G_OBJECT(alert->config), "storm_based");
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(ctoggle), !chide);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(stoggle), !shide);
+
 	_on_update(alert);
 	return alert;
 }
@@ -907,7 +938,7 @@ static void grits_plugin_alert_init(GritsPluginAlert *alert)
 	g_debug("GritsPluginAlert: init");
 	/* Set defaults */
 	alert->threads = g_thread_pool_new(_update, alert, 1, FALSE, NULL);
-	alert->config  = _make_config();
+	alert->config  = _make_config(alert);
 	alert->http    = grits_http_new(G_DIR_SEPARATOR_S
 			"alerts" G_DIR_SEPARATOR_S
 			"cap"    G_DIR_SEPARATOR_S);
