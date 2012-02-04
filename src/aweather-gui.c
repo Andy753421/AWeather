@@ -317,6 +317,14 @@ static void update_time_widget(GritsViewer *viewer, time_t time, AWeatherGui *se
 	//}
 }
 
+G_MODULE_EXPORT gboolean on_configure(AWeatherGui *self, GdkEventConfigure *config)
+{
+	g_debug("AWeatherGui: on_configure - %dx%d", config->width, config->height);
+	grits_prefs_set_integer(self->prefs, "aweather/width",  config->width);
+	grits_prefs_set_integer(self->prefs, "aweather/height", config->height);
+	return FALSE;
+}
+
 /* Prefs callbacks */
 G_MODULE_EXPORT void on_offline(GtkToggleAction *action, AWeatherGui *self)
 {
@@ -616,6 +624,12 @@ static void aweather_gui_parser_finished(GtkBuildable *_self, GtkBuilder *builde
 	time_setup(self);
 	prefs_setup(self);
 	icons_setup(self);
+
+	/* Default size */
+	gint width  = grits_prefs_get_integer(self->prefs, "aweather/width",  NULL);
+	gint height = grits_prefs_get_integer(self->prefs, "aweather/height", NULL);
+	if (width && height)
+		gtk_window_set_default_size(GTK_WINDOW(self), width, height);
 
 	/* Connect signals */
 	gtk_builder_connect_signals(self->builder, self);

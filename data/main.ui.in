@@ -361,6 +361,7 @@ The hypothetical commands `show w' and `show c' should show the appropriate part
     <property name="title" translatable="yes">AWeather</property>
     <property name="default_width">600</property>
     <property name="default_height">400</property>
+    <signal name="configure-event" handler="on_configure" swapped="no"/>
     <child>
       <object class="GtkVBox" id="main_body">
         <property name="visible">True</property>
