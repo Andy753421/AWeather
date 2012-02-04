@@ -427,7 +427,7 @@ static void _conus_update_end_split(guchar *pixels, guchar *west, guchar *east,
 			dst[0] = src[0];
 			dst[1] = src[1];
 			dst[2] = src[2];
-			dst[3] = 0xff;
+			dst[3] = 0xff * 0.75;
 			for (int j = 0; j < G_N_ELEMENTS(alphamap); j++)
 				if (src[0] == alphamap[j][0] &&
 				    src[1] == alphamap[j][1] &&
