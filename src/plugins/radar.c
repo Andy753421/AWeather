@@ -182,7 +182,7 @@ gpointer _site_update_thread(gpointer _site)
 	}
 	grits_object_hide(GRITS_OBJECT(site->level2), site->hidden);
 	grits_viewer_add(site->viewer, GRITS_OBJECT(site->level2),
-			GRITS_LEVEL_WORLD+1, TRUE);
+			GRITS_LEVEL_WORLD+3, TRUE);
 
 out:
 	g_idle_add(_site_update_end, site);
@@ -572,8 +572,8 @@ RadarConus *radar_conus_new(GtkWidget *pconfig,
 	conus->tile[1] = grits_tile_new(NULL, CONUS_NORTH, south, east, mid);
 	conus->tile[0]->zindex = 2;
 	conus->tile[1]->zindex = 1;
-	grits_viewer_add(viewer, GRITS_OBJECT(conus->tile[0]), GRITS_LEVEL_WORLD, TRUE);
-	grits_viewer_add(viewer, GRITS_OBJECT(conus->tile[1]), GRITS_LEVEL_WORLD, TRUE);
+	grits_viewer_add(viewer, GRITS_OBJECT(conus->tile[0]), GRITS_LEVEL_WORLD+2, FALSE);
+	grits_viewer_add(viewer, GRITS_OBJECT(conus->tile[1]), GRITS_LEVEL_WORLD+2, FALSE);
 
 	conus->time_id = g_signal_connect_swapped(viewer, "time-changed",
 			G_CALLBACK(_conus_update), conus);

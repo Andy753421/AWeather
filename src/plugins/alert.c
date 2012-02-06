@@ -575,7 +575,7 @@ static GritsPoly *_load_storm_based(GritsPluginAlert *alert, AlertMsg *msg)
 
 	GritsPoly *poly = grits_poly_parse(msg->polygon, "\t", " ", ",");
 	_load_common(alert, msg, poly, 0, 1, 3, "alert/hide_storm_based");
-	grits_viewer_add(alert->viewer, GRITS_OBJECT(poly), GRITS_LEVEL_WORLD+2, TRUE);
+	grits_viewer_add(alert->viewer, GRITS_OBJECT(poly), GRITS_LEVEL_WORLD+4, FALSE);
 
 	return poly;
 }
