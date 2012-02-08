@@ -397,7 +397,7 @@ gboolean fips_group_state(gpointer key, gpointer value, gpointer data)
 	GList  *counties = value;
 	GList **states   = data;
 	GritsPoly *poly  = fips_combine(counties);
-	GRITS_OBJECT(poly)->lod = EARTH_R/10;
+	GRITS_OBJECT(poly)->lod = EARTH_R/5;
 	*states = g_list_prepend(*states, poly);
 	g_list_free(counties);
 	return FALSE;
