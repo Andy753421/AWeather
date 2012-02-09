@@ -21,6 +21,16 @@ alert_la_CPPFLAGS = \
 	-DPKGDATADIR="\"$(DOTS)$(pkgdatadir)\""
 alert_la_LIBADD  = $(GRITS_LIBS)
 
+if HAVE_GPSD
+plugins_LTLIBRARIES += gps.la
+gps_la_SOURCES = \
+	gps-plugin.c      gps-plugin.h
+gps_la_CPPFLAGS = \
+	-DPKGDATADIR="\"$(DOTS)$(pkgdatadir)\"" \
+	-I$(top_srcdir)/src
+gps_la_LIBADD  = $(GPSD_LIBS) $(GRITS_LIBS)
+endif
+
 if HAVE_RSL
 plugins_LTLIBRARIES += radar.la
 radar_la_SOURCES = \

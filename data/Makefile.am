@@ -10,6 +10,9 @@ dist_fips_DATA = fips.txt
 logodir = $(datadir)/aweather/
 dist_logo_DATA = logo.svg
 
+icondir = $(datadir)/aweather/
+dist_icon_DATA = car.png arrow.png
+
 colordir = $(datadir)/aweather/colors/
 dist_color_DATA = colors/*.clr
 
