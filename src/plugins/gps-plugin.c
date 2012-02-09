@@ -178,31 +178,31 @@ static gchar *gps_get_online(struct gps_data_t *gps_data)
 
 static gchar *gps_get_latitude(struct gps_data_t *gps_data)
 {
-	return g_strdup_printf("%3.4f", gps_data->fix.latitude);
+	return g_strdup_printf("%10.4f", gps_data->fix.latitude);
 }
 
 static gchar *gps_get_longitude(struct gps_data_t *gps_data)
 {
-	return g_strdup_printf("%3.4f", gps_data->fix.longitude);
+	return g_strdup_printf("%10.4f", gps_data->fix.longitude);
 }
 
 static gchar *gps_get_elevation(struct gps_data_t *gps_data)
 {
 	/* XXX Make units (m/ft) settable */
-	return g_strdup_printf("%.1lf %s",
+	return g_strdup_printf("%5.0lf %4s",
 		    (gps_data->fix.altitude * METERS_TO_FEET), "ft");
 }
 
 static gchar *gps_get_heading(struct gps_data_t *gps_data)
 {
 	/* XXX Make units (m/ft) settable */
-	return g_strdup_printf("%03.0lf", gps_data->fix.track);
+	return g_strdup_printf("%5.0lf %4s", gps_data->fix.track, "deg");
 }
 
 static gchar *gps_get_speed(struct gps_data_t *gps_data)
 {
 	/* XXX Make units (m/ft) settable */
-	return g_strdup_printf("%1.1f %s",
+	return g_strdup_printf("%5.0f %4s",
 		(gps_data->fix.speed*3600.0*METERS_TO_FEET/5280.0), "mph");
 }
 
@@ -472,11 +472,9 @@ static void gps_update_status(GritsPluginGps *gps)
 	struct gps_data_t *gps_data = &gps->gps_data;
 
 	/* gps table update */
-	gint i;
-	gchar *str;
-	for (i = 0; i < G_N_ELEMENTS(gps_table); i++) {
-		gtk_label_set_markup(GTK_LABEL(gps_table[i].value_widget),
-		            (str = gps_table[i].get_data(gps_data)));
+	for (gint i = 0; i < G_N_ELEMENTS(gps_table); i++) {
+		gchar *str = gps_table[i].get_data(gps_data);
+		gtk_label_set_markup(GTK_LABEL(gps_table[i].value_widget), str);
 		g_free(str);
 	}
 }
@@ -598,32 +596,38 @@ static void gps_init_status_info(GritsPluginGps *gps, GtkWidget *gbox)
 	gtk_label_set_use_markup(GTK_LABEL(label), TRUE);
 	gtk_frame_set_shadow_type(GTK_FRAME(gps->ui.gps_status_frame),
 	                   GTK_SHADOW_NONE);
-	gps->ui.gps_status_table = gtk_table_new(5, 2, TRUE);
+	gps->ui.gps_status_table = gtk_table_new(5, 2, FALSE);
 	gtk_container_add(GTK_CONTAINER(gps->ui.gps_status_frame),
 	           gps->ui.gps_status_table);
+
 
 	/* gps data table setup */
 	gint i;
 	for (i = 0; i < G_N_ELEMENTS(gps_table); i++) {
 		gps_table[i].label_widget = gtk_label_new(gps_table[i].label);
-		gtk_label_set_justify(GTK_LABEL(gps_table[i].label_widget),
-		                      GTK_JUSTIFY_LEFT);
-		gtk_table_attach(GTK_TABLE(gps->ui.gps_status_table),
-		                           gps_table[i].label_widget,
-		                           0, 1, i, i+1, 0, 0, 0, 0);
 		gps_table[i].value_widget = gtk_label_new(gps_table[i].initial_val);
-		gtk_table_attach( GTK_TABLE(gps->ui.gps_status_table),
-				gps_table[i].value_widget, 1, 2, i, i+1, 0, 0, 0, 0);
 
-		PangoFontDescription *font_desc = pango_font_description_new();
-		pango_font_description_set_size(font_desc,
-				gps_table[i].font_size*PANGO_SCALE);
-		gtk_widget_modify_font(gps_table[i].label_widget, font_desc);
-		gtk_widget_modify_font(gps_table[i].value_widget, font_desc);
-		pango_font_description_free(font_desc);
+		gtk_misc_set_alignment(GTK_MISC(gps_table[i].label_widget), 0, 0);
+		gtk_misc_set_alignment(GTK_MISC(gps_table[i].value_widget), 1, 0);
+
+		gtk_table_attach(GTK_TABLE(gps->ui.gps_status_table),
+				gps_table[i].label_widget, 0, 1, i, i+1,
+				GTK_EXPAND|GTK_FILL, GTK_EXPAND|GTK_FILL, 0, 0);
+		gtk_table_attach(GTK_TABLE(gps->ui.gps_status_table),
+				gps_table[i].value_widget, 1, 2, i, i+1,
+				GTK_EXPAND|GTK_FILL, GTK_EXPAND|GTK_FILL, 0, 0);
+
+		PangoFontDescription *roman = pango_font_description_new();
+		PangoFontDescription *mono  = pango_font_description_from_string("monospace");
+		pango_font_description_set_size(roman, gps_table[i].font_size*PANGO_SCALE);
+		pango_font_description_set_size(mono,  gps_table[i].font_size*PANGO_SCALE);
+		gtk_widget_modify_font(gps_table[i].label_widget, roman);
+		gtk_widget_modify_font(gps_table[i].value_widget, mono);
+		pango_font_description_free(roman);
+		pango_font_description_free(mono);
 	}
 	gtk_box_pack_start(GTK_BOX(gbox), gps->ui.gps_status_frame,
-	                    TRUE, FALSE, 0);
+	                    FALSE, FALSE, 0);
 
 	/* Start UI refresh task, which will reschedule itgps. */
 	gps_redraw_all(gps);
