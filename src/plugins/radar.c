@@ -288,7 +288,7 @@ gboolean _site_add_marker(gpointer _site)
 	RadarSite *site = _site;
 	site->marker = grits_marker_new(site->city->name);
 	GRITS_OBJECT(site->marker)->center = site->city->pos;
-	GRITS_OBJECT(site->marker)->lod    = EARTH_R*2*site->city->lod;
+	GRITS_OBJECT(site->marker)->lod    = EARTH_R*0.75*site->city->lod;
 	grits_viewer_add(site->viewer, GRITS_OBJECT(site->marker),
 			GRITS_LEVEL_OVERLAY, FALSE);
 	return FALSE;
