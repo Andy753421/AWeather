@@ -854,19 +854,16 @@ static gint initialize_gpsd(char *server, gchar *port, struct gps_data_t *gps_da
 #if GPSD_API_MAJOR_VERSION < 5
 #error "GPSD protocol version 5 or greater required."
 #endif
-	gint result;
-
-	if ((result = gps_open(server, port, gps_data)) != 0) {
+	gint result = gps_open(server, port, gps_data);
+	if (result > 0) {
 		g_warning("Unable to open gpsd connection to %s:%s: %d, %d, %s",
-		server, port, result, errno, gps_errstr(errno));
-	} else {
-		(void)gps_stream(gps_data, WATCH_ENABLE|WATCH_JSON, NULL);
-		g_debug("GritsPluginGps: initialize_gpsd - gpsd fd %u.",
-		        gps_data->gps_fd);
-		gdk_input_add(gps_data->gps_fd, GDK_INPUT_READ, process_gps, gps_data);
+				server, port, result, errno, gps_errstr(errno));
+		return 0;
 	}
 
-	return result;
+	(void)gps_stream(gps_data, WATCH_ENABLE|WATCH_JSON, NULL);
+	g_debug("GritsPluginGps: initialize_gpsd - gpsd fd %u.", gps_data->gps_fd);
+	return gdk_input_add(gps_data->gps_fd, GDK_INPUT_READ, process_gps, gps_data);
 }
 
 
@@ -883,7 +880,7 @@ GritsPluginGps *grits_plugin_gps_new(GritsViewer *viewer, GritsPrefs *prefs)
 	gps->viewer  = g_object_ref(viewer);
 	gps->prefs   = g_object_ref(prefs);
 
-	initialize_gpsd("localhost", DEFAULT_GPSD_PORT, &gps->gps_data);
+	gps->input_tag = initialize_gpsd("localhost", DEFAULT_GPSD_PORT, &gps->gps_data);
 	gps->follow_gps = FALSE;
 
 	gps_track_init(&gps->track);
@@ -926,6 +923,18 @@ static void grits_plugin_gps_dispose(GObject *gobject)
 
 	g_debug("GritsPluginGps: dispose");
 
+	if (gps->gps_update_timeout_id) {
+		g_source_remove(gps->gps_update_timeout_id);
+		gps->gps_update_timeout_id = 0;
+	}
+	if (gps->ui.gps_log_timeout_id) {
+		g_source_remove(gps->ui.gps_log_timeout_id);
+		gps->ui.gps_log_timeout_id = 0;
+	}
+	if (gps->input_tag) {
+		gdk_input_remove(gps->input_tag);
+		gps->input_tag = 0;
+	}
 	if (gps->viewer) {
 		GritsViewer *viewer = gps->viewer;
 		gps->viewer = NULL;

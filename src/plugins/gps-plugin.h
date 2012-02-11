@@ -78,6 +78,7 @@ struct _GritsPluginGps {
 
 	gboolean     follow_gps;
 	guint        gps_update_timeout_id; /* id of timeout so we can delete it */
+	gint         input_tag;
 
 	GpsTrack     track;
 	GpsUi        ui;

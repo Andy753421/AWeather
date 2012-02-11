@@ -667,16 +667,19 @@ static void aweather_gui_dispose(GObject *_self)
 	g_debug("AWeatherGui: dispose");
 	AWeatherGui *self = AWEATHER_GUI(_self);
 	if (self->plugins) {
-		grits_plugins_free(self->plugins);
+		GritsPlugins *plugins = self->plugins;
 		self->plugins = NULL;
+		grits_plugins_free(plugins);
 	}
 	if (self->builder) {
-		g_object_unref(self->builder);
+		GtkBuilder *builder = self->builder;
 		self->builder = NULL;
+		g_object_unref(builder);
 	}
 	if (self->prefs) {
-		g_object_unref(self->prefs);
+		GritsPrefs *prefs = self->prefs;
 		self->prefs = NULL;
+		g_object_unref(prefs);
 	}
 	G_OBJECT_CLASS(aweather_gui_parent_class)->dispose(_self);
 }

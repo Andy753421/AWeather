@@ -777,9 +777,13 @@ static void grits_plugin_radar_dispose(GObject *gobject)
 {
 	g_debug("GritsPluginRadar: dispose");
 	GritsPluginRadar *self = GRITS_PLUGIN_RADAR(gobject);
-	g_signal_handler_disconnect(self->config, self->tab_id);
-	grits_viewer_remove(self->viewer, GRITS_OBJECT(self->hud));
-	radar_conus_free(self->conus);
+	if (self->viewer) {
+		GritsViewer *viewer = self->viewer;
+		self->viewer = NULL;
+		g_signal_handler_disconnect(self->config, self->tab_id);
+		grits_viewer_remove(viewer, GRITS_OBJECT(self->hud));
+		radar_conus_free(self->conus);
+	}
 	/* Drop references */
 	G_OBJECT_CLASS(grits_plugin_radar_parent_class)->dispose(gobject);
 }
