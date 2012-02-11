@@ -880,8 +880,8 @@ GritsPluginGps *grits_plugin_gps_new(GritsViewer *viewer, GritsPrefs *prefs)
 	/* TODO: move to constructor if possible */
 	g_debug("GritsPluginGps: new");
 	GritsPluginGps *gps = g_object_new(GRITS_TYPE_PLUGIN_GPS, NULL);
-	gps->viewer = viewer;
-	gps->prefs  = prefs;
+	gps->viewer  = g_object_ref(viewer);
+	gps->prefs   = g_object_ref(prefs);
 
 	initialize_gpsd("localhost", DEFAULT_GPSD_PORT, &gps->gps_data);
 	gps->follow_gps = FALSE;
@@ -927,15 +927,14 @@ static void grits_plugin_gps_dispose(GObject *gobject)
 	g_debug("GritsPluginGps: dispose");
 
 	if (gps->viewer) {
-		if (gps->marker) {
-			grits_viewer_remove(gps->viewer,
-		               GRITS_OBJECT(gps->marker));
-		}
-		g_object_unref(gps->viewer);
+		GritsViewer *viewer = gps->viewer;
 		gps->viewer = NULL;
+		if (gps->marker)
+			grits_viewer_remove(viewer,
+		               GRITS_OBJECT(gps->marker));
+		g_object_unref(gps->prefs);
+		g_object_unref(viewer);
 	}
-
-	gps_track_free(&gps->track);
 
 	/* Drop references */
 	G_OBJECT_CLASS(grits_plugin_gps_parent_class)->dispose(gobject);
@@ -948,7 +947,7 @@ static void grits_plugin_gps_finalize(GObject *gobject)
 	g_debug("GritsPluginGps: finalize");
 
 	/* Free data */
-	gtk_widget_destroy(gps->config);
+	gps_track_free(&gps->track);
 	G_OBJECT_CLASS(grits_plugin_gps_parent_class)->finalize(gobject);
 }
 
