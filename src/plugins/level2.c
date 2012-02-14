@@ -378,9 +378,9 @@ AWeatherLevel2 *aweather_level2_new_from_file(const gchar *file, const gchar *si
 
 	/* Load the radar file */
 	RSL_read_these_sweeps("all", NULL);
-	g_message("read start");
+	g_debug("AWeatherLevel2: rsl read start");
 	Radar *radar = RSL_wsr88d_to_radar(raw, (gchar*)site);
-	g_message("read done");
+	g_debug("AWeatherLevel2: rsl read done");
 	g_free(raw);
 	if (!radar)
 		return NULL;
