@@ -840,7 +840,10 @@ static void process_gps(gpointer data, gint source, GdkInputCondition condition)
 
 	/* Process any data from the gps and call the hook function */
 	if (gps_data != NULL) {
+		gdouble track = gps_data->fix.track;
 		gint result = gps_read(gps_data);
+		if (isnan(gps_data->fix.track))
+			gps_data->fix.track = track;
 		g_debug("GritsPluginGps: process_gps - gps_read returned %d, "
 			"position %f, %f.", result,
 			gps_data->fix.latitude, gps_data->fix.longitude);
