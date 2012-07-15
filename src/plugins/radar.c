@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009-2011 Andy Spencer <andy753421@gmail.com>
+ * Copyright (C) 2009-2012 Andy Spencer <andy753421@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -120,8 +120,15 @@ gboolean _site_update_end(gpointer _site)
 	RadarSite *site = _site;
 	if (site->message) {
 		g_warning("RadarSite: update_end - %s", site->message);
-		_gtk_bin_set_child(GTK_BIN(site->config),
-				gtk_label_new(site->message));
+		const char *fmt = "http://forecast.weather.gov/product.php?site=NWS&product=FTM&format=TXT&issuedby=%s";
+		char       *uri = g_strdup_printf(fmt, site->city->code+1);
+		GtkWidget  *box = gtk_vbox_new(TRUE, 0);
+		GtkWidget  *msg = gtk_label_new(site->message);
+		GtkWidget  *btn = gtk_link_button_new_with_label(uri, "View Radar Status");
+		gtk_box_pack_start(GTK_BOX(box), msg, TRUE, TRUE, 0);
+		gtk_box_pack_start(GTK_BOX(box), btn, TRUE, TRUE, 0);
+		_gtk_bin_set_child(GTK_BIN(site->config), box);
+		g_free(uri);
 	} else {
 		_gtk_bin_set_child(GTK_BIN(site->config),
 				aweather_level2_get_config(site->level2));
