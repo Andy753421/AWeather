@@ -219,7 +219,7 @@ void _site_update(RadarSite *site)
 
 	/* Fork loading right away so updating the
 	 * list of times doesn't take too long */
-	g_thread_create(_site_update_thread, site, FALSE, NULL);
+	g_thread_new("site-update-thread", _site_update_thread, site);
 }
 
 /* RadarSite methods */
@@ -355,7 +355,7 @@ struct _RadarConus {
 	GtkWidget   *config;
 	time_t       time;
 	const gchar *message;
-	GStaticMutex loading;
+	GMutex       loading;
 
 	gchar       *path;
 	GritsTile   *tile[2];
@@ -490,7 +490,7 @@ gboolean _conus_update_end(gpointer _conus)
 
 out:
 	g_free(conus->path);
-	g_static_mutex_unlock(&conus->loading);
+	g_mutex_unlock(&conus->loading);
 	return FALSE;
 }
 
@@ -548,7 +548,7 @@ out:
 
 void _conus_update(RadarConus *conus)
 {
-	if (!g_static_mutex_trylock(&conus->loading))
+	if (!g_mutex_trylock(&conus->loading))
 		return;
 	conus->time = grits_viewer_get_time(conus->viewer);
 	g_debug("Conus: update - %d",
@@ -559,7 +559,7 @@ void _conus_update(RadarConus *conus)
 	gtk_progress_bar_set_text(GTK_PROGRESS_BAR(progress), "Loading...");
 	_gtk_bin_set_child(GTK_BIN(conus->config), progress);
 
-	g_thread_create(_conus_update_thread, conus, FALSE, NULL);
+	g_thread_new("conus-update-thread", _conus_update_thread, conus);
 }
 
 RadarConus *radar_conus_new(GtkWidget *pconfig,
@@ -569,7 +569,7 @@ RadarConus *radar_conus_new(GtkWidget *pconfig,
 	conus->viewer  = g_object_ref(viewer);
 	conus->http    = http;
 	conus->config  = gtk_alignment_new(0, 0, 1, 1);
-	g_static_mutex_init(&conus->loading);
+	g_mutex_init(&conus->loading);
 
 	gdouble south =  CONUS_NORTH - CONUS_DEG_PER_PX*CONUS_HEIGHT;
 	gdouble east  =  CONUS_WEST  + CONUS_DEG_PER_PX*CONUS_WIDTH;

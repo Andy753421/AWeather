@@ -144,7 +144,6 @@ int main(int argc, char *argv[])
 
 	/* Init */
 	GError *error = NULL;
-	g_thread_init(NULL);
 	gdk_threads_init();
 	if (!gtk_init_with_args(&argc, &argv, "aweather", entries, NULL, &error)) {
 		g_print("%s\n", error->message);
