@@ -497,7 +497,7 @@ static GtkWidget *_find_details(GtkNotebook *notebook, AlertMsg *msg)
 	return NULL;
 }
 
-static void _show_details(GritsPoly *county, GritsPluginAlert *alert)
+static void _show_details(GritsPoly *county, GdkEvent *_, GritsPluginAlert *alert)
 {
 	/* Add details for this messages */
 	AlertMsg *msg = g_object_get_data(G_OBJECT(county), "msg");
@@ -523,7 +523,7 @@ static void _show_details(GritsPoly *county, GritsPluginAlert *alert)
 }
 
 /* Update counties */
-static void _alert_leave(GritsPoly *county, GritsPluginAlert *alert)
+static void _alert_leave(GritsPoly *county, GdkEvent *_, GritsPluginAlert *alert)
 {
 	g_debug("_alert_leave");
 	if (county->width == 3) {
@@ -535,7 +535,7 @@ static void _alert_leave(GritsPoly *county, GritsPluginAlert *alert)
 	grits_object_queue_draw(GRITS_OBJECT(county));
 }
 
-static void _alert_enter(GritsPoly *county, GritsPluginAlert *alert)
+static void _alert_enter(GritsPoly *county, GdkEvent *_, GritsPluginAlert *alert)
 {
 	g_debug("_alert_enter");
 	if (county->width == 3) {
