@@ -290,15 +290,6 @@ void _site_on_location_changed(GritsViewer *viewer,
 		radar_site_unload(site);
 }
 
-gboolean _site_add_marker(RadarSite *site)
-{
-	site->marker = grits_marker_new(site->city->name);
-	GRITS_OBJECT(site->marker)->center = site->city->pos;
-	GRITS_OBJECT(site->marker)->lod    = EARTH_R*0.75*site->city->lod;
-	grits_viewer_add(site->viewer, GRITS_OBJECT(site->marker),
-			GRITS_LEVEL_OVERLAY, FALSE);
-	return FALSE;
-}
 RadarSite *radar_site_new(city_t *city, GtkWidget *pconfig,
 		GritsViewer *viewer, GritsPrefs *prefs, GritsHttp *http)
 {
@@ -319,7 +310,11 @@ RadarSite *radar_site_new(city_t *city, GtkWidget *pconfig,
 	_site_on_location_changed(viewer, lat, lon, elev, site);
 
 	/* Add marker */
-	_site_add_marker(site);
+	site->marker = grits_marker_new(site->city->name);
+	GRITS_OBJECT(site->marker)->center = site->city->pos;
+	GRITS_OBJECT(site->marker)->lod    = EARTH_R*0.75*site->city->lod;
+	grits_viewer_add(site->viewer, GRITS_OBJECT(site->marker),
+			GRITS_LEVEL_HUD, FALSE);
 
 	/* Connect signals */
 	site->location_id  = g_signal_connect(viewer, "location-changed",
