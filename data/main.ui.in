@@ -81,7 +81,7 @@
     <property name="version">@VERSION@</property>
     <property name="copyright" translatable="yes">Copyright ©2008-2012 Andy Spencer</property>
     <property name="comments" translatable="yes">A weather monitoring program</property>
-    <property name="website">http://lug.rose-hulman.edu/proj/aweather</property>
+    <property name="website">http://pileus.org/aweather</property>
     <property name="license" translatable="yes">                    GNU GENERAL PUBLIC LICENSE
                        Version 3, 29 June 2007
 

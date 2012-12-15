@@ -4,7 +4,7 @@ AWeather Users Guide
 :Email:    <Doppler5@aol.com>
 :Date:     2012-01-10
 :Revision: 0.6.3
-:Website:  http://lug.rose-hulman.edu/proj/aweather/
+:Website:  http://pileus.org/aweather/
 
 About and contact information
 -----------------------------
@@ -16,8 +16,8 @@ limited to the Linux operating system.
 It is written in a standard GTK+/GObject architecture and features an
 interactive display utilizing Grits and OpenGL technologies.
 
-The software source code is available for download on the RHLUG server at
-git://lug.rose-hulman.edu/proj/aweather.
+The software source code is available for download at
+git://pileus.org/aweather.
 
 AWeather relies upon the following dependencies: http://www.gtk.org/[gtk+] 2.16
 or later, http://www.gnome.org/[libsoup] 2.26 or later, http://bzip.org/[bzip],

@@ -36,7 +36,7 @@ dist_iconSC_DATA = icons/scalable/aweather.svg
 dist_noinst_DATA = icons/48x48/aweather.ico
 
 fips.txt:
-	wget http://lug.rose-hulman.edu/proj/aweather/files/fips/fips.txt
+	wget http://pileus.org/aweather/files/fips/fips.txt
 
 install-data-hook:
 	if test -z "$(DESTDIR)"; then \
