@@ -80,14 +80,14 @@ G_MODULE_EXPORT gboolean on_gui_key_press(GtkWidget *widget, GdkEventKey *event,
 			event->keyval, event->state);
 	GObject *action = aweather_gui_get_object(self, "fullscreen");
 	gboolean full   = gtk_toggle_action_get_active(GTK_TOGGLE_ACTION(action));
-	if (event->keyval == GDK_q)
+	if (event->keyval == GDK_KEY_q)
 		gtk_widget_destroy(GTK_WIDGET(self));
-	else if (event->keyval == GDK_F11 ||
-	        (event->keyval == GDK_Escape && full))
+	else if (event->keyval == GDK_KEY_F11 ||
+	        (event->keyval == GDK_KEY_Escape && full))
 		gtk_action_activate(GTK_ACTION(action));
-	else if (event->keyval == GDK_r && event->state & GDK_CONTROL_MASK)
+	else if (event->keyval == GDK_KEY_r && event->state & GDK_CONTROL_MASK)
 		grits_viewer_refresh(self->viewer);
-	else if (event->keyval == GDK_Tab || event->keyval == GDK_ISO_Left_Tab) {
+	else if (event->keyval == GDK_KEY_Tab || event->keyval == GDK_KEY_ISO_Left_Tab) {
 		GtkNotebook *tabs = GTK_NOTEBOOK(aweather_gui_get_widget(self, "main_tabs"));
 		gint num_tabs = gtk_notebook_get_n_pages(tabs);
 		gint cur_tab  = gtk_notebook_get_current_page(tabs);

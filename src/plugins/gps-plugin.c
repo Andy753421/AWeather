@@ -695,7 +695,7 @@ static void gps_init_control_frame(GritsPluginGps *gps, GtkWidget *gbox)
 	gtk_label_set_use_markup(GTK_LABEL(label), TRUE);
 	gtk_frame_set_shadow_type(GTK_FRAME(gps_control_frame),
 	                   GTK_SHADOW_NONE);
-	GtkWidget *cbox = gtk_vbox_new(FALSE, 2);
+	GtkWidget *cbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
 	gtk_container_add(GTK_CONTAINER(gps_control_frame), cbox);
 	gtk_box_pack_start(GTK_BOX(gbox), gps_control_frame, FALSE, FALSE, 0);
 
@@ -782,7 +782,7 @@ static void gps_init_track_log_frame(GritsPluginGps *gps, GtkWidget *gbox)
 	GtkWidget *label = gtk_frame_get_label_widget(GTK_FRAME(gps_log_frame));
 	gtk_label_set_use_markup(GTK_LABEL(label), TRUE);
 	gtk_frame_set_shadow_type(GTK_FRAME(gps_log_frame), GTK_SHADOW_NONE);
-	GtkWidget *lbox = gtk_vbox_new(FALSE, 2);
+	GtkWidget *lbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
 	gtk_container_add(GTK_CONTAINER(gps_log_frame), lbox);
 	gtk_box_pack_start(GTK_BOX(gbox), gps_log_frame,
 			FALSE, FALSE, 0);
@@ -796,7 +796,7 @@ static void gps_init_track_log_frame(GritsPluginGps *gps, GtkWidget *gbox)
 	       FALSE, FALSE, 0);
 
 	/* Set up filename entry box */
-	GtkWidget *fbox = gtk_hbox_new(FALSE, 2);
+	GtkWidget *fbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
 	GtkWidget *filename_label = gtk_label_new("Filename:");
 	gtk_box_pack_start(GTK_BOX(fbox), filename_label, FALSE, FALSE, 0);
 	gps->ui.gps_log_filename_entry = gtk_entry_new();
@@ -805,11 +805,11 @@ static void gps_init_track_log_frame(GritsPluginGps *gps, GtkWidget *gbox)
 	gtk_box_pack_start(GTK_BOX(lbox), fbox, FALSE, FALSE, 0);
 
 	/* set up gps log interval slider */
-	GtkWidget *ubox = gtk_hbox_new(FALSE, 4);
+	GtkWidget *ubox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 4);
 	GtkWidget *interval_label = gtk_label_new("Update Interval:");
 	gtk_box_pack_start(GTK_BOX(ubox), interval_label, FALSE, FALSE, 0);
 	gps->ui.gps_log_interval_slider =
-	            gtk_hscale_new_with_range(1.0, 600.0, 30.0);
+	            gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, 1.0, 600.0, 30.0);
 	gtk_range_set_value(GTK_RANGE(gps->ui.gps_log_interval_slider),
 	            GPS_LOG_DEFAULT_UPDATE_INTERVAL);
 	g_signal_connect(G_OBJECT(gps->ui.gps_log_interval_slider),
@@ -819,9 +819,9 @@ static void gps_init_track_log_frame(GritsPluginGps *gps, GtkWidget *gbox)
 	gtk_range_set_increments(
 	            GTK_RANGE(gps->ui.gps_log_interval_slider),
 	            10.0 /* step */, 30.0 /* page up/down */);
-	gtk_range_set_update_policy(
-	            GTK_RANGE(gps->ui.gps_log_interval_slider),
-	            GTK_UPDATE_DELAYED);
+	//gtk_range_set_update_policy(
+	//            GTK_RANGE(gps->ui.gps_log_interval_slider),
+	//            GTK_UPDATE_DELAYED);
 	gtk_box_pack_start(GTK_BOX(ubox), gps->ui.gps_log_interval_slider,
 	            TRUE, TRUE, 0);
 	gtk_box_pack_start(GTK_BOX(lbox), ubox, FALSE, FALSE, 0);
@@ -832,7 +832,7 @@ static void gps_init_track_log_frame(GritsPluginGps *gps, GtkWidget *gbox)
  * GPSD interfaces *
  *******************/
 
-static void process_gps(gpointer data, gint source, GdkInputCondition condition)
+static gboolean process_gps(GIOChannel *source, GIOCondition condition, gpointer data)
 {
 	struct gps_data_t *gps_data = (struct gps_data_t *)data;
 
@@ -850,6 +850,7 @@ static void process_gps(gpointer data, gint source, GdkInputCondition condition)
 	} else {
 		g_warning("GritsPluginGps: process_gps - gps_data == NULL.");
 	}
+	return TRUE;
 }
 
 static gint initialize_gpsd(char *server, gchar *port, struct gps_data_t *gps_data)
@@ -866,7 +867,10 @@ static gint initialize_gpsd(char *server, gchar *port, struct gps_data_t *gps_da
 
 	(void)gps_stream(gps_data, WATCH_ENABLE|WATCH_JSON, NULL);
 	g_debug("GritsPluginGps: initialize_gpsd - gpsd fd %u.", gps_data->gps_fd);
-	return gdk_input_add(gps_data->gps_fd, GDK_INPUT_READ, process_gps, gps_data);
+	GIOChannel *channel = g_io_channel_unix_new(gps_data->gps_fd);
+	gint input_tag = g_io_add_watch(channel, G_IO_IN, process_gps, gps_data);
+	g_io_channel_unref(channel);
+	return input_tag;
 }
 
 
@@ -917,7 +921,7 @@ static void grits_plugin_gps_init(GritsPluginGps *gps)
 {
 	g_debug("GritsPluginGps: gps_init");
 
-	gps->config     = gtk_hbox_new(FALSE, 15);
+	gps->config = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 15);
 }
 
 static void grits_plugin_gps_dispose(GObject *gobject)
@@ -935,7 +939,7 @@ static void grits_plugin_gps_dispose(GObject *gobject)
 		gps->ui.gps_log_timeout_id = 0;
 	}
 	if (gps->input_tag) {
-		gdk_input_remove(gps->input_tag);
+		g_source_remove(gps->input_tag);
 		gps->input_tag = 0;
 	}
 	if (gps->viewer) {

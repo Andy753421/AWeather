@@ -152,16 +152,17 @@ int main(int argc, char *argv[])
 	}
 
 	/* Use external handler for link buttons */
-	gtk_link_button_set_uri_hook((GtkLinkButtonUriFunc)xdg_open, NULL, NULL);
-	gtk_about_dialog_set_url_hook((GtkAboutDialogActivateLinkFunc)xdg_open, NULL, NULL);
-	gtk_about_dialog_set_email_hook((GtkAboutDialogActivateLinkFunc)xdg_open, NULL, NULL);
+	//gtk_link_button_set_uri_hook((GtkLinkButtonUriFunc)xdg_open, NULL, NULL);
+	//gtk_about_dialog_set_url_hook((GtkAboutDialogActivateLinkFunc)xdg_open, NULL, NULL);
+	//gtk_about_dialog_set_email_hook((GtkAboutDialogActivateLinkFunc)xdg_open, NULL, NULL);
+	(void)xdg_open;
 
 	/* Setup debug level for aweather_gui_new */
 	g_log_set_handler(NULL, G_LOG_LEVEL_MASK, log_func, NULL);
 	log_levels = int2log(opt_debug >= 0 ? opt_debug : debug);
 
 	/* Set up AWeather */
-	gdk_threads_enter();
+	//gdk_threads_enter();
 	/* Pre-load some types for gtkbuilder */
 	GRITS_TYPE_OPENGL;
 	AWEATHER_TYPE_GUI;
@@ -200,7 +201,7 @@ int main(int argc, char *argv[])
 	set_toggle_action(gui, "fullscreen", fullscreen); // Resest widget hiding
 	setup_mac(gui);	// done after show_all
 	gtk_main();
-	gdk_threads_leave();
-	gdk_display_close(gdk_display_get_default());
+	//gdk_threads_leave();
+	//gdk_display_close(gdk_display_get_default());
 	return 0;
 }
