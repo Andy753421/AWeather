@@ -864,6 +864,7 @@ The hypothetical commands `show w' and `show c' should show the appropriate part
     <property name="border_width">5</property>
     <property name="title" translatable="yes">Preferences - AWeather</property>
     <property name="type_hint">normal</property>
+    <property name="transient_for">main_window</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
     <signal name="response" handler="gtk_widget_hide" object="prefs_window" swapped="yes"/>
     <child internal-child="vbox">
