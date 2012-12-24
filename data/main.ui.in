@@ -372,9 +372,9 @@ The hypothetical commands `show w' and `show c' should show the appropriate part
             <property name="can_focus">False</property>
             <child>
               <object class="GtkMenuItem" id="main_menu_file">
+                <property name="use_action_appearance">False</property>
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="use_action_appearance">False</property>
                 <property name="label" translatable="yes">_File</property>
                 <property name="use_underline">True</property>
                 <child type="submenu">
@@ -383,26 +383,26 @@ The hypothetical commands `show w' and `show c' should show the appropriate part
                     <property name="can_focus">False</property>
                     <child>
                       <object class="GtkCheckMenuItem" id="main_menu_file_offline">
+                        <property name="related_action">offline</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="tooltip_text" translatable="yes">Work offline</property>
-                        <property name="related_action">offline</property>
                       </object>
                     </child>
                     <child>
                       <object class="GtkImageMenuItem" id="main_menu_file_refresh">
+                        <property name="related_action">refresh</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="related_action">refresh</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
                       </object>
                     </child>
                     <child>
                       <object class="GtkCheckMenuItem" id="main_menu_file_update">
+                        <property name="related_action">update</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="related_action">update</property>
                         <property name="use_underline">True</property>
                       </object>
                     </child>
@@ -414,9 +414,9 @@ The hypothetical commands `show w' and `show c' should show the appropriate part
                     </child>
                     <child>
                       <object class="GtkImageMenuItem" id="main_menu_file_cleancache">
+                        <property name="related_action">cleancache</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="related_action">cleancache</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
                       </object>
@@ -429,9 +429,9 @@ The hypothetical commands `show w' and `show c' should show the appropriate part
                     </child>
                     <child>
                       <object class="GtkImageMenuItem" id="main_menu_file_quit">
+                        <property name="related_action">quit</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="related_action">quit</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
                       </object>
@@ -442,9 +442,9 @@ The hypothetical commands `show w' and `show c' should show the appropriate part
             </child>
             <child>
               <object class="GtkMenuItem" id="main_menu_edit">
+                <property name="use_action_appearance">False</property>
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="use_action_appearance">False</property>
                 <property name="label" translatable="yes">_Edit</property>
                 <property name="use_underline">True</property>
                 <child type="submenu">
@@ -453,9 +453,9 @@ The hypothetical commands `show w' and `show c' should show the appropriate part
                     <property name="can_focus">False</property>
                     <child>
                       <object class="GtkImageMenuItem" id="main_menu_edit_prefs">
+                        <property name="related_action">prefs</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="related_action">prefs</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
                       </object>
@@ -466,9 +466,9 @@ The hypothetical commands `show w' and `show c' should show the appropriate part
             </child>
             <child>
               <object class="GtkMenuItem" id="main_menu_view">
+                <property name="use_action_appearance">False</property>
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="use_action_appearance">False</property>
                 <property name="label" translatable="yes">_View</property>
                 <property name="use_underline">True</property>
                 <child type="submenu">
@@ -477,18 +477,18 @@ The hypothetical commands `show w' and `show c' should show the appropriate part
                     <property name="can_focus">False</property>
                     <child>
                       <object class="GtkImageMenuItem" id="main_menu_view_zoomin">
+                        <property name="related_action">zoomin</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="related_action">zoomin</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
                       </object>
                     </child>
                     <child>
                       <object class="GtkImageMenuItem" id="main_menu_view_zoomout">
+                        <property name="related_action">zoomout</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="related_action">zoomout</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
                       </object>
@@ -501,9 +501,9 @@ The hypothetical commands `show w' and `show c' should show the appropriate part
                     </child>
                     <child>
                       <object class="GtkImageMenuItem" id="main_menu_view_fullscreen">
+                        <property name="related_action">fullscreen</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="related_action">fullscreen</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
                       </object>
@@ -514,18 +514,18 @@ The hypothetical commands `show w' and `show c' should show the appropriate part
             </child>
             <child>
               <object class="GtkMenuItem" id="main_menu_radar">
+                <property name="use_action_appearance">False</property>
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="use_action_appearance">False</property>
                 <property name="label" translatable="yes">_Radar</property>
                 <property name="use_underline">True</property>
               </object>
             </child>
             <child>
               <object class="GtkMenuItem" id="main_menu_help">
+                <property name="use_action_appearance">False</property>
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="use_action_appearance">False</property>
                 <property name="label" translatable="yes">_Help</property>
                 <property name="use_underline">True</property>
                 <child type="submenu">
@@ -534,18 +534,18 @@ The hypothetical commands `show w' and `show c' should show the appropriate part
                     <property name="can_focus">False</property>
                     <child>
                       <object class="GtkImageMenuItem" id="main_menu_help_userguide">
+                        <property name="related_action">userguide</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="related_action">userguide</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
                       </object>
                     </child>
                     <child>
                       <object class="GtkImageMenuItem" id="main_menu_help_manpage">
+                        <property name="related_action">manpage</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="related_action">manpage</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
                       </object>
@@ -558,9 +558,9 @@ The hypothetical commands `show w' and `show c' should show the appropriate part
                     </child>
                     <child>
                       <object class="GtkImageMenuItem" id="main_menu_help_about">
+                        <property name="related_action">about</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="related_action">about</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
                       </object>
@@ -583,9 +583,9 @@ The hypothetical commands `show w' and `show c' should show the appropriate part
             <property name="toolbar_style">icons</property>
             <child>
               <object class="GtkToolButton" id="main_tb_zoomin">
+                <property name="related_action">zoomin</property>
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="related_action">zoomin</property>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -594,9 +594,9 @@ The hypothetical commands `show w' and `show c' should show the appropriate part
             </child>
             <child>
               <object class="GtkToolButton" id="main_tb_zoomout">
+                <property name="related_action">zoomout</property>
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="related_action">zoomout</property>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -615,9 +615,9 @@ The hypothetical commands `show w' and `show c' should show the appropriate part
             </child>
             <child>
               <object class="GtkToggleToolButton" id="main_tb_fullscreen">
+                <property name="related_action">fullscreen</property>
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="related_action">fullscreen</property>
                 <property name="label" translatable="yes">toolbutton1</property>
                 <property name="use_underline">True</property>
               </object>
@@ -638,9 +638,9 @@ The hypothetical commands `show w' and `show c' should show the appropriate part
             </child>
             <child>
               <object class="GtkToggleToolButton" id="main_tb_offline">
+                <property name="related_action">offline</property>
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="related_action">offline</property>
                 <property name="label" translatable="yes">toolbutton3</property>
                 <property name="use_underline">True</property>
               </object>
@@ -651,9 +651,9 @@ The hypothetical commands `show w' and `show c' should show the appropriate part
             </child>
             <child>
               <object class="GtkToolButton" id="main_tb_refresh">
+                <property name="related_action">refresh</property>
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="related_action">refresh</property>
                 <property name="use_underline">True</property>
               </object>
               <packing>
@@ -663,9 +663,9 @@ The hypothetical commands `show w' and `show c' should show the appropriate part
             </child>
             <child>
               <object class="GtkToggleToolButton" id="main_tb_update">
+                <property name="related_action">update</property>
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="related_action">update</property>
                 <property name="label" translatable="yes">toolbutton1</property>
                 <property name="use_underline">True</property>
               </object>
@@ -686,9 +686,9 @@ The hypothetical commands `show w' and `show c' should show the appropriate part
             </child>
             <child>
               <object class="GtkToolButton" id="main_tb_prefs">
+                <property name="related_action">prefs</property>
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="related_action">prefs</property>
                 <property name="label" translatable="yes">toolbutton1</property>
                 <property name="use_underline">True</property>
               </object>
@@ -879,10 +879,10 @@ The hypothetical commands `show w' and `show c' should show the appropriate part
             <child>
               <object class="GtkButton" id="prefs_action_close">
                 <property name="label">gtk-close</property>
+                <property name="use_action_appearance">False</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
-                <property name="use_action_appearance">False</property>
                 <property name="use_stock">True</property>
               </object>
               <packing>
@@ -926,10 +926,10 @@ The hypothetical commands `show w' and `show c' should show the appropriate part
                             <child>
                               <object class="GtkCheckButton" id="prefs_general_offline">
                                 <property name="label" translatable="yes">Work offline</property>
+                                <property name="related_action">offline</property>
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
                                 <property name="receives_default">False</property>
-                                <property name="related_action">offline</property>
                                 <property name="draw_indicator">True</property>
                               </object>
                               <packing>
