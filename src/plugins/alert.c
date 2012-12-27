@@ -637,7 +637,7 @@ static gboolean _show_hide(GtkToggleButton *button, GritsPluginAlert *alert)
 			GRITS_OBJECT(msg->storm_based)->hidden  = !sshow || hide;
 	}
 
-	gtk_widget_queue_draw(GTK_WIDGET(alert->viewer));
+	grits_viewer_queue_draw(alert->viewer);
 	return TRUE;
 }
 
@@ -722,6 +722,7 @@ static gboolean _update_buttons(GritsPluginAlert *alert)
 	g_free(date_str);
 
 	gtk_widget_show_all(GTK_WIDGET(alert->config));
+	alert->update_source = 0;
 	return FALSE;
 }
 
@@ -730,13 +731,6 @@ static gint _sort_warnings(gconstpointer _a, gconstpointer _b)
 	const AlertMsg *a=_a, *b=_b;
 	return (a->info->prior <  b->info->prior) ? -1 :
 	       (a->info->prior == b->info->prior) ?  0 : 1;
-}
-
-static gboolean _update_end(gpointer _alert)
-{
-	GritsPluginAlert *alert = _alert;
-	gtk_widget_queue_draw(GTK_WIDGET(alert->viewer));
-	return FALSE;
 }
 
 static void _update_warnings(GritsPluginAlert *alert, GList *old)
@@ -763,12 +757,12 @@ static void _update_warnings(GritsPluginAlert *alert, GList *old)
 		AlertMsg *msg = cur->data;
 		msg->county_based = _load_county_based(alert, msg);
 	}
-	g_idle_add(_update_end, alert);
+	grits_viewer_queue_draw(alert->viewer);
 	for (GList *cur = alert->msgs; cur; cur = cur->next) {
 		AlertMsg *msg = cur->data;
 		msg->storm_based  = _load_storm_based(alert, msg);
 	}
-	g_idle_add(_update_end, alert);
+	grits_viewer_queue_draw(alert->viewer);
 
 	g_debug("GritsPluginAlert: _load_warnings - end");
 }
@@ -785,7 +779,8 @@ static void _update(gpointer _, gpointer _alert)
 	if (!(alert->msgs = msg_load_index(alert->http, when, &alert->updated, offline)))
 		return;
 
-	g_idle_add((GSourceFunc)_update_buttons, alert);
+	if (!alert->update_source)
+		alert->update_source = g_idle_add((GSourceFunc)_update_buttons, alert);
 	_update_warnings(alert, old);
 
 	g_list_foreach(old, (GFunc)msg_free, NULL);
@@ -958,14 +953,13 @@ static void grits_plugin_alert_dispose(GObject *gobject)
 	/* Drop references */
 	if (alert->viewer) {
 		GritsViewer *viewer = alert->viewer;
-		alert->viewer       = NULL;
 		g_signal_handler_disconnect(viewer, alert->refresh_id);
 		g_signal_handler_disconnect(viewer, alert->time_changed_id);
 		soup_session_abort(alert->http->soup);
 		g_thread_pool_free(alert->threads, TRUE, TRUE);
-		gtk_widget_destroy(alert->details);
-		while (gtk_events_pending())
-			gtk_main_iteration();
+		if (alert->update_source)
+			g_source_remove(alert->update_source);
+		alert->viewer = NULL;
 		for (GList *cur = alert->msgs; cur; cur = cur->next) {
 			AlertMsg *msg = cur->data;
 			if (msg->county_based) grits_viewer_remove(viewer,
@@ -975,6 +969,7 @@ static void grits_plugin_alert_dispose(GObject *gobject)
 		}
 		for (GList *cur = alert->states; cur; cur = cur->next)
 			grits_viewer_remove(viewer, cur->data);
+		gtk_widget_destroy(alert->details);
 		g_object_unref(alert->prefs);
 		g_object_unref(viewer);
 	}

@@ -43,6 +43,7 @@ struct _GritsPluginAlert {
 	GritsHttp   *http;
 	guint        refresh_id;
 	guint        time_changed_id;
+	guint        update_source;
 	GThreadPool *threads;
 
 	GList       *msgs;

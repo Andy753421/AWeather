@@ -100,6 +100,7 @@ struct _RadarSite {
 	guint           time_id;     // "time-changed"     callback ID
 	guint           refresh_id;  // "refresh"          callback ID
 	guint           location_id; // "locaiton-changed" callback ID
+	guint           idle_source; // _site_update_end idle source
 };
 
 /* format: http://mesonet.agron.iastate.edu/data/nexrd2/raw/KABR/KABR_20090510_0323 */
@@ -134,6 +135,7 @@ gboolean _site_update_end(gpointer _site)
 				aweather_level2_get_config(site->level2));
 	}
 	site->status = STATUS_LOADED;
+	site->idle_source = 0;
 	return FALSE;
 }
 gpointer _site_update_thread(gpointer _site)
@@ -192,7 +194,8 @@ gpointer _site_update_thread(gpointer _site)
 			GRITS_LEVEL_WORLD+3, TRUE);
 
 out:
-	g_idle_add(_site_update_end, site);
+	if (!site->idle_source)
+		site->idle_source = g_idle_add(_site_update_end, site);
 	return NULL;
 }
 void _site_update(RadarSite *site)
@@ -234,6 +237,9 @@ void radar_site_unload(RadarSite *site)
 		g_signal_handler_disconnect(site->viewer, site->time_id);
 	if (site->refresh_id)
 		g_signal_handler_disconnect(site->viewer, site->refresh_id);
+	if (site->idle_source)
+		g_source_remove(site->idle_source);
+	site->idle_source = 0;
 
 	/* Remove tab */
 	if (site->config)
@@ -357,6 +363,7 @@ struct _RadarConus {
 
 	guint        time_id;     // "time-changed"     callback ID
 	guint        refresh_id;  // "refresh"          callback ID
+	guint        idle_source; // _conus_update_end idle source
 };
 
 void _conus_update_loading(gchar *file, goffset cur,
@@ -375,14 +382,11 @@ void _conus_update_loading(gchar *file, goffset cur,
 /* Copy images to graphics memory */
 static void _conus_update_end_copy(GritsTile *tile, guchar *pixels)
 {
-	if (!tile->data) {
-		tile->data = g_new0(guint, 1);
-		glGenTextures(1, tile->data);
-	}
+	if (!tile->tex)
+		glGenTextures(1, &tile->tex);
 
 	gchar *clear = g_malloc0(2048*2048*4);
-	guint *tex = tile->data;
-	glBindTexture(GL_TEXTURE_2D, *tex);
+	glBindTexture(GL_TEXTURE_2D, tile->tex);
 
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 	glPixelStorei(GL_PACK_ALIGNMENT, 1);
@@ -480,10 +484,11 @@ gboolean _conus_update_end(gpointer _conus)
 	/* Update GUI */
 	gchar *label = g_path_get_basename(conus->path);
 	_gtk_bin_set_child(GTK_BIN(conus->config), gtk_label_new(label));
-	gtk_widget_queue_draw(GTK_WIDGET(conus->viewer));
+	grits_viewer_queue_draw(conus->viewer);
 	g_free(label);
 
 out:
+	conus->idle_source = 0;
 	g_free(conus->path);
 	g_mutex_unlock(&conus->loading);
 	return FALSE;
@@ -537,7 +542,8 @@ gpointer _conus_update_thread(gpointer _conus)
 
 out:
 	g_debug("Conus: update_thread - done");
-	g_idle_add(_conus_update_end, conus);
+	if (!conus->idle_source)
+		conus->idle_source = g_idle_add(_conus_update_end, conus);
 	return NULL;
 }
 
@@ -593,14 +599,13 @@ void radar_conus_free(RadarConus *conus)
 {
 	g_signal_handler_disconnect(conus->viewer, conus->time_id);
 	g_signal_handler_disconnect(conus->viewer, conus->refresh_id);
+	if (conus->idle_source)
+		g_source_remove(conus->idle_source);
 
 	for (int i = 0; i < 2; i++) {
 		GritsTile *tile = conus->tile[i];
-		if (tile->data) {
-			glDeleteTextures(1, tile->data);
-			g_free(tile->data);
-		}
 		grits_viewer_remove(conus->viewer, GRITS_OBJECT(tile));
+		g_object_unref(tile);
 	}
 
 	g_object_unref(conus->viewer);
@@ -698,7 +703,7 @@ static void _update_hidden(GtkNotebook *notebook,
 			g_warning("GritsPluginRadar: _update_hidden - no site or counus found");
 		}
 	}
-	gtk_widget_queue_draw(GTK_WIDGET(viewer));
+	grits_viewer_queue_draw(viewer);
 }
 
 /* Methods */
@@ -707,8 +712,8 @@ GritsPluginRadar *grits_plugin_radar_new(GritsViewer *viewer, GritsPrefs *prefs)
 	/* TODO: move to constructor if possible */
 	g_debug("GritsPluginRadar: new");
 	GritsPluginRadar *self = g_object_new(GRITS_TYPE_PLUGIN_RADAR, NULL);
-	self->viewer = viewer;
-	self->prefs  = prefs;
+	self->viewer = g_object_ref(viewer);
+	self->prefs  = g_object_ref(prefs);
 
 	/* Setup page switching */
 	self->tab_id = g_signal_connect(self->config, "switch-page",
@@ -762,7 +767,7 @@ static void grits_plugin_radar_init(GritsPluginRadar *self)
 			"conus"  G_DIR_SEPARATOR_S);
 	self->sites      = g_hash_table_new_full(g_str_hash, g_str_equal,
 				NULL, (GDestroyNotify)radar_site_free);
-	self->config     = gtk_notebook_new();
+	self->config     = g_object_ref(gtk_notebook_new());
 
 	/* Load colormaps */
 	for (int i = 0; colormaps[i].file; i++) {
@@ -785,6 +790,11 @@ static void grits_plugin_radar_dispose(GObject *gobject)
 		g_signal_handler_disconnect(self->config, self->tab_id);
 		grits_viewer_remove(viewer, GRITS_OBJECT(self->hud));
 		radar_conus_free(self->conus);
+		g_hash_table_destroy(self->sites);
+		g_object_unref(self->config);
+		g_object_unref(self->hud);
+		g_object_unref(self->prefs);
+		g_object_unref(viewer);
 	}
 	/* Drop references */
 	G_OBJECT_CLASS(grits_plugin_radar_parent_class)->dispose(gobject);
@@ -796,7 +806,6 @@ static void grits_plugin_radar_finalize(GObject *gobject)
 	/* Free data */
 	grits_http_free(self->conus_http);
 	grits_http_free(self->sites_http);
-	g_hash_table_destroy(self->sites);
 	gtk_widget_destroy(self->config);
 	G_OBJECT_CLASS(grits_plugin_radar_parent_class)->finalize(gobject);
 

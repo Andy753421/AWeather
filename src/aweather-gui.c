@@ -560,7 +560,7 @@ void aweather_gui_attach_plugin(AWeatherGui *self, const gchar *name)
 		gtk_notebook_append_page(GTK_NOTEBOOK(config), body, tab);
 		gtk_widget_show_all(config);
 	}
-	gtk_widget_queue_draw(GTK_WIDGET(self->viewer));
+	grits_viewer_queue_draw(self->viewer);
 }
 void aweather_gui_deattach_plugin(AWeatherGui *self, const gchar *name)
 {
@@ -577,7 +577,7 @@ void aweather_gui_deattach_plugin(AWeatherGui *self, const gchar *name)
 			gtk_notebook_remove_page(GTK_NOTEBOOK(config), i);
 	}
 	grits_plugins_disable(self->plugins, name);
-	gtk_widget_queue_draw(GTK_WIDGET(self->viewer));
+	grits_viewer_queue_draw(self->viewer);
 }
 void aweather_gui_load_plugins(AWeatherGui *self)
 {
