@@ -99,12 +99,12 @@ static void setup_mac(AWeatherGui *gui)
 {
 #ifdef MAC_INTEGRATION
 	GtkWidget *menu = aweather_gui_get_widget(gui, "main_menu");
-	GtkOSXApplication *app = g_object_new(GTK_TYPE_OSX_APPLICATION, NULL);
+	GtkosxApplication *app = g_object_new(GTKOSX_TYPE_APPLICATION, NULL);
 	gtk_widget_hide(menu);
-	gtk_osxapplication_set_menu_bar(app, GTK_MENU_SHELL(menu));
-	gtk_osxapplication_set_use_quartz_accelerators(app, TRUE);
-	gtk_osxapplication_ready(app);
-	//gtk_osxapplication_sync_menubar(app)
+	gtkosx_application_set_menu_bar(app, GTK_MENU_SHELL(menu));
+	gtkosx_application_set_use_quartz_accelerators(app, TRUE);
+	gtkosx_application_ready(app);
+	//gtkosx_application_sync_menubar(app)
 #endif
 }
 
