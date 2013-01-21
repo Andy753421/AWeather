@@ -30,6 +30,8 @@
 #include "level2.h"
 #include "../aweather-location.h"
 
+#include "compat.h"
+
 static void aweather_bin_set_child(GtkBin *bin, GtkWidget *new)
 {
 	GtkWidget *old = gtk_bin_get_child(bin);
@@ -123,9 +125,10 @@ gboolean _site_update_end(gpointer _site)
 		g_warning("RadarSite: update_end - %s", site->message);
 		const char *fmt = "http://forecast.weather.gov/product.php?site=NWS&product=FTM&format=TXT&issuedby=%s";
 		char       *uri = g_strdup_printf(fmt, site->city->code+1);
-		GtkWidget  *box = gtk_vbox_new(TRUE, 0);
+		GtkWidget  *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
 		GtkWidget  *msg = gtk_label_new(site->message);
 		GtkWidget  *btn = gtk_link_button_new_with_label(uri, "View Radar Status");
+		gtk_box_set_homogeneous(GTK_BOX(box), TRUE);
 		gtk_box_pack_start(GTK_BOX(box), msg, TRUE, TRUE, 0);
 		gtk_box_pack_start(GTK_BOX(box), btn, TRUE, TRUE, 0);
 		aweather_bin_set_child(GTK_BIN(site->config), box);

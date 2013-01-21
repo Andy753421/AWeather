@@ -24,6 +24,8 @@
 #include "alert.h"
 #include "alert-info.h"
 
+#include "compat.h"
+
 #define MSG_INDEX "http://alerts.weather.gov/cap/us.php?x=0"
 #define CONFIG_HEIGHT 3
 
@@ -477,7 +479,7 @@ static GtkWidget *_make_msg_details(AlertMsg *msg)
 	g_free(alert_str);
 
 	GtkWidget *align = gtk_alignment_new(0, 0, 1, 1);
-	GtkWidget *box   = gtk_vbox_new(FALSE, 10);
+	GtkWidget *box   = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
 	gtk_alignment_set_padding(GTK_ALIGNMENT(align), 10, 10, 10, 10);
 	gtk_container_add(GTK_CONTAINER(align), box);
 	gtk_box_pack_start(GTK_BOX(box), title, FALSE, FALSE, 0);
@@ -797,10 +799,10 @@ static void _on_update(GritsPluginAlert *alert)
 /* Init helpers */
 static GtkWidget *_make_config(GritsPluginAlert *alert)
 {
-	GtkWidget *config = gtk_vbox_new(FALSE, 0);
+	GtkWidget *config = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
 
 	/* Setup tools area */
-	GtkWidget *tools   = gtk_hbox_new(FALSE, 10);
+	GtkWidget *tools   = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
 	GtkWidget *updated = gtk_label_new(" Loading...");
 	GtkWidget *storm_based  = gtk_toggle_button_new_with_label("Storm based");
 	GtkWidget *county_based = gtk_toggle_button_new_with_label("County based");
@@ -819,7 +821,7 @@ static GtkWidget *_make_config(GritsPluginAlert *alert)
 	gchar *labels[] = {"<b>Warnings</b>", "<b>Watches</b>",
 	                   "<b>Advisories</b>", "<b>Other</b>"};
 	gchar *keys[]   = {"warning",  "watch",   "advisory",   "other"};
-	GtkWidget *alerts = gtk_hbox_new(FALSE, 10);
+	GtkWidget *alerts = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
 	for (int i = 0; i < G_N_ELEMENTS(labels); i++) {
 		GtkWidget *frame = gtk_frame_new(labels[i]);
 		GtkWidget *table = gtk_table_new(1, 1, TRUE);

@@ -40,6 +40,8 @@
 #include "level2.h"
 #include "../aweather-location.h"
 
+#include "compat.h"
+
 /* interval to update map with new gps data in seconds. */
 #define GPS_UPDATE_INTERVAL     (2)
 
@@ -695,7 +697,7 @@ static void gps_init_control_frame(GritsPluginGps *gps, GtkWidget *gbox)
 	gtk_label_set_use_markup(GTK_LABEL(label), TRUE);
 	gtk_frame_set_shadow_type(GTK_FRAME(gps_control_frame),
 	                   GTK_SHADOW_NONE);
-	GtkWidget *cbox = gtk_vbox_new(FALSE, 2);
+	GtkWidget *cbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
 	gtk_container_add(GTK_CONTAINER(gps_control_frame), cbox);
 	gtk_box_pack_start(GTK_BOX(gbox), gps_control_frame, FALSE, FALSE, 0);
 
@@ -782,7 +784,7 @@ static void gps_init_track_log_frame(GritsPluginGps *gps, GtkWidget *gbox)
 	GtkWidget *label = gtk_frame_get_label_widget(GTK_FRAME(gps_log_frame));
 	gtk_label_set_use_markup(GTK_LABEL(label), TRUE);
 	gtk_frame_set_shadow_type(GTK_FRAME(gps_log_frame), GTK_SHADOW_NONE);
-	GtkWidget *lbox = gtk_vbox_new(FALSE, 2);
+	GtkWidget *lbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
 	gtk_container_add(GTK_CONTAINER(gps_log_frame), lbox);
 	gtk_box_pack_start(GTK_BOX(gbox), gps_log_frame,
 			FALSE, FALSE, 0);
@@ -796,7 +798,7 @@ static void gps_init_track_log_frame(GritsPluginGps *gps, GtkWidget *gbox)
 	       FALSE, FALSE, 0);
 
 	/* Set up filename entry box */
-	GtkWidget *fbox = gtk_hbox_new(FALSE, 2);
+	GtkWidget *fbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
 	GtkWidget *filename_label = gtk_label_new("Filename:");
 	gtk_box_pack_start(GTK_BOX(fbox), filename_label, FALSE, FALSE, 0);
 	gps->ui.gps_log_filename_entry = gtk_entry_new();
@@ -805,11 +807,11 @@ static void gps_init_track_log_frame(GritsPluginGps *gps, GtkWidget *gbox)
 	gtk_box_pack_start(GTK_BOX(lbox), fbox, FALSE, FALSE, 0);
 
 	/* set up gps log interval slider */
-	GtkWidget *ubox = gtk_hbox_new(FALSE, 4);
+	GtkWidget *ubox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 4);
 	GtkWidget *interval_label = gtk_label_new("Update Interval:");
 	gtk_box_pack_start(GTK_BOX(ubox), interval_label, FALSE, FALSE, 0);
 	gps->ui.gps_log_interval_slider =
-	            gtk_hscale_new_with_range(1.0, 600.0, 30.0);
+	            gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, 1.0, 600.0, 30.0);
 	gtk_range_set_value(GTK_RANGE(gps->ui.gps_log_interval_slider),
 	            GPS_LOG_DEFAULT_UPDATE_INTERVAL);
 	g_signal_connect(G_OBJECT(gps->ui.gps_log_interval_slider),
@@ -921,7 +923,7 @@ static void grits_plugin_gps_init(GritsPluginGps *gps)
 {
 	g_debug("GritsPluginGps: gps_init");
 
-	gps->config     = gtk_hbox_new(FALSE, 15);
+	gps->config = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 15);
 }
 
 static void grits_plugin_gps_dispose(GObject *gobject)

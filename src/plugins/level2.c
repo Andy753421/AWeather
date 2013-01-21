@@ -23,6 +23,8 @@
 
 #include "level2.h"
 
+#include "compat.h"
+
 #define ISO_MIN 30
 #define ISO_MAX 80
 
@@ -459,7 +461,8 @@ GtkWidget *aweather_level2_get_config(AWeatherLevel2 *level2)
 							cols-1,cols, 0,1, GTK_FILL,GTK_FILL, 0,0);
 				}
 
-				elev_box = gtk_hbox_new(TRUE, 0);
+				elev_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+				gtk_box_set_homogeneous(GTK_BOX(elev_box), TRUE);
 				gtk_table_attach(GTK_TABLE(table), elev_box,
 						cols-1,cols, rows-1,rows, GTK_FILL,GTK_FILL, 0,0);
 			}
@@ -489,7 +492,7 @@ GtkWidget *aweather_level2_get_config(AWeatherLevel2 *level2)
 	gtk_misc_set_alignment(GTK_MISC(row_label), 1, 0.5);
 	gtk_table_attach(GTK_TABLE(table), row_label,
 			0,1, rows,rows+1, GTK_FILL,GTK_FILL, 5,0);
-	GtkWidget *scale = gtk_hscale_new_with_range(ISO_MIN, ISO_MAX, 0.5);
+	GtkWidget *scale = gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, ISO_MIN, ISO_MAX, 0.5);
 	gtk_widget_set_size_request(scale, -1, 26);
 	gtk_scale_set_value_pos(GTK_SCALE(scale), GTK_POS_LEFT);
 	gtk_range_set_inverted(GTK_RANGE(scale), TRUE);
