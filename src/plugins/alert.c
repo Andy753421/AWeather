@@ -848,7 +848,7 @@ static gboolean _clear_details(GtkWidget *dialog)
 	return TRUE;
 }
 
-static gboolean _set_details_uri(GtkWidget *notebook, GtkNotebookPage *_,
+static gboolean _set_details_uri(GtkWidget *notebook, gpointer _,
 		guint num, GtkWidget *button)
 {
 	g_debug("_set_details_uri");

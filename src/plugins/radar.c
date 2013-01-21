@@ -680,7 +680,7 @@ out:
 }
 
 static void _update_hidden(GtkNotebook *notebook,
-		GtkNotebookPage *page, guint page_num, gpointer viewer)
+		gpointer _, guint page_num, gpointer viewer)
 {
 	g_debug("GritsPluginRadar: _update_hidden - 0..%d = %d",
 			gtk_notebook_get_n_pages(notebook), page_num);
