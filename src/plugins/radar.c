@@ -299,6 +299,24 @@ void _site_on_location_changed(GritsViewer *viewer,
 		radar_site_unload(site);
 }
 
+static gboolean on_marker_clicked(GritsObject *marker, GdkEvent *event, RadarSite *site)
+{
+	GritsViewer *viewer = site->viewer;
+	GritsPoint center = marker->center;
+	grits_viewer_set_location(viewer, center.lat, center.lon, EARTH_R/35);
+	grits_viewer_set_rotation(viewer, 0, 0, 0);
+	/* Recursivly set notebook tabs */
+	GtkWidget *widget, *parent;
+	for (widget = site->config; widget; widget = parent) {
+		parent = gtk_widget_get_parent(widget);
+		if (GTK_IS_NOTEBOOK(parent)) {
+			gint i = gtk_notebook_page_num(GTK_NOTEBOOK(parent), widget);
+			gtk_notebook_set_current_page(GTK_NOTEBOOK(parent), i);
+		}
+	}
+	return TRUE;
+}
+
 RadarSite *radar_site_new(city_t *city, GtkWidget *pconfig,
 		GritsViewer *viewer, GritsPrefs *prefs, GritsHttp *http)
 {
@@ -324,6 +342,9 @@ RadarSite *radar_site_new(city_t *city, GtkWidget *pconfig,
 	GRITS_OBJECT(site->marker)->lod    = EARTH_R*0.75*site->city->lod;
 	grits_viewer_add(site->viewer, GRITS_OBJECT(site->marker),
 			GRITS_LEVEL_HUD, FALSE);
+	g_signal_connect(site->marker, "clicked",
+			G_CALLBACK(on_marker_clicked), site);
+	grits_object_set_cursor(GRITS_OBJECT(site->marker), GDK_HAND2);
 
 	/* Connect signals */
 	site->location_id  = g_signal_connect(viewer, "location-changed",
