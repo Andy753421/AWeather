@@ -144,7 +144,6 @@ int main(int argc, char *argv[])
 
 	/* Init */
 	GError *error = NULL;
-	gdk_threads_init();
 	if (!gtk_init_with_args(&argc, &argv, "aweather", entries, NULL, &error)) {
 		g_print("%s\n", error->message);
 		g_error_free(error);
@@ -161,7 +160,6 @@ int main(int argc, char *argv[])
 	log_levels = int2log(opt_debug >= 0 ? opt_debug : debug);
 
 	/* Set up AWeather */
-	gdk_threads_enter();
 	/* Pre-load some types for gtkbuilder */
 	GRITS_TYPE_OPENGL;
 	AWEATHER_TYPE_GUI;
@@ -200,7 +198,6 @@ int main(int argc, char *argv[])
 	set_toggle_action(gui, "fullscreen", fullscreen); // Resest widget hiding
 	setup_mac(gui);	// done after show_all
 	gtk_main();
-	gdk_threads_leave();
-	gdk_display_close(gdk_display_get_default());
+	//gdk_display_close(gdk_display_get_default());
 	return 0;
 }
