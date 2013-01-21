@@ -832,7 +832,7 @@ static void gps_init_track_log_frame(GritsPluginGps *gps, GtkWidget *gbox)
  * GPSD interfaces *
  *******************/
 
-static void process_gps(gpointer data, gint source, GdkInputCondition condition)
+static gboolean process_gps(GIOChannel *source, GIOCondition condition, gpointer data)
 {
 	struct gps_data_t *gps_data = (struct gps_data_t *)data;
 
@@ -850,6 +850,7 @@ static void process_gps(gpointer data, gint source, GdkInputCondition condition)
 	} else {
 		g_warning("GritsPluginGps: process_gps - gps_data == NULL.");
 	}
+	return TRUE;
 }
 
 static gint initialize_gpsd(char *server, gchar *port, struct gps_data_t *gps_data)
@@ -866,7 +867,10 @@ static gint initialize_gpsd(char *server, gchar *port, struct gps_data_t *gps_da
 
 	(void)gps_stream(gps_data, WATCH_ENABLE|WATCH_JSON, NULL);
 	g_debug("GritsPluginGps: initialize_gpsd - gpsd fd %u.", gps_data->gps_fd);
-	return gdk_input_add(gps_data->gps_fd, GDK_INPUT_READ, process_gps, gps_data);
+	GIOChannel *channel = g_io_channel_unix_new(gps_data->gps_fd);
+	gint input_tag = g_io_add_watch(channel, G_IO_IN, process_gps, gps_data);
+	g_io_channel_unref(channel);
+	return input_tag;
 }
 
 
@@ -935,7 +939,7 @@ static void grits_plugin_gps_dispose(GObject *gobject)
 		gps->ui.gps_log_timeout_id = 0;
 	}
 	if (gps->input_tag) {
-		gdk_input_remove(gps->input_tag);
+		g_source_remove(gps->input_tag);
 		gps->input_tag = 0;
 	}
 	if (gps->viewer) {
