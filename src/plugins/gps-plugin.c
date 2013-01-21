@@ -821,9 +821,11 @@ static void gps_init_track_log_frame(GritsPluginGps *gps, GtkWidget *gbox)
 	gtk_range_set_increments(
 	            GTK_RANGE(gps->ui.gps_log_interval_slider),
 	            10.0 /* step */, 30.0 /* page up/down */);
+#if ! GTK_CHECK_VERSION(3,0,0)
 	gtk_range_set_update_policy(
 	            GTK_RANGE(gps->ui.gps_log_interval_slider),
 	            GTK_UPDATE_DELAYED);
+#endif
 	gtk_box_pack_start(GTK_BOX(ubox), gps->ui.gps_log_interval_slider,
 	            TRUE, TRUE, 0);
 	gtk_box_pack_start(GTK_BOX(lbox), ubox, FALSE, FALSE, 0);

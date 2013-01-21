@@ -51,11 +51,13 @@ static void log_func(const gchar *log_domain, GLogLevelFlags log_level,
 	}
 }
 
+#if ! GTK_CHECK_VERSION(3,0,0)
 static void xdg_open(GtkWidget *widget, const gchar *link, gpointer user_data)
 {
 	gchar *argv[] = {"xdg-open", (gchar*)link, NULL};
 	g_spawn_async(NULL, argv, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL, NULL, NULL);
 }
+#endif
 
 static void on_log_level_changed(GtkSpinButton *spinner, AWeatherGui *self)
 {
@@ -151,9 +153,11 @@ int main(int argc, char *argv[])
 	}
 
 	/* Use external handler for link buttons */
+#if ! GTK_CHECK_VERSION(3,0,0)
 	gtk_link_button_set_uri_hook((GtkLinkButtonUriFunc)xdg_open, NULL, NULL);
 	gtk_about_dialog_set_url_hook((GtkAboutDialogActivateLinkFunc)xdg_open, NULL, NULL);
 	gtk_about_dialog_set_email_hook((GtkAboutDialogActivateLinkFunc)xdg_open, NULL, NULL);
+#endif
 
 	/* Setup debug level for aweather_gui_new */
 	g_log_set_handler(NULL, G_LOG_LEVEL_MASK, log_func, NULL);
