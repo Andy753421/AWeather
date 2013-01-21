@@ -30,7 +30,7 @@
 #include "level2.h"
 #include "../aweather-location.h"
 
-static void _gtk_bin_set_child(GtkBin *bin, GtkWidget *new)
+static void aweather_bin_set_child(GtkBin *bin, GtkWidget *new)
 {
 	GtkWidget *old = gtk_bin_get_child(bin);
 	if (old)
@@ -128,10 +128,10 @@ gboolean _site_update_end(gpointer _site)
 		GtkWidget  *btn = gtk_link_button_new_with_label(uri, "View Radar Status");
 		gtk_box_pack_start(GTK_BOX(box), msg, TRUE, TRUE, 0);
 		gtk_box_pack_start(GTK_BOX(box), btn, TRUE, TRUE, 0);
-		_gtk_bin_set_child(GTK_BIN(site->config), box);
+		aweather_bin_set_child(GTK_BIN(site->config), box);
 		g_free(uri);
 	} else {
-		_gtk_bin_set_child(GTK_BIN(site->config),
+		aweather_bin_set_child(GTK_BIN(site->config),
 				aweather_level2_get_config(site->level2));
 	}
 	site->status = STATUS_LOADED;
@@ -211,7 +211,7 @@ void _site_update(RadarSite *site)
 	/* Add a progress bar */
 	GtkWidget *progress = gtk_progress_bar_new();
 	gtk_progress_bar_set_text(GTK_PROGRESS_BAR(progress), "Loading...");
-	_gtk_bin_set_child(GTK_BIN(site->config), progress);
+	aweather_bin_set_child(GTK_BIN(site->config), progress);
 
 	/* Remove old volume */
 	g_debug("RadarSite: update - remove - %s", site->city->code);
@@ -450,7 +450,7 @@ gboolean _conus_update_end(gpointer _conus)
 	/* Check error status */
 	if (conus->message) {
 		g_warning("Conus: update_end - %s", conus->message);
-		_gtk_bin_set_child(GTK_BIN(conus->config), gtk_label_new(conus->message));
+		aweather_bin_set_child(GTK_BIN(conus->config), gtk_label_new(conus->message));
 		goto out;
 	}
 
@@ -459,7 +459,7 @@ gboolean _conus_update_end(gpointer _conus)
 	GdkPixbuf *pixbuf = gdk_pixbuf_new_from_file(conus->path, &error);
 	if (!pixbuf || error) {
 		g_warning("Conus: update_end - error loading pixbuf: %s", conus->path);
-		_gtk_bin_set_child(GTK_BIN(conus->config), gtk_label_new("Error loading pixbuf"));
+		aweather_bin_set_child(GTK_BIN(conus->config), gtk_label_new("Error loading pixbuf"));
 		g_remove(conus->path);
 		goto out;
 	}
@@ -483,7 +483,7 @@ gboolean _conus_update_end(gpointer _conus)
 
 	/* Update GUI */
 	gchar *label = g_path_get_basename(conus->path);
-	_gtk_bin_set_child(GTK_BIN(conus->config), gtk_label_new(label));
+	aweather_bin_set_child(GTK_BIN(conus->config), gtk_label_new(label));
 	grits_viewer_queue_draw(conus->viewer);
 	g_free(label);
 
@@ -558,7 +558,7 @@ void _conus_update(RadarConus *conus)
 	/* Add a progress bar */
 	GtkWidget *progress = gtk_progress_bar_new();
 	gtk_progress_bar_set_text(GTK_PROGRESS_BAR(progress), "Loading...");
-	_gtk_bin_set_child(GTK_BIN(conus->config), progress);
+	aweather_bin_set_child(GTK_BIN(conus->config), progress);
 
 	g_thread_new("conus-update-thread", _conus_update_thread, conus);
 }
