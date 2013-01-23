@@ -321,22 +321,22 @@ GList *msg_load_index(GritsHttp *http, time_t when, time_t *updated, gboolean of
 	return msgs;
 }
 
-void msg_load_cap(GritsHttp *http, AlertMsg *msg)
+gboolean msg_load_cap(GritsHttp *http, AlertMsg *msg)
 {
 	if (msg->description || msg->instruction || msg->polygon)
-		return;
+		return TRUE;
 	g_debug("GritsPlguinAlert: update_cap");
 
 	/* Download */
 	gchar *id = strrchr(msg->link, '=');
-	if (!id) return; id++;
+	if (!id) return FALSE; id++;
 	gchar *dir  = g_strdelimit(g_strdup(msg->info->abbr), " ", '_');
 	gchar *tmp  = g_strdup_printf("%s/%s.xml", dir, id);
 	gchar *file = grits_http_fetch(http, msg->link, tmp, GRITS_ONCE, NULL, NULL);
 	g_free(tmp);
 	g_free(dir);
 	if (!file)
-		return;
+		return FALSE;
 
 	/* Parse */
 	gchar *text; gsize len;
@@ -344,6 +344,7 @@ void msg_load_cap(GritsHttp *http, AlertMsg *msg)
 	msg_parse_cap(msg, text, len);
 	g_free(file);
 	g_free(text);
+	return TRUE;
 }
 
 
@@ -503,7 +504,10 @@ static gboolean _show_details(GritsPoly *county, GdkEvent *_, GritsPluginAlert *
 {
 	/* Add details for this messages */
 	AlertMsg *msg = g_object_get_data(G_OBJECT(county), "msg");
-	msg_load_cap(alert->http, msg);
+
+	// TODO: move this to a thread since it blocks on net access
+	if (!msg_load_cap(alert->http, msg))
+		return FALSE;
 
 	GtkWidget *dialog   = alert->details;
 	GtkWidget *content  = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
@@ -577,7 +581,11 @@ static GritsPoly *_load_storm_based(GritsPluginAlert *alert, AlertMsg *msg)
 	if (!msg->info->ispoly)
 		return NULL;
 
-	msg_load_cap(alert->http, msg);
+	if (!msg_load_cap(alert->http, msg))
+		return NULL;
+
+	if (!msg->polygon)
+		return NULL;
 
 	GritsPoly *poly = grits_poly_parse(msg->polygon, "\t", " ", ",");
 	_load_common(alert, msg, poly, 0, 1, 3, "alert/hide_storm_based");
@@ -767,6 +775,8 @@ static void _update_warnings(GritsPluginAlert *alert, GList *old)
 	for (GList *cur = alert->msgs; cur; cur = cur->next) {
 		AlertMsg *msg = cur->data;
 		msg->storm_based  = _load_storm_based(alert, msg);
+		if (alert->aborted)
+			return;
 	}
 	grits_viewer_queue_draw(alert->viewer);
 
@@ -777,6 +787,8 @@ static void _update_warnings(GritsPluginAlert *alert, GList *old)
 static void _update(gpointer _, gpointer _alert)
 {
 	GritsPluginAlert *alert = _alert;
+	if (alert->aborted)
+		return;
 	GList *old = alert->msgs;
 	g_debug("GritsPluginAlert: _update");
 
@@ -956,12 +968,13 @@ static void grits_plugin_alert_dispose(GObject *gobject)
 {
 	g_debug("GritsPluginAlert: dispose");
 	GritsPluginAlert *alert = GRITS_PLUGIN_ALERT(gobject);
+	alert->aborted = TRUE;
 	/* Drop references */
 	if (alert->viewer) {
 		GritsViewer *viewer = alert->viewer;
 		g_signal_handler_disconnect(viewer, alert->refresh_id);
 		g_signal_handler_disconnect(viewer, alert->time_changed_id);
-		soup_session_abort(alert->http->soup);
+		grits_http_abort(alert->http);
 		g_thread_pool_free(alert->threads, TRUE, TRUE);
 		if (alert->update_source)
 			g_source_remove(alert->update_source);

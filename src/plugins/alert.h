@@ -45,6 +45,7 @@ struct _GritsPluginAlert {
 	guint        time_changed_id;
 	guint        update_source;
 	GThreadPool *threads;
+	gboolean     aborted;
 
 	GList       *msgs;
 	time_t       updated;
