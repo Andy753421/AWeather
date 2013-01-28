@@ -1,5 +1,5 @@
 # Init and options
-AC_INIT([aweather], [0.7], [andy753421@gmail.com])
+AC_INIT([aweather], [0.8], [andy753421@gmail.com])
 AM_INIT_AUTOMAKE([-Wall -Werror -Wno-portability foreign])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])
@@ -14,7 +14,7 @@ PKG_PROG_PKG_CONFIG
 
 # Check for required packages
 PKG_CHECK_MODULES(GLIB,  glib-2.0)
-PKG_CHECK_MODULES(GRITS, grits >= 0.6)
+PKG_CHECK_MODULES(GRITS, grits >= 0.8)
 
 # Check for gpsd support
 AC_ARG_ENABLE([gps],
