@@ -7,6 +7,8 @@ if !SYS_MAC
 AM_LDFLAGS += -Wl,--as-needed 
 endif
 
+EXTRA_DIST  = compat.h
+
 bin_PROGRAMS = aweather wsr88ddec
 aweather_SOURCES  = main.c \
 	aweather-gui.c      aweather-gui.h \

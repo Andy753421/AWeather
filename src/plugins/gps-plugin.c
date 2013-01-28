@@ -40,7 +40,7 @@
 #include "level2.h"
 #include "../aweather-location.h"
 
-#include "compat.h"
+#include "../compat.h"
 
 /* interval to update map with new gps data in seconds. */
 #define GPS_UPDATE_INTERVAL     (2)

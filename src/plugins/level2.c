@@ -23,7 +23,7 @@
 
 #include "level2.h"
 
-#include "compat.h"
+#include "../compat.h"
 
 #define ISO_MIN 30
 #define ISO_MAX 80

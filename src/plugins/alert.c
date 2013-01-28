@@ -24,7 +24,7 @@
 #include "alert.h"
 #include "alert-info.h"
 
-#include "compat.h"
+#include "../compat.h"
 
 #define MSG_INDEX "http://alerts.weather.gov/cap/us.php?x=0"
 #define CONFIG_HEIGHT 3

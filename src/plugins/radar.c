@@ -30,7 +30,7 @@
 #include "level2.h"
 #include "../aweather-location.h"
 
-#include "compat.h"
+#include "../compat.h"
 
 static void aweather_bin_set_child(GtkBin *bin, GtkWidget *new)
 {
