@@ -2,8 +2,8 @@ AWeather Users Guide
 ====================
 :Author:   Jason Holmes
 :Email:    <Doppler5@aol.com>
-:Date:     2012-01-10
-:Revision: 0.6.3
+:Date:     2013-01-28
+:Revision: 0.8
 :Website:  http://pileus.org/aweather/
 
 About and contact information
@@ -19,7 +19,7 @@ interactive display utilizing Grits and OpenGL technologies.
 The software source code is available for download at
 git://pileus.org/aweather.
 
-AWeather relies upon the following dependencies: http://www.gtk.org/[gtk+] 2.16
+AWeather relies upon the following dependencies: http://www.gtk.org/[gtk+] 2.18
 or later, http://www.gnome.org/[libsoup] 2.26 or later, http://bzip.org/[bzip],
 http://trmm-fc.gsfc.nasa.gov/trmm_gv/software/rsl[rsl] 1.42 or later, and
 others.
@@ -27,12 +27,12 @@ others.
 Packaged versions of the software are currently available for Gentoo, Debian,
 Ubuntu, Microsoft Windows, and Mac OSX operating systems.
 
-The program currently provides data viewing from the standard one dimensional
+The program currently provides data viewing from the standard two dimensional
 plan view to user-defined three-dimensional dynamic views of current and recent
 radar data.
 
 The software was developed and is maintained by Andy Spencer. He may be
-contacted through e-mail at andy753421@gmail.com and chat through IRC at #rhlug
+contacted through e-mail at andy753421@gmail.com and chat through IRC at #pileus
 on irc.freenode.net.
 
 
@@ -45,10 +45,10 @@ Public License (version 3 or later) as published by the Free Software Foundation
 
 Data types and sources
 ----------------------
-AWeather displays U.S. National Weather Service NEXt generation RADar data
-(NEXRAD) Level II data.  This is the highest resolution form of radar data
-available in the public domain and consists of multiple tilts of data updated
-every 5 to 10 minutes depending on the current scan mode of each radar.
+AWeather displays U.S. National Weather Service NEXt generation RADar (NEXRAD)
+Level II data.  This is the highest resolution form of radar data available in
+the public domain and consists of multiple tilts of data updated every 5 to 10
+minutes depending on the current scan mode of each radar.
 
 The following Level II data types are supported by this program:
 
@@ -72,7 +72,7 @@ The following Level II data types are supported by this program:
 Level II data has been available through private weather data vendors for some
 time but recently has been generously provided by some universities.
 
-AWeather requires an active internet connection along with a data feed source in
+AWeather requires an active internet connection along with a data source in
 order to retrieve, decode and display current or recent radar data.
 
 The default radar feed is publically accessible thanks to Iowa State University
@@ -80,6 +80,10 @@ and is located at: http://mesonet.agron.iastate.edu/data/nexrd2/raw/.
 
 AWeather also displays some severe weather alerts provided by the NOAA weather
 alerts http://alerts.weather.gov/[feed].
+
+When run under Linux, AWeather can interface with the
+http://www.catb.org/gpsd/[GPSd] location services to track and display the
+user's current location.
 
 
 Program layout
@@ -125,7 +129,10 @@ Preferences:: opens the preferences window, which contains the following
 [horizontal]
 		alert checkbox::::       allows the user to toggle the weather alerts
 		elev checkbox::::        allows the user to toggle terrain rendering
-		env checkbox::::         allows the user to toggle a blue atmosphere
+		env checkbox::::         allows the user to toggle a blue atmosphere and
+		                         compass rose
+		gps checkbox::::         allows the user to toggle gps tracking
+		                         [Linux only]
 		map checkbox::::         allows the user to toggle the map overlays
 		radar checkbox::::       allows the user to toggle the radar data
 		sat checkbox::::         allows the user to toggle satellite ground images
@@ -186,6 +193,10 @@ The map and data viewing pane
 On program startup and when zoomed far from the earth's surface AWeather
 displays a national radar composite image.
 
+Each available radar site is displayed on the map using the name of a nearby
+major city. Clicking on the city label will activate the radar site and center
+it in the viewer.
+
 As the user zooms closer to the earth AWeather will automatically activate
 nearby radar sites.
 
@@ -229,6 +240,11 @@ Panning, zooming and tilt functions
 -----------------------------------
 AWeather supports the use of the mouse and keyboard commands to change the map
 window settings.
+
+When the map is rotated, a red and white compass in the top right corner shows
+the current direction of North. Clicking on the compass will reset the rotation
+so that north points toward the top of the screen and the viewer is pointed
+towards the ground.
 
 Mouse usage::
 [horizontal]

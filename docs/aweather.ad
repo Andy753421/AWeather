@@ -61,7 +61,6 @@ KEY BINDINGS
 	Zoom towards or away from the surface of the earth.
 
 *J*, *K*::
-	Zoom
 	Rotate the camera back or forward. If looking across the surface of the
 	earth, J will point the camera towards ground while K will point the
 	camera towards the sky.
@@ -82,6 +81,9 @@ KEY BINDINGS
 
 *CTRL-R*::
 	Refresh all map data.
+
+*F11*::
+	Toggle full screen mode
 
 MOUSE MOTION
 ------------
