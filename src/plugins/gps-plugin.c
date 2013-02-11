@@ -514,11 +514,7 @@ gboolean gps_redraw_all(gpointer data)
 		gps_track_add_point(&gps->track,
 			  gps_data->fix.latitude, gps_data->fix.longitude, 0.0);
 
-		if (gps->track.line) {
-			grits_viewer_remove(gps->viewer,
-			    GRITS_OBJECT(gps->track.line));
-			gps->track.line = NULL;
-		}
+		grits_object_destroy_pointer(&gps->track.line);
 
 		gps->track.line = grits_line_new(gps->track.points);
 		gps->track.line->color[0]  = 1.0;
@@ -533,11 +529,7 @@ gboolean gps_redraw_all(gpointer data)
 	}
 
 	if (gps_data_is_valid(gps_data)) {
-		if (gps->marker) {
-			grits_viewer_remove(gps->viewer,
-			    GRITS_OBJECT(gps->marker));
-			gps->marker = NULL;
-		}
+		grits_object_destroy_pointer(&gps->marker);
 
 		gchar *path = find_path(GPS_MARKER_ICON_PATH, GPS_MARKER_ICON);
 		if (path) {
@@ -949,9 +941,7 @@ static void grits_plugin_gps_dispose(GObject *gobject)
 	if (gps->viewer) {
 		GritsViewer *viewer = gps->viewer;
 		gps->viewer = NULL;
-		if (gps->marker)
-			grits_viewer_remove(viewer,
-		               GRITS_OBJECT(gps->marker));
+		grits_object_destroy_pointer(&gps->marker);
 		g_object_unref(gps->prefs);
 		g_object_unref(viewer);
 	}

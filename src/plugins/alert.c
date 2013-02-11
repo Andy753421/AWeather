@@ -759,10 +759,8 @@ static void _update_warnings(GritsPluginAlert *alert, GList *old)
 	/* Remove old messages */
 	for (GList *cur = old; cur; cur = cur->next) {
 		AlertMsg *msg = cur->data;
-		if (msg->county_based) grits_viewer_remove(alert->viewer,
-				GRITS_OBJECT(msg->county_based));
-		if (msg->storm_based) grits_viewer_remove(alert->viewer,
-				GRITS_OBJECT(msg->storm_based));
+		grits_object_destroy_pointer(&msg->county_based);
+		grits_object_destroy_pointer(&msg->storm_based);
 	}
 
 	/* Add new messages */
@@ -981,13 +979,11 @@ static void grits_plugin_alert_dispose(GObject *gobject)
 		alert->viewer = NULL;
 		for (GList *cur = alert->msgs; cur; cur = cur->next) {
 			AlertMsg *msg = cur->data;
-			if (msg->county_based) grits_viewer_remove(viewer,
-					GRITS_OBJECT(msg->county_based));
-			if (msg->storm_based) grits_viewer_remove(viewer,
-					GRITS_OBJECT(msg->storm_based));
+			grits_object_destroy_pointer(&msg->county_based);
+			grits_object_destroy_pointer(&msg->storm_based);
 		}
 		for (GList *cur = alert->states; cur; cur = cur->next)
-			grits_viewer_remove(viewer, cur->data);
+			grits_object_destroy_pointer(&cur->data);
 		gtk_widget_destroy(alert->details);
 		g_object_unref(alert->prefs);
 		g_object_unref(viewer);

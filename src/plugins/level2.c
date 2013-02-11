@@ -523,11 +523,7 @@ static void aweather_level2_dispose(GObject *_level2)
 {
 	AWeatherLevel2 *level2 = AWEATHER_LEVEL2(_level2);
 	g_debug("AWeatherLevel2: dispose - %p", _level2);
-	if (level2->volume) {
-		grits_viewer_remove(GRITS_OBJECT(level2->volume)->viewer,
-				GRITS_OBJECT(level2->volume));
-		level2->volume = NULL;
-	}
+	grits_object_destroy_pointer(&level2->volume);
 	G_OBJECT_CLASS(aweather_level2_parent_class)->dispose(_level2);
 }
 static void aweather_level2_finalize(GObject *_level2)

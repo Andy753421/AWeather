@@ -218,10 +218,7 @@ void _site_update(RadarSite *site)
 
 	/* Remove old volume */
 	g_debug("RadarSite: update - remove - %s", site->city->code);
-	if (site->level2) {
-		grits_viewer_remove(site->viewer, GRITS_OBJECT(site->level2));
-		site->level2 = NULL;
-	}
+	grits_object_destroy_pointer(&site->level2);
 
 	/* Fork loading right away so updating the
 	 * list of times doesn't take too long */
@@ -249,10 +246,7 @@ void radar_site_unload(RadarSite *site)
 		gtk_widget_destroy(site->config);
 
 	/* Remove radar */
-	if (site->level2) {
-		grits_viewer_remove(site->viewer, GRITS_OBJECT(site->level2));
-		site->level2 = NULL;
-	}
+	grits_object_destroy_pointer(&site->level2);
 
 	site->status = STATUS_UNLOADED;
 }
@@ -355,7 +349,7 @@ RadarSite *radar_site_new(city_t *city, GtkWidget *pconfig,
 void radar_site_free(RadarSite *site)
 {
 	radar_site_unload(site);
-	grits_viewer_remove(site->viewer, GRITS_OBJECT(site->marker));
+	grits_object_destroy_pointer(&site->marker);
 	if (site->location_id)
 		g_signal_handler_disconnect(site->viewer, site->location_id);
 	grits_http_free(site->http);
@@ -626,11 +620,8 @@ void radar_conus_free(RadarConus *conus)
 	if (conus->idle_source)
 		g_source_remove(conus->idle_source);
 
-	for (int i = 0; i < 2; i++) {
-		GritsTile *tile = conus->tile[i];
-		grits_viewer_remove(conus->viewer, GRITS_OBJECT(tile));
-		g_object_unref(tile);
-	}
+	for (int i = 0; i < 2; i++)
+		grits_object_destroy_pointer(&conus->tile[i]);
 
 	g_object_unref(conus->viewer);
 	g_free(conus);
@@ -812,11 +803,10 @@ static void grits_plugin_radar_dispose(GObject *gobject)
 		GritsViewer *viewer = self->viewer;
 		self->viewer = NULL;
 		g_signal_handler_disconnect(self->config, self->tab_id);
-		grits_viewer_remove(viewer, GRITS_OBJECT(self->hud));
+		grits_object_destroy_pointer(&self->hud);
 		radar_conus_free(self->conus);
 		g_hash_table_destroy(self->sites);
 		g_object_unref(self->config);
-		g_object_unref(self->hud);
 		g_object_unref(self->prefs);
 		g_object_unref(viewer);
 	}
