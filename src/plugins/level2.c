@@ -408,6 +408,11 @@ static void _on_iso_changed(GtkRange *range, gpointer _level2)
 	aweather_level2_set_iso(level2, level);
 }
 
+static gchar *_on_format_value(GtkScale *scale, gdouble value, gpointer _level2)
+{
+	return g_strdup_printf("%.1lf dBZ ", value);
+}
+
 GtkWidget *aweather_level2_get_config(AWeatherLevel2 *level2)
 {
 	Radar *radar = level2->radar;
@@ -497,7 +502,8 @@ GtkWidget *aweather_level2_get_config(AWeatherLevel2 *level2)
 	gtk_scale_set_value_pos(GTK_SCALE(scale), GTK_POS_LEFT);
 	gtk_range_set_inverted(GTK_RANGE(scale), TRUE);
 	gtk_range_set_value(GTK_RANGE(scale), ISO_MAX);
-	g_signal_connect(scale, "value-changed", G_CALLBACK(_on_iso_changed), level2);
+	g_signal_connect(scale, "value-changed", G_CALLBACK(_on_iso_changed),  level2);
+	g_signal_connect(scale, "format-value",  G_CALLBACK(_on_format_value), level2);
 	gtk_table_attach(GTK_TABLE(table), scale,
 			1,cols+1, rows,rows+1, GTK_FILL|GTK_EXPAND,GTK_FILL, 0,0);
 	/* Shove all the buttons to the left, but keep the slider expanded */
