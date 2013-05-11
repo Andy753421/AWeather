@@ -75,7 +75,7 @@ time but recently has been generously provided by some universities.
 AWeather requires an active internet connection along with a data source in
 order to retrieve, decode and display current or recent radar data.
 
-The default radar feed is publically accessible thanks to Iowa State University
+The default radar feed is publicly accessible thanks to Iowa State University
 and is located at: http://mesonet.agron.iastate.edu/data/nexrd2/raw/.
 
 AWeather also displays some severe weather alerts provided by the NOAA weather
@@ -101,7 +101,7 @@ File
 ~~~~
 Offline::     stops the program from downloading data through the internet
 Refresh::     reloads the current display
-Auto-updae::  automatically refresh the the radar after a certain delay
+Auto-update::  automatically refresh the the radar after a certain delay
 Clean cache:: removes data files from the program's internal cache
 Quit::        closes the program window and exits from memory
 
@@ -316,8 +316,8 @@ Some of these enhancements include:
 
 	* Vertical cross sections
 	* Support for derived L3 data (storm relative motion, echo tops, composite
-	  reflectivity, etc)
-	* Additional data sources for surface data, etc
+	  reflectivity, etc.)
+	* Additional data sources for surface data, etc.
 	* Animation support
 	* API for radar algorithms
 	* Additional features
