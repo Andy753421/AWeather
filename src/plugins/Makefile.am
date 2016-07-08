@@ -36,9 +36,7 @@ plugins_LTLIBRARIES += radar.la
 radar_la_SOURCES = \
 	radar.c      radar.h \
 	level2.c     level2.h \
-	radar-info.c radar-info.h \
-	../aweather-location.c \
-	../aweather-location.h
+	radar-info.c radar-info.h
 radar_la_CPPFLAGS = \
 	-DPKGDATADIR="\"$(DOTS)$(pkgdatadir)\"" \
 	-I$(top_srcdir)/src
